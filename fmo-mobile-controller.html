@@ -635,7 +635,7 @@
             justify-content: space-between;
             align-items: center;
         }
-        .modal-header h3 { margin: 0; color: var(--accent-cyan); font-size: 1.2rem; }
+        .modal-header h3 { margin: 0; color: var(--text-main); font-size: 1.2rem; }
         .btn-icon { background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; padding: 0 5px; }
         .qso-list {
             flex: 1; overflow-y: auto; padding: 0;
@@ -1445,7 +1445,7 @@
                 this.btnClose = document.getElementById('btn-qso-close');
                 
                 this.page = 0;
-                this.pageSize = 50; // Load more for mobile
+                this.pageSize = 20; // Default page size
                 this.isLoading = false;
 
                 if (this.btn && this.modal) {
@@ -1546,8 +1546,7 @@
             btnSettingsToggle: document.getElementById('btn-settings-toggle'),
             settingsArea: document.getElementById('settings-area'),
             btnPlay: document.getElementById('btn-play'),
-            volKnob: document.getElementById('vol-knob'),
-            volValue: document.getElementById('vol-value'),
+            // volKnob/volValue removed (using VolumeSlider)
             btnRecord: document.getElementById('btn-record'),
             vizArea: document.getElementById('viz-area'),
             vizModeText: document.getElementById('viz-mode-text'),
@@ -1688,6 +1687,7 @@
             list.forEach(st => {
                 const el = document.createElement('div');
                 el.className = 'station-item';
+                el.dataset.uid = st.uid;
                 if (st.uid == currentStationId) el.classList.add('active');
                 
                 el.innerHTML = `
@@ -1708,7 +1708,10 @@
             currentStationId = data.uid;
             // 高亮当前
             const items = document.querySelectorAll('.station-item');
-            // 简单重刷或查找对应项高亮 (这里列表可能已刷新)
+            items.forEach(el => {
+                if (el.dataset.uid == currentStationId) el.classList.add('active');
+                else el.classList.remove('active');
+            });
         });
 
         ui.btnPrev.addEventListener('click', () => ctrl.prevStation());

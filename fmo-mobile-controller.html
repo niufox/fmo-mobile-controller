@@ -906,7 +906,7 @@
                         this.emit('status', true);
                         // 连接后自动获取列表和当前台站
                         const fetchList = () => {
-                            this.send('station', 'getListRange', { start: 0, count: 20 });
+                            this.send('station', 'getListRange', { start: 0, count: 200 });
                         };
                         fetchList();
                         this.send('station', 'getCurrent');

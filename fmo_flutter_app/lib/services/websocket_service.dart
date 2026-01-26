@@ -11,6 +11,12 @@ class WebSocketService with ChangeNotifier {
   Timer? _reconnectTimer;
   Timer? _updateTimer;
 
+  // Fetching state
+  bool _fetchingAll = false;
+  List<dynamic> _tempStationList = [];
+  int _fetchStart = 0;
+  final int _fetchPageSize = 20;
+
   bool get connected => _connected;
 
   // Streams for UI
@@ -54,7 +60,7 @@ class WebSocketService with ChangeNotifier {
       _startAutoUpdate();
       
       // Initial fetch
-      send('station', 'getListRange', {'start': 0, 'count': 1000});
+      fetchList();
       send('station', 'getCurrent');
 
     } catch (e) {
@@ -80,11 +86,22 @@ class WebSocketService with ChangeNotifier {
 
   void _startAutoUpdate() {
     _updateTimer?.cancel();
-    _updateTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    _updateTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (_connected) {
-        send('station', 'getListRange', {'start': 0, 'count': 1000});
+        fetchList();
       }
     });
+  }
+
+  // Fetch complete list (batched)
+  void fetchList() {
+    if (_fetchingAll) return;
+    
+    _fetchingAll = true;
+    _tempStationList = [];
+    _fetchStart = 0;
+    
+    send('station', 'getListRange', {'start': 0, 'count': _fetchPageSize});
   }
 
   void send(String type, String subType, [Map<String, dynamic>? data]) {
@@ -104,7 +121,38 @@ class WebSocketService with ChangeNotifier {
       if (data['type'] == 'station') {
         switch (data['subType']) {
           case 'getListResponse':
-            _stationListController.add(data['data']['list'] ?? []);
+            final newList = (data['data']['list'] as List?) ?? [];
+            final start = data['data']['start'];
+
+            if (_fetchingAll) {
+              // Verify start order
+              if (start != null && start != _fetchStart) {
+                print('Fetch order mismatch: expected $_fetchStart, got $start');
+                _fetchingAll = false;
+                return;
+              }
+
+              _tempStationList.addAll(newList);
+
+              if (newList.length < _fetchPageSize) {
+                // Done
+                print('Fetch complete. Total: ${_tempStationList.length}');
+                final filteredList = _tempStationList.where((i) => i != null).toList();
+                _stationListController.add(filteredList);
+                _fetchingAll = false;
+                _tempStationList = [];
+              } else {
+                // Next page
+                _fetchStart += _fetchPageSize;
+                print('Fetching next page: start=$_fetchStart');
+                send('station', 'getListRange', {'start': _fetchStart, 'count': _fetchPageSize});
+              }
+            } else {
+              // Legacy/Single update support
+              if ((start == 0 || start == null) && newList.isNotEmpty) {
+                 _stationListController.add(newList);
+              }
+            }
             break;
           case 'getCurrentResponse':
             _currentStationController.add(data['data']);
@@ -124,9 +172,21 @@ class WebSocketService with ChangeNotifier {
   }
 
   // Commands
-  void setStation(int uid) => send('station', 'setCurrent', {'uid': uid});
-  void nextStation() => send('station', 'next');
-  void prevStation() => send('station', 'prev');
+  void setStation(int uid) {
+    send('station', 'setCurrent', {'uid': uid});
+    // Delay 3000ms before fetching current station to ensure server state update
+    Timer(const Duration(seconds: 3), () => send('station', 'getCurrent'));
+  }
+  
+  void nextStation() {
+    send('station', 'next');
+    Timer(const Duration(seconds: 3), () => send('station', 'getCurrent'));
+  }
+  
+  void prevStation() {
+    send('station', 'prev');
+    Timer(const Duration(seconds: 3), () => send('station', 'getCurrent'));
+  }
   void getQsoList({int page = 0, int pageSize = 20}) {
     send('qso', 'getList', {'page': page, 'pageSize': pageSize});
   }

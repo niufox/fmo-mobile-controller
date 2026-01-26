@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FMO</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module">
+    import { getWiFiCtl } from './wifiCtl.js';
+    document.addEventListener('DOMContentLoaded', () => {
+      const wifiCtl = getWiFiCtl();
+    });
+  </script>
+</head>
+
+<body>
+  <!-- 兄弟有时间看我这垃圾屎山代码，不如点个蜜雪冰城-->
+  <!-- 这玩意搓了我2个多星期，总算是搞明白了这些花里胡哨的前端玩意-->
+  <!-- 使用文档可以去bg5esn.com上找找 买fmo可以去搜索店铺:小黑盒定制开发-->
+  <div class="container">
+  <header id="wifi-title"></header>
+    <content>
+      <div class="wifi-content-box">
+        <div class="wifi-scan-contorl-box">
+          <button class="wifi-scan-button" id="wifi_button"></button>
+          <label class="wifi-scan-notify" id="wifi_notify"></label>
+        </div>
+        <div class="wifi-list-box" id="wifi-list">
+          <!-- 未连接时显示：手动添加WiFi（独立样式，PC/移动端一致） -->
+          <div class="wifi-manual-card" id="wifi_manual" style="display:none;">
+            <div class="wifi-manual-title" id="wifi_manual_title"></div>
+            <div class="wifi-manual-body">
+              <div class="wifi-manual-row">
+                <input class="wifi-manual-input" id="wifi_manual_ssid" />
+                <input class="wifi-manual-input" id="wifi_manual_password" />
+              </div>
+              <div class="wifi-manual-actions">
+                <button class="wifi-manual-button" id="wifi_manual_save"></button>
+              </div>
+              <div class="wifi-manual-notify" id="wifi_manual_notify"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </content>
+    <footer>ver1.10@BG5ESN</footer>
+    <template id="wifi-item-template">
+      <!--<div class = "wifi-item-box">-->
+      <div class="wifi-item-rssi-box">
+      </div>
+      <div class="wifi-item-detail-box">
+        <label class="wifi-item-ssid">ESN</label>
+        <div class="wifi-item-expanded-ctl">
+          <label class="wifi-item-ssid-info">安全</label>
+          <label class="wifi-item-password-notify">请输入密码</label>
+          <input class="wifi-item-password wifi-item-password-input-hidden-ctl"></input>
+          <div class="wifi-item-password-button-box">
+            <button class="wifi-item-password-button">连接</button>
+            <button class="wifi-item-password-button">取消</button>
+          </div>
+        </div>
+      </div>
+      <!--</div>-->
+    </template>
+  </div>
+</body>
+
+</html>

@@ -14,6 +14,8 @@ class WebSocketService with ChangeNotifier {
   // Fetching state
   bool _fetchingAll = false;
   List<dynamic> _tempStationList = [];
+  List<dynamic> _stationList = [];
+  int? _currentStationId;
   int _fetchStart = 0;
   final int _fetchPageSize = 20;
 
@@ -84,6 +86,14 @@ class WebSocketService with ChangeNotifier {
     });
   }
 
+  void fetchList() {
+    if (_fetchingAll) return;
+    _fetchingAll = true;
+    _tempStationList = [];
+    _fetchStart = 0;
+    send('station', 'getListRange', {'start': 0, 'count': _fetchPageSize});
+  }
+
   void _startAutoUpdate() {
     _updateTimer?.cancel();
     _updateTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
@@ -91,17 +101,6 @@ class WebSocketService with ChangeNotifier {
         fetchList();
       }
     });
-  }
-
-  // Fetch complete list (batched)
-  void fetchList() {
-    if (_fetchingAll) return;
-    
-    _fetchingAll = true;
-    _tempStationList = [];
-    _fetchStart = 0;
-    
-    send('station', 'getListRange', {'start': 0, 'count': _fetchPageSize});
   }
 
   void send(String type, String subType, [Map<String, dynamic>? data]) {
@@ -138,6 +137,7 @@ class WebSocketService with ChangeNotifier {
                 // Done
                 print('Fetch complete. Total: ${_tempStationList.length}');
                 final filteredList = _tempStationList.where((i) => i != null).toList();
+                _stationList = filteredList;
                 _stationListController.add(filteredList);
                 _fetchingAll = false;
                 _tempStationList = [];
@@ -155,9 +155,15 @@ class WebSocketService with ChangeNotifier {
             }
             break;
           case 'getCurrentResponse':
+            if (data['data'] != null) {
+              _currentStationId = data['data']['uid'];
+            }
             _currentStationController.add(data['data']);
             break;
           case 'stationCurrent': // Event pushed from server
+             if (data['data'] != null) {
+               _currentStationId = data['data']['uid'];
+             }
              _currentStationController.add(data['data']);
              break;
         }
@@ -174,19 +180,47 @@ class WebSocketService with ChangeNotifier {
   // Commands
   void setStation(int uid) {
     send('station', 'setCurrent', {'uid': uid});
-    // Delay 3000ms before fetching current station to ensure server state update
     Timer(const Duration(seconds: 3), () => send('station', 'getCurrent'));
   }
-  
+
   void nextStation() {
-    send('station', 'next');
-    Timer(const Duration(seconds: 3), () => send('station', 'getCurrent'));
+    if (_stationList.isEmpty) return;
+    
+    int index = -1;
+    if (_currentStationId != null) {
+      index = _stationList.indexWhere((s) => s['uid'] == _currentStationId);
+    }
+    
+    int nextIndex = 0;
+    if (index != -1) {
+      nextIndex = (index + 1) % _stationList.length;
+    }
+    
+    final nextStation = _stationList[nextIndex];
+    if (nextStation != null) {
+      setStation(nextStation['uid']);
+    }
   }
-  
+
   void prevStation() {
-    send('station', 'prev');
-    Timer(const Duration(seconds: 3), () => send('station', 'getCurrent'));
+    if (_stationList.isEmpty) return;
+    
+    int index = -1;
+    if (_currentStationId != null) {
+      index = _stationList.indexWhere((s) => s['uid'] == _currentStationId);
+    }
+    
+    int prevIndex = _stationList.length - 1;
+    if (index != -1) {
+      prevIndex = (index - 1 + _stationList.length) % _stationList.length;
+    }
+    
+    final prevStation = _stationList[prevIndex];
+    if (prevStation != null) {
+      setStation(prevStation['uid']);
+    }
   }
+
   void getQsoList({int page = 0, int pageSize = 20}) {
     send('qso', 'getList', {'page': page, 'pageSize': pageSize});
   }

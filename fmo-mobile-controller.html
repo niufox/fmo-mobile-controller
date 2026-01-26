@@ -903,18 +903,27 @@
         class ControlClient extends EventEmitter {
             constructor() {
                 super();
+                // 配置常量 - 提取以提高可维护性
+                this.CONFIG = {
+                    FETCH_PAGE_SIZE: 20,
+                    AUTO_REFRESH_INTERVAL: 30000,
+                    RECONNECT_DELAY: 3000,
+                    POST_SWITCH_DELAY: 3000
+                };
+
                 this.ws = null;
                 this.connected = false;
                 this.reconnectTimer = null;
                 this.autoUpdateTimer = null; // 自动更新定时器
                 this.host = '';
                 this.stationList = []; // 存储所有已加载的台站
+                this.currentStationId = null; // 当前台站ID
                 
                 // 全量加载状态管理
                 this.fetchingAll = false;
                 this.tempStationList = [];
                 this.fetchStart = 0;
-                this.fetchPageSize = 20; // 每次获取限制
+                this.fetchPageSize = this.CONFIG.FETCH_PAGE_SIZE; // 每次获取限制
             }
 
             connect(host) {
@@ -955,7 +964,7 @@
 
                         // 3秒后重连
                         clearTimeout(this.reconnectTimer);
-                        this.reconnectTimer = setTimeout(() => this.connect(this.host), 3000);
+                        this.reconnectTimer = setTimeout(() => this.connect(this.host), this.CONFIG.RECONNECT_DELAY);
                     };
 
                     this.ws.onerror = (e) => {
@@ -1030,6 +1039,9 @@
                             }
                             break;
                         case 'getCurrentResponse':
+                            if (msg.data && msg.data.uid) {
+                                this.currentStationId = msg.data.uid;
+                            }
                             this.emit('stationCurrent', msg.data);
                             break;
                         case 'setCurrentResponse':
@@ -1043,19 +1055,24 @@
 
             // 快捷指令
             setStation(uid) { 
+                // 乐观更新：立即更新本地状态，解决连续点击失效问题
+                this.currentStationId = uid;
+                
                 this.send('station', 'setCurrent', { uid }); 
-                // Delay 3000ms before fetching current station to ensure server state update
-                setTimeout(() => this.send('station', 'getCurrent'), 3000);
+                // Delay before fetching current station to ensure server state update
+                setTimeout(() => this.send('station', 'getCurrent'), this.CONFIG.POST_SWITCH_DELAY);
             }
+
             nextStation() { 
-                this.send('station', 'next'); 
-                // Delay 3000ms before fetching current station
-                setTimeout(() => this.send('station', 'getCurrent'), 3000);
+                this.send('station', 'next');
+                // Delay before fetching current station to ensure server state update
+                setTimeout(() => this.send('station', 'getCurrent'), this.CONFIG.POST_SWITCH_DELAY);
             }
+
             prevStation() { 
-                this.send('station', 'prev'); 
-                // Delay 3000ms before fetching current station
-                setTimeout(() => this.send('station', 'getCurrent'), 3000);
+                this.send('station', 'prev');
+                // Delay before fetching current station to ensure server state update
+                setTimeout(() => this.send('station', 'getCurrent'), this.CONFIG.POST_SWITCH_DELAY);
             }
             
             // 全量获取逻辑 (递归/分片获取)
@@ -1076,7 +1093,7 @@
                     if (this.connected) {
                         this.fetchList();
                     }
-                }, 30000); // 30秒间隔
+                }, this.CONFIG.AUTO_REFRESH_INTERVAL); // 30秒间隔
             }
 
             stopAutoRefresh() {
@@ -1303,11 +1320,22 @@
                 this.modes = ['SPECTRUM', 'MIRROR', 'WAVEFORM', 'OSCILLOSCOPE', 'RADIAL', 'PARTICLES'];
                 this.running = false;
                 
+                // 缓存主题颜色
+                this.colorTheme = '#00f3ff';
+                this.colorSecondary = '#ff00ff';
+                this.updateThemeColors();
+
                 this.resize();
                 
                 // 使用 ResizeObserver 监听容器大小变化，解决布局变动导致的变形问题
                 this.resizeObserver = new ResizeObserver(() => this.resize());
                 this.resizeObserver.observe(this.canvas);
+            }
+
+            updateThemeColors() {
+                const styles = getComputedStyle(document.body);
+                this.colorTheme = styles.getPropertyValue('--accent-cyan').trim() || '#00f3ff';
+                this.colorSecondary = styles.getPropertyValue('--accent-magenta').trim() || '#ff00ff';
             }
 
             resize() {
@@ -1335,11 +1363,9 @@
                 const w = this.canvas.width;
                 const h = this.canvas.height;
                 
-                // 获取当前主题颜色
-                const styles = getComputedStyle(document.body);
-                // 使用 --accent-cyan 作为主色调，确保与主题一致
-                const colorTheme = styles.getPropertyValue('--accent-cyan').trim() || '#00f3ff';
-                const colorSecondary = styles.getPropertyValue('--accent-magenta').trim() || '#ff00ff';
+                // 使用缓存的主题颜色
+                const colorTheme = this.colorTheme;
+                const colorSecondary = this.colorSecondary;
 
                 // 清空画布
                 this.ctx.clearRect(0, 0, w, h);
@@ -1763,6 +1789,8 @@
             if (themes[currentThemeIndex]) {
                 document.body.classList.add(themes[currentThemeIndex]);
             }
+            // Update visualizer colors
+            viz.updateThemeColors();
         });
 
         // 0.1 设置开关

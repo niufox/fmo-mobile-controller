@@ -1,0 +1,18 @@
+{
+  "app": {
+    "hvigorVersion": "5.0.0",
+    "compileSdkVersion": 11,
+    "compatibleSdkVersion": 11
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default"
+        }
+      ]
+    }
+  ]
+}

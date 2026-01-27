@@ -3,7 +3,7 @@
 ## 概述
 
 FMO Audio Player API 是一个基于 WebSocket 的音频流播放器后端接口系统，提供实时音频流、设备配置、台站管理和日志记录等功能。
-
+注意：给输入的PCM数据，加一个300HZ的HPF，避免哑音。
 ## 1. WebSocket服务 (`webSocketService.js`)
 
 ### 核心功能
@@ -188,6 +188,63 @@ WiFi网络扫描、连接管理和状态监控。
 }
 ```
 
+## 8. 事件订阅服务 (`eventsService.js`)
+
+### 核心功能
+提供独立的 WebSocket 客户端，专门用于订阅后端 `/events` 路径的实时事件推送。该服务独立于音频播放逻辑，确保事件通知的可靠性。
+
+### 类定义 `EventsService`
+
+#### 构造函数
+```javascript
+new EventsService({
+  url: string,          // WebSocket URL，默认 ws://${host}/events
+  autoReconnect: boolean // 是否开启断线自动重连，默认 true
+})
+```                                                                   
+
+### 主要方法
+
+#### 1. 连接管理
+- `connect()`
+  - 建立 WebSocket 连接。
+  - 自动处理重复调用（如果已连接或正在连接则忽略）。
+  - 设置自动重连机制（指数退避策略：1s -> ... -> 8s）。
+- `disconnect()`
+  - 主动断开连接。
+  - 设置 `want = false`，阻止自动重连触发。
+
+#### 2. 订阅管理
+- `subscribe(callback)`
+  - 注册事件监听回调。
+  - `callback(msg)`: 接收解析后的 JSON 消息对象。
+- `unsubscribe(callback)`
+  - 移除指定的事件监听回调。
+
+### 自动重连机制
+- 当 WebSocket 连接意外关闭（`onclose`）且 `autoReconnect` 为 `true` 时触发。
+- 重连延迟从 1000ms 开始。
+- 每次重连失败，延迟时间增加 1.5 倍，最大不超过 8000ms。
+- 连接成功（`onopen`）后，重连延迟重置为 1000ms。
+
+### 使用示例
+```javascript
+import { eventsService } from './api/eventsService.js';
+
+// 1. 订阅事件
+const onEvent = (msg) => {
+  console.log('Received event:', msg);
+};
+eventsService.subscribe(onEvent);
+
+// 2. 启动连接
+eventsService.connect();
+
+// 3. 不需要时取消订阅
+eventsService.unsubscribe(onEvent);
+```
+
+
 ## 使用示例
 
 ```javascript
@@ -253,6 +310,7 @@ fmo-player/api/
 ├── audioPlayer.js        # 音频播放器
 ├── remoteService.js      # 远程控制服务
 ├── qsoService.js        # QSO日志服务
+├── eventsService.js     # 事件订阅服务
 ├── config.js            # 配置界面管理
 ├── wifiService.js       # WiFi管理服务
 ├── wifiCtl.js           # WiFi控制逻辑

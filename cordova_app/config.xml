@@ -1,0 +1,142 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.fmo.controller" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
+    <name>FMO Controller</name>
+    <description>
+        FMO Mobile Controller Application
+    </description>
+    <author email="niufox@qq.com" href="https://example.com">
+        FMO Team
+    </author>
+    <content src="index.html" />
+    
+    <access origin="*" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+    <platform name="android">
+        <config-file parent="/manifest" target="AndroidManifest.xml">
+            <uses-permission android:name="android.permission.INTERNET" />
+            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+            <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+            <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+            <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+            <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+            <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" android:usesPermissionFlags="neverForLocation" />
+        </config-file>
+        <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
+            <application android:usesCleartextTraffic="true" />
+        </edit-config>
+
+        <resource-file src="res/drawable/ic_launcher_background.xml" target="app/src/main/res/drawable/ic_launcher_background.xml" />
+        <resource-file src="res/drawable/ic_launcher_foreground.xml" target="app/src/main/res/drawable/ic_launcher_foreground.xml" />
+        <resource-file src="res/drawable/ic_launcher.xml" target="app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" />
+        <resource-file src="res/drawable/ic_launcher.xml" target="app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" />
+    </platform>
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    <preference name="android-targetSdkVersion" value="35" />
+    <preference name="android-compileSdkVersion" value="35" />
+    <preference name="android-buildToolsVersion" value="35.0.0" />
+    <preference name="GradlePluginKotlinEnabled" value="true" />
+    <preference name="AndroidXEnabled" value="true" />
+</widget>

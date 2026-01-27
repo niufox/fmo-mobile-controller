@@ -46,6 +46,19 @@ try {
 
     let htmlContent = fs.readFileSync(SOURCE_FILE, 'utf8');
 
+    const versionAttrRegex = /data-version="(\d+(?:\.\d+)?)"/;
+    const versionTextRegex = /(<div[^>]*id="credits-version"[^>]*>)([^<]*)(<\/div>)/;
+    const versionMatch = htmlContent.match(versionAttrRegex);
+    if (versionMatch) {
+        const current = parseFloat(versionMatch[1]);
+        if (!Number.isNaN(current)) {
+            const next = (Math.round((current + 0.1) * 10) / 10).toFixed(1);
+            htmlContent = htmlContent.replace(versionAttrRegex, `data-version="${next}"`);
+            htmlContent = htmlContent.replace(versionTextRegex, `$1v${next}$3`);
+            fs.writeFileSync(SOURCE_FILE, htmlContent);
+        }
+    }
+
     // Extract CSS
     const styleRegex = /<style>([\s\S]*?)<\/style>/i;
     const styleMatch = htmlContent.match(styleRegex);

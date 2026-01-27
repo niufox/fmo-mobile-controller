@@ -127,7 +127,6 @@
             font-weight: bold;
             letter-spacing: 1px;
             color: var(--accent-cyan);
-            /* text-shadow: 0 0 10px rgba(0,0,0,0.1); */
             display: flex;
             align-items: center;
             gap: 8px;
@@ -222,7 +221,6 @@
         }
 
         .viz-mode-badge {
-            /* position: absolute; Removed for flex container */
             padding: 4px 10px;
             background: var(--accent-cyan);
             border: none;
@@ -254,7 +252,7 @@
         }
 
         /* 播放控制 */
-        /* .player-controls 移除，直接使用 control-btn-group 和 vol-bar-container 垂直排列 */
+
 
         .control-btn-group {
             display: flex;
@@ -762,7 +760,7 @@
 
         </div>
 
-        <!-- 设置 - 已移动到顶部，此处删除 -->
+
     </div>
 
     <!-- QSO Log Modal -->
@@ -1027,7 +1025,6 @@
                                 } else {
                                     // 继续获取下一页
                                     this.fetchStart += this.fetchPageSize;
-                                    console.log(`Fetching next page: start=${this.fetchStart}`);
                                     this.send('station', 'getListRange', { start: this.fetchStart, count: this.fetchPageSize });
                                 }
                             } else {
@@ -1762,7 +1759,6 @@
             btnSettingsToggle: document.getElementById('btn-settings-toggle'),
             settingsArea: document.getElementById('settings-area'),
             btnPlay: document.getElementById('btn-play'),
-            // volKnob/volValue removed (using VolumeSlider)
             btnRecord: document.getElementById('btn-record'),
             vizArea: document.getElementById('viz-area'),
             vizModeText: document.getElementById('viz-mode-text'),
@@ -1963,6 +1959,10 @@
         }, 3000);
 
     </script>
+
+
+</body>
+</html>cript>
 
 
 </body>

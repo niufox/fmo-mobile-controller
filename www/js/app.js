@@ -618,6 +618,7 @@
                 this.canvas = canvas;
                 this.ctx = canvas.getContext('2d');
                 this.analyser = analyser;
+                this.freqData = null;
                 this.mode = 0; 
                 this.modes = ['SPECTRUM', 'MIRROR', 'WAVEFORM', 'OSCILLOSCOPE', 'RADIAL', 'PARTICLES'];
                 this.running = false;
@@ -658,7 +659,7 @@
                 this.canvas.height = this.canvas.clientHeight * window.devicePixelRatio;
             }
 
-            setAnalyser(analyser) { this.analyser = analyser; }
+            setAnalyser(analyser) { this.analyser = analyser; this.freqData = null; }
 
             switchMode() {
                 this.mode = (this.mode + 1) % this.modes.length;
@@ -688,7 +689,9 @@
                 if (!this.analyser) return;
 
                 const bufferLength = this.analyser.frequencyBinCount;
-                const dataArray = new Uint8Array(bufferLength);
+                const dataArray = (this.freqData && this.freqData.length === bufferLength)
+                    ? this.freqData
+                    : (this.freqData = new Uint8Array(bufferLength));
                 const modeName = this.modes[this.mode];
 
                 // 通用粒子绘制设置
@@ -701,9 +704,9 @@
                 if (modeName === 'SPECTRUM') { 
                     this.analyser.getByteFrequencyData(dataArray);
                     
-                    // 炫酷粒子均衡器：增加倒影效果
-                    const barCount = 40; 
-                    const step = Math.floor(bufferLength / barCount);
+                    const displayW = this.canvas.clientWidth || (w / window.devicePixelRatio);
+                    const barCount = Math.max(24, Math.min(36, Math.floor(displayW / 12)));
+                    const step = Math.max(1, Math.floor(bufferLength / barCount));
                     const colWidth = w / barCount;
                     const groundY = h * 0.85; // 地平线位置
                     
@@ -713,40 +716,33 @@
                     }
 
                     for(let i = 0; i < barCount; i++) {
-                        let sum = 0;
-                        for(let k=0; k<step; k++) {
-                            sum += dataArray[i*step + k] || 0;
-                        }
-                        const value = sum / step;
+                        const value = dataArray[i * step] || 0;
                         
                         const barHeight = (value / 255) * groundY * 0.9; 
                         const x = i * colWidth + colWidth/2;
                         
                         // 1. 绘制主体粒子柱 (向上)
-                        const particleCount = Math.floor(barHeight / 12); 
+                        const particleCount = Math.floor(barHeight / 16); 
                         for (let j = 0; j < particleCount; j++) {
                             const y = groundY - (j * 12 + 10);
                             const ratio = j / particleCount; 
                             
                             this.ctx.beginPath();
-                            const size = 2 + ratio * 4; 
+                            const size = 2 + ratio * 3; 
                             this.ctx.arc(x, y, size, 0, Math.PI * 2);
                             
                             if (j === particleCount - 1) {
                                 this.ctx.fillStyle = '#ffffff';
-                                this.ctx.shadowBlur = 10;
-                                this.ctx.shadowColor = '#ffffff';
                             } else {
                                 this.ctx.fillStyle = i % 2 === 0 ? colorTheme : colorSecondary;
-                                this.ctx.shadowBlur = 0;
                             }
                             
-                            this.ctx.globalAlpha = ratio * 0.6 + 0.4;
+                            this.ctx.globalAlpha = ratio * 0.6 + 0.35;
                             this.ctx.fill();
                         }
 
                         // 2. 绘制倒影粒子 (向下)
-                        const reflectCount = Math.floor(particleCount / 2);
+                        const reflectCount = Math.floor(particleCount / 3);
                         for (let j = 0; j < reflectCount; j++) {
                             const y = groundY + (j * 12 + 10);
                             // 超出屏幕不绘制
@@ -757,7 +753,7 @@
                             this.ctx.beginPath();
                             this.ctx.arc(x, y, 2, 0, Math.PI * 2);
                             this.ctx.fillStyle = i % 2 === 0 ? colorTheme : colorSecondary;
-                            this.ctx.globalAlpha = ratio * 0.15; // 非常淡
+                            this.ctx.globalAlpha = ratio * 0.12;
                             this.ctx.fill();
                         }
                         
@@ -771,13 +767,10 @@
                         if (this.peaks[i] > 0) {
                             const peakY = groundY - this.peaks[i] - 10;
                             this.ctx.beginPath();
-                            this.ctx.arc(x, peakY, 3, 0, Math.PI * 2);
+                            this.ctx.arc(x, peakY, 2.5, 0, Math.PI * 2);
                             this.ctx.fillStyle = colorSecondary;
                             this.ctx.globalAlpha = 1.0;
-                            this.ctx.shadowBlur = 5;
-                            this.ctx.shadowColor = colorSecondary;
                             this.ctx.fill();
-                            this.ctx.shadowBlur = 0; 
                         }
                     }
                     
@@ -1681,28 +1674,20 @@
         document.addEventListener('keydown', unlockAudio);
 
         // 6. 启动
-        const initApp = () => {
-            // 初始化设备历史列表
-            deviceMgr.render();
+        // 初始化设备历史列表
+        deviceMgr.render();
 
-            // 自动连接
-            setTimeout(() => {
-                const lastHost = deviceMgr.devices.length > 0 ? deviceMgr.devices[0] : 'fmo.local';
-                if (ui.inpHost) {
-                    ui.inpHost.value = lastHost;
-                    // 触发连接按钮点击事件以复用连接逻辑
-                    if (ui.btnConnect) {
-                        ui.btnConnect.click();
-                    }
+        // 自动连接
+        setTimeout(() => {
+            const lastHost = deviceMgr.devices.length > 0 ? deviceMgr.devices[0] : 'fmo.local';
+            if (ui.inpHost) {
+                ui.inpHost.value = lastHost;
+                // 触发连接按钮点击事件以复用连接逻辑
+                if (ui.btnConnect) {
+                    ui.btnConnect.click();
                 }
-            }, 1000);
-        };
-
-        if (window.cordova) {
-            document.addEventListener('deviceready', initApp, false);
-        } else {
-            initApp();
-        }
+            }
+        }, 1000);
 
         // 7. 彩蛋逻辑
         let eggClicks = 0;

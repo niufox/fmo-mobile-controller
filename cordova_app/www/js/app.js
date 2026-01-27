@@ -145,7 +145,7 @@
             }
 
             connect(host) {
-                host = host.replace(/^https?:\/\//, '').replace(/^ws:\/\//, '').replace(/\/$/, '');
+                // 重置加载状态，确保每次连接都能重新获取
                 this.fetchingAll = false;
                 this.tempStationList = [];
                 this.fetchStart = 0;
@@ -434,7 +434,6 @@
 
             connect(host) {
                 if (this.connected) return;
-                host = host.replace(/^https?:\/\//, '').replace(/^ws:\/\//, '').replace(/\/$/, '');
                 this.ensureAudioContext();
                 
                 // 重置状态
@@ -1375,7 +1374,6 @@
             }
 
             connect(host) {
-                host = host.replace(/^https?:\/\//, '').replace(/^ws:\/\//, '').replace(/\/$/, '');
                 this.host = host;
                 if (this.ws) return;
 
@@ -1676,28 +1674,20 @@
         document.addEventListener('keydown', unlockAudio);
 
         // 6. 启动
-        const initApp = () => {
-            // 初始化设备历史列表
-            deviceMgr.render();
+        // 初始化设备历史列表
+        deviceMgr.render();
 
-            // 自动连接
-            setTimeout(() => {
-                const lastHost = deviceMgr.devices.length > 0 ? deviceMgr.devices[0] : 'fmo.local';
-                if (ui.inpHost) {
-                    ui.inpHost.value = lastHost;
-                    // 触发连接按钮点击事件以复用连接逻辑
-                    if (ui.btnConnect) {
-                        ui.btnConnect.click();
-                    }
+        // 自动连接
+        setTimeout(() => {
+            const lastHost = deviceMgr.devices.length > 0 ? deviceMgr.devices[0] : 'fmo.local';
+            if (ui.inpHost) {
+                ui.inpHost.value = lastHost;
+                // 触发连接按钮点击事件以复用连接逻辑
+                if (ui.btnConnect) {
+                    ui.btnConnect.click();
                 }
-            }, 1000);
-        };
-
-        if (window.cordova) {
-            document.addEventListener('deviceready', initApp, false);
-        } else {
-            initApp();
-        }
+            }
+        }, 1000);
 
         // 7. 彩蛋逻辑
         let eggClicks = 0;

@@ -25,7 +25,9 @@
                     let percent = (clientX - rect.left) / rect.width;
                     percent = Math.max(0, Math.min(1, percent));
                     
-                    this.setVolume(percent);
+                    // 0-200% 音量映射 (0.0 - 2.0)
+                    const volumeValue = percent * 2.0;
+                    this.setVolume(volumeValue);
                 };
 
                 // 鼠标事件
@@ -76,7 +78,7 @@
                         this.lastValue = this.value;
                         this.setVolume(0);
                     } else {
-                        this.setVolume(this.lastValue || 0.5);
+                        this.setVolume(this.lastValue || 1.0);
                     }
                     // 震动
                     if (navigator.vibrate) navigator.vibrate(10);
@@ -85,14 +87,18 @@
 
             setVolume(val) {
                 this.value = val;
-                this.player.setVolume(val); // 假设 player 支持 0-1
+                this.player.setVolume(val); // 假设 player 支持 0-2.0
                 this.updateUI(val);
             }
 
             updateUI(val) {
-                const percent = Math.round(val * 100);
-                this.fill.style.width = `${percent}%`;
-                this.text.textContent = `${percent}%`;
+                // 显示百分比 (0-200%)
+                const displayPercent = Math.round(val * 100);
+                // 进度条宽度 (映射 0-2.0 到 0-100%)
+                const fillWidth = Math.min(100, (val / 2.0) * 100);
+                
+                this.fill.style.width = `${fillWidth}%`;
+                this.text.textContent = `${displayPercent}%`;
                 
                 // 更新图标状态
                 if (val === 0) {
@@ -718,42 +724,49 @@
                     for(let i = 0; i < barCount; i++) {
                         const value = dataArray[i * step] || 0;
                         
-                        const barHeight = (value / 255) * groundY * 0.9; 
+                        // 增强：增加高度敏感度
+                        const barHeight = (value / 255) * groundY * 0.95; 
                         const x = i * colWidth + colWidth/2;
                         
                         // 1. 绘制主体粒子柱 (向上)
-                        const particleCount = Math.floor(barHeight / 16); 
+                        // 增强：增加粒子密度和大小
+                        const particleCount = Math.floor(barHeight / 14); 
                         for (let j = 0; j < particleCount; j++) {
-                            const y = groundY - (j * 12 + 10);
+                            const y = groundY - (j * 14 + 10);
                             const ratio = j / particleCount; 
                             
                             this.ctx.beginPath();
-                            const size = 2 + ratio * 3; 
+                            // 增强：粒子更大，随高度变化
+                            const size = 3 + ratio * 3.5; 
                             this.ctx.arc(x, y, size, 0, Math.PI * 2);
                             
                             if (j === particleCount - 1) {
                                 this.ctx.fillStyle = '#ffffff';
+                                this.ctx.shadowBlur = 8;
+                                this.ctx.shadowColor = '#ffffff';
                             } else {
                                 this.ctx.fillStyle = i % 2 === 0 ? colorTheme : colorSecondary;
+                                this.ctx.shadowBlur = 0;
                             }
                             
-                            this.ctx.globalAlpha = ratio * 0.6 + 0.35;
+                            this.ctx.globalAlpha = ratio * 0.7 + 0.3;
                             this.ctx.fill();
                         }
+                        this.ctx.shadowBlur = 0; // Reset
 
                         // 2. 绘制倒影粒子 (向下)
                         const reflectCount = Math.floor(particleCount / 3);
                         for (let j = 0; j < reflectCount; j++) {
-                            const y = groundY + (j * 12 + 10);
+                            const y = groundY + (j * 14 + 10);
                             // 超出屏幕不绘制
                             if (y > h) break;
                             
                             const ratio = 1 - (j / reflectCount); // 越远越淡
                             
                             this.ctx.beginPath();
-                            this.ctx.arc(x, y, 2, 0, Math.PI * 2);
+                            this.ctx.arc(x, y, 2.5, 0, Math.PI * 2);
                             this.ctx.fillStyle = i % 2 === 0 ? colorTheme : colorSecondary;
-                            this.ctx.globalAlpha = ratio * 0.12;
+                            this.ctx.globalAlpha = ratio * 0.15;
                             this.ctx.fill();
                         }
                         
@@ -765,9 +778,9 @@
                         }
                         
                         if (this.peaks[i] > 0) {
-                            const peakY = groundY - this.peaks[i] - 10;
+                            const peakY = groundY - this.peaks[i] - 12;
                             this.ctx.beginPath();
-                            this.ctx.arc(x, peakY, 2.5, 0, Math.PI * 2);
+                            this.ctx.arc(x, peakY, 3, 0, Math.PI * 2);
                             this.ctx.fillStyle = colorSecondary;
                             this.ctx.globalAlpha = 1.0;
                             this.ctx.fill();
@@ -779,8 +792,8 @@
                     this.ctx.moveTo(0, groundY);
                     this.ctx.lineTo(w, groundY);
                     this.ctx.strokeStyle = colorTheme;
-                    this.ctx.lineWidth = 1;
-                    this.ctx.globalAlpha = 0.3;
+                    this.ctx.lineWidth = 2;
+                    this.ctx.globalAlpha = 0.4;
                     this.ctx.stroke();
                     
                     this.ctx.globalAlpha = 1.0;
@@ -1233,6 +1246,7 @@
                 this.btn = document.getElementById('btn-qso');
                 this.btnClose = document.getElementById('btn-qso-close');
                 this.countEl = document.getElementById('qso-count-value');
+                this.badge = document.getElementById('qso-badge');
                 
                 this.page = 0;
                 this.pageSize = 20; // Default page size
@@ -1246,9 +1260,10 @@
 
             initEvents() {
                 // Open Modal
-                this.btn.addEventListener('click', () => {
-                    this.show();
-                });
+                const openModal = () => this.show();
+                this.btn.addEventListener('click', openModal);
+                // 交互优化：点击星星直接打开 QSO 日志
+                if (this.badge) this.badge.addEventListener('click', openModal);
 
                 // Close Modal
                 this.btnClose.addEventListener('click', () => {
@@ -1484,8 +1499,23 @@
 
         let currentStationId = null;
         
+        // 设备检测与适配
+        const checkDevice = () => {
+            // 简单判断：屏幕宽度大于 768px 视为桌面端/平板
+            if (window.innerWidth >= 768) {
+                document.documentElement.classList.add('device-desktop');
+            } else {
+                document.documentElement.classList.remove('device-desktop');
+            }
+        };
+        // 初始化检测
+        checkDevice();
+        // 监听窗口大小变化
+        window.addEventListener('resize', checkDevice);
+
         // 0. 主题切换
-        const themes = ['', 'theme-matrix', 'theme-ocean', 'theme-sunset', 'theme-light'];
+        // 扩展主题列表：包含新增的4款主题
+        const themes = ['', 'theme-matrix', 'theme-ocean', 'theme-sunset', 'theme-light', 'theme-pink', 'theme-purple', 'theme-red', 'theme-black'];
         let currentThemeIndex = 0;
         
         ui.btnTheme.addEventListener('click', () => {
@@ -1569,10 +1599,10 @@
             ui.vizModeText.textContent = modeName;
         });
 
-        // 5. 录音控制
+        // 5. 录音控制：开始/停止录音，导出为 WAV
         ui.btnRecord.addEventListener('click', () => {
             if (!player.recording) {
-                // 开始录音
+                // 开始录音（需要音频已连接）
                 if (!player.connected) {
                     alert('请先连接音频！');
                     return;
@@ -1580,7 +1610,7 @@
                 player.startRecording();
                 ui.btnRecord.classList.add('recording');
             } else {
-                // 停止录音并下载
+                // 停止录音并下载（文件名带时间戳）
                 ui.btnRecord.classList.remove('recording');
                 const blob = player.stopRecording();
                 if (blob) {

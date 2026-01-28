@@ -12,6 +12,7 @@
 </head>
 <body>
 
+    <!-- 顶部功能区：品牌、操作按钮、连接状态 -->
     <header>
         <div class="brand"><span>FMO CONTROLLER</span></div>
         <div class="header-right">
@@ -36,6 +37,7 @@
         </div>
     </header>
 
+    <!-- 设置面板：输入 IP、历史设备与发现设备 -->
     <div id="settings-area">
         <div class="input-group">
             <input type="text" id="inp-host" class="input-dark" placeholder="设备 IP 地址" value="">
@@ -46,11 +48,12 @@
         <div id="discovered-list" class="device-history" style="margin-top: 10px; border-top: 1px dashed #333; padding-top: 10px; display: none;"></div>
     </div>
 
+    <!-- 可视化区域：频谱/字幕/模式标记 -->
     <div class="viz-container" id="viz-area">
         <canvas id="viz-canvas"></canvas>
         <div class="viz-mode-badge" id="current-station-text" style="display: none;"></div>
         
-        <!-- 字幕覆盖层 -->
+        <!-- 字幕覆盖层：语音识别显示 -->
         <div id="subtitle-overlay" class="subtitle-overlay" style="display: none;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
@@ -66,12 +69,14 @@
         </div>
     </div>
 
+    <!-- 控制区：播放、录音、台站切换、音量 -->
     <div class="controls-area">
-        <!-- 播放器控制 -->
+        <!-- 播放器控制：包含播放/录音/上下台切换 -->
         <div class="control-btn-group">
             <button id="btn-play" class="btn-rect-lg">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
             </button>
+            <!-- 录音按钮：中间图标为圆点 -->
             <button id="btn-record" class="btn-rect-lg btn-record" title="录音">
                 <div class="icon"></div>
             </button>
@@ -141,7 +146,7 @@
                 <div class="brand" style="justify-content: center; font-size: 1.5rem; margin-bottom: 20px; color: var(--accent-cyan);">
                     <span>FMO CONTROLLER</span>
                 </div>
-                <div id="credits-version" data-version="1.0" style="margin-bottom: 18px; color: var(--text-muted); font-size: 0.9rem;">v1.0</div>
+                <div id="credits-version" data-version="1.1" style="margin-bottom: 18px; color: var(--text-muted); font-size: 0.9rem;">v1.1</div>
                 
                 <div style="margin-bottom: 25px;">
                     <h4 style="color: var(--accent-magenta); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block;">核心贡献者</h4>

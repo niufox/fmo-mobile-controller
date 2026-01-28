@@ -629,25 +629,32 @@
                 this.modes = ['SPECTRUM', 'MIRROR', 'WAVEFORM', 'OSCILLOSCOPE', 'RADIAL', 'PARTICLES'];
                 this.running = false;
                 
-                // 粒子系统状态 (用于 PARTICLES 模式)
-                this.particles = [];
-                for(let i=0; i<100; i++) {
-                    this.particles.push({
-                        x: Math.random() * canvas.width,
-                        y: Math.random() * canvas.height,
-                        vx: (Math.random() - 0.5) * 2,
-                        vy: (Math.random() - 0.5) * 2,
-                        size: Math.random() * 3,
-                        color: this.colorTheme
-                    });
-                }
-
-                // 缓存主题颜色
+                // 1. 初始化颜色 (修复：防止粒子颜色为 undefined)
                 this.colorTheme = '#00f3ff';
                 this.colorSecondary = '#ff00ff';
                 this.updateThemeColors();
 
+                // 2. 初始化尺寸
                 this.resize();
+
+                // 3. 粒子系统状态 (用于 PARTICLES 模式)
+                this.particles = [];
+                // 增强：增加粒子数量
+                for(let i=0; i<150; i++) {
+                    this.particles.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        vx: (Math.random() - 0.5) * 2,
+                        vy: (Math.random() - 0.5) * 2,
+                        // 1. 调整基础粒子大小：3px - 8px (原为 1-4px)
+                        baseSize: Math.random() * 5 + 3,
+                        // 3. 引入随机动态变化状态
+                        sizeOffset: 0,
+                        targetOffset: 0,
+                        randomSpeed: Math.random() * 0.05 + 0.02,
+                        color: Math.random() > 0.5 ? this.colorTheme : this.colorSecondary
+                    });
+                }
                 
                 // 使用 ResizeObserver 监听容器大小变化，解决布局变动导致的变形问题
                 this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -965,9 +972,16 @@
                     mid = mid / 90;
                     treble = treble / (bufferLength - 100);
                     
+                    // 2. 获取整体声音电平 (0.0 - 1.0)
+                    const audioLevel = (bass * 0.6 + mid * 0.3 + treble * 0.1) / 255.0;
+
                     const cx = w / 2;
                     const cy = h / 2;
                     
+                    // 4. 参数可调性 (常量定义)
+                    const SIZE_RESPONSE_SENSITIVITY = 1.5; // 响应灵敏度
+                    const RANDOM_VARIATION_RANGE = 4.0;    // 随机变化幅度 (px)
+
                     // 粒子漩涡效果
                     this.particles.forEach((p, index) => {
                         // 1. 运动逻辑
@@ -992,13 +1006,37 @@
                             p.x = cx + (Math.random() - 0.5) * 10;
                             p.y = cy + (Math.random() - 0.5) * 10;
                             p.color = Math.random() > 0.5 ? colorTheme : colorSecondary;
+                            // 重置平滑状态
+                            p.targetOffset = 0;
+                            p.sizeOffset = 0;
                         }
                         
-                        // 3. 绘制
+                        // 3. 尺寸动态计算 (新增核心逻辑)
+                        
+                        // A. 随机动态变化 (平滑过渡)
+                        // 计算当前与目标的差异
+                        const diff = p.targetOffset - p.sizeOffset;
+                        if (Math.abs(diff) < 0.2) {
+                            // 接近目标时，随机选择新的目标大小偏移 (-range 到 +range)
+                            p.targetOffset = (Math.random() - 0.5) * RANDOM_VARIATION_RANGE;
+                        }
+                        // 缓动更新：逐步逼近目标
+                        p.sizeOffset += diff * p.randomSpeed;
+                        
+                        // B. 声音响应计算
+                        // 建立粒子大小与声音电平的映射：声音越大，基准倍率越大
+                        const audioScale = 1.0 + (audioLevel * SIZE_RESPONSE_SENSITIVITY);
+                        
+                        // C. 最终尺寸合成
+                        // 最终大小 = 基础大小 * 音频倍率 + 随机偏移
+                        let renderSize = (p.baseSize || 3) * audioScale + p.sizeOffset;
+                        
+                        // 限制最小尺寸，防止消失或过小
+                        renderSize = Math.max(2, renderSize);
+
+                        // 绘制
                         this.ctx.beginPath();
-                        // 大小随高频颤动
-                        const pSize = p.size * (0.5 + (treble / 100)); 
-                        this.ctx.arc(p.x, p.y, pSize, 0, Math.PI * 2);
+                        this.ctx.arc(p.x, p.y, renderSize, 0, Math.PI * 2);
                         this.ctx.fillStyle = p.color;
                         
                         // 透明度随距离增加
@@ -1029,6 +1067,103 @@
                 
                 // Reset shadow for next frame performance
                 this.ctx.shadowBlur = 0;
+            }
+
+            // 新增：获取当前音频能量 (0.0 - 1.0)
+            getAudioEnergy() {
+                if (!this.analyser) return 0;
+                
+                // 复用 freqData，如果不存在则创建
+                const bufferLength = this.analyser.frequencyBinCount;
+                if (!this.freqData || this.freqData.length !== bufferLength) {
+                    this.freqData = new Uint8Array(bufferLength);
+                }
+                
+                // 注意：这里可能会重复调用 getByteFrequencyData，但开销很小
+                this.analyser.getByteFrequencyData(this.freqData);
+                
+                // 计算平均音量
+                let sum = 0;
+                // 只计算低中频部分 (前50%)，人声主要集中在此
+                const count = Math.floor(bufferLength / 2);
+                for(let i = 0; i < count; i++) {
+                    sum += this.freqData[i];
+                }
+                const avg = sum / count;
+                return avg / 255.0;
+            }
+        }
+
+        /** 呼号队列显示管理器 (新增) */
+        class CallsignTicker {
+            constructor(containerId, visualizer) {
+                this.container = document.getElementById(containerId);
+                this.visualizer = visualizer;
+                this.maxItems = 6;
+                this.items = []; // 存储 DOM 元素
+                
+                // 启动呼吸灯循环
+                this.animateLoop();
+            }
+
+            addCallsign(callsign) {
+                if (!this.container) return;
+
+                // 1. 创建新元素
+                const el = document.createElement('div');
+                el.className = 'callsign-item breathing';
+                el.textContent = callsign;
+                
+                // 2. 添加到容器末尾
+                this.container.appendChild(el);
+                this.items.push(el);
+                
+                // 3. 强制重绘以触发 transition
+                el.offsetHeight; 
+                
+                // 4. 激活进场动画 (从右侧滑入，挤开左侧)
+                el.classList.add('active');
+
+                // 5. 移除多余元素
+                if (this.items.length > this.maxItems) {
+                    const removed = this.items.shift();
+                    // 优雅移除
+                    removed.style.maxWidth = '0';
+                    removed.style.padding = '0';
+                    removed.style.marginLeft = '0';
+                    removed.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        if (removed.parentNode === this.container) {
+                            this.container.removeChild(removed);
+                        }
+                    }, 400); // 配合 transition 时间
+                }
+            }
+
+            animateLoop() {
+                requestAnimationFrame(() => this.animateLoop());
+                
+                if (this.visualizer && this.items.length > 0) {
+                    // 获取当前能量值 (0.0 - 1.0)
+                    const energy = this.visualizer.getAudioEnergy();
+                    
+                    // 平滑处理 (简单的低通滤波)
+                    if (this.lastEnergy === undefined) this.lastEnergy = 0;
+                    this.lastEnergy += (energy - this.lastEnergy) * 0.2;
+                    
+                    // 更新所有呼号的 CSS 变量
+                    const level = this.lastEnergy.toFixed(3);
+                    
+                    // 优化：使用 setProperty 批量更新
+                    // 由于所有 item 都在一个容器内，且都需要呼吸效果
+                    // 我们可以只更新最新那个，或者全部更新
+                    // 需求是“模拟呼吸灯效果”，通常是全部一起闪烁，或者只有最新的闪烁
+                    // 假设全部闪烁以增强氛围
+                    this.items.forEach(el => {
+                        el.style.setProperty('--level', level);
+                    });
+                }
             }
         }
 
@@ -1448,24 +1583,22 @@
                 // 处理 QSO 发言人事件
                 if (msg.type === 'qso' && msg.subType === 'callsign' && msg.data) {
                     const { callsign, isSpeaking } = msg.data;
-                    this.updateSubtitle(callsign, isSpeaking);
+                    // 只处理开始发言事件，或者根据需要处理
+                    // 这里假设每次 isSpeaking=true 都是一次新的发言或持续发言
+                    // 为了避免重复，我们可以简单去重，或者每次都添加（作为新的事件）
+                    // 用户需求是“接收到一个新的呼号时，触发显示更新”，通常意味着新的发言开始
+                    
+                    if (isSpeaking) {
+                        // 简单的去重逻辑：如果最后一个呼号相同且时间很近，则不添加？
+                        // 暂时直接添加，让Ticker处理队列
+                        if (this.onCallsign) this.onCallsign(callsign);
+                    }
                 }
             }
 
-            updateSubtitle(callsign, isSpeaking) {
-                if (!this.subtitleEl || !this.subtitleText) return;
-
-                if (isSpeaking) {
-                    this.subtitleText.textContent = callsign;
-                    this.subtitleEl.style.display = 'flex';
-                    
-                    // 去除自动隐藏的时间判断，只要 isSpeaking 为 true 就一直显示
-                    if (this.speakingTimeout) clearTimeout(this.speakingTimeout);
-                } else {
-                    // 停止发言时立即隐藏
-                    this.subtitleEl.style.display = 'none';
-                    if (this.speakingTimeout) clearTimeout(this.speakingTimeout);
-                }
+            // 注册回调
+            onCallsignReceived(callback) {
+                this.onCallsign = callback;
             }
         }
 
@@ -1474,6 +1607,15 @@
         const player = new AudioPlayer();
         const events = new EventsClient(); // 实例化
         const viz = new Visualizer(document.getElementById('viz-canvas'), null);
+        
+        // 实例化呼号显示组件
+        const ticker = new CallsignTicker('callsign-ticker', viz);
+        
+        // 连接事件
+        events.onCallsignReceived((callsign) => {
+            ticker.addCallsign(callsign);
+        });
+
         const deviceMgr = new DeviceManager();
         const discoveryMgr = new DiscoveryManager();
         const qsoMgr = new QsoManager(ctrl);

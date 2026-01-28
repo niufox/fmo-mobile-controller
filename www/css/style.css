@@ -323,31 +323,76 @@
             white-space: nowrap;
         }
 
-        /* 实时字幕覆盖层 */
-        .subtitle-overlay {
+        /* 字幕/呼号显示组件 */
+        .callsign-ticker-container {
             position: absolute;
-            bottom: 45px; /* 在 current-station-text 之上 */
-            left: 50%;
-            transform: translateX(-50%);
+            bottom: 40px; /* 位于频谱上方一些 */
+            left: 0;
+            width: 100%;
+            height: 50px;
             display: flex;
+            justify-content: flex-end; /* 右对齐，新元素从右侧进入 */
             align-items: center;
-            gap: 8px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 8px 16px;
-            border-radius: 20px;
-            border: 1px solid var(--accent-cyan);
-            color: var(--accent-cyan);
-            z-index: 20;
+            padding: 0 20px;
+            box-sizing: border-box;
+            overflow: hidden;
             pointer-events: none;
-            animation: fadeIn 0.3s ease;
-            white-space: nowrap;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            z-index: 20;
+            mask-image: linear-gradient(to right, transparent, black 20%); /* 左侧淡出效果 */
+            -webkit-mask-image: linear-gradient(to right, transparent, black 20%);
         }
-        .subtitle-overlay span {
+
+        .callsign-item {
+            background: rgba(0, 0, 0, 0.4);
+            color: var(--accent-cyan);
+            padding: 6px 14px;
+            border-radius: 16px;
+            margin-left: 12px;
             font-weight: bold;
-            font-size: 1.1rem;
-            letter-spacing: 1px;
-            text-shadow: 0 0 5px rgba(0, 243, 255, 0.5);
+            font-family: 'Roboto Mono', monospace;
+            white-space: nowrap;
+            font-size: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            
+            /* 初始状态用于动画 */
+            opacity: 0;
+            transform: translateX(50px);
+            max-width: 0;
+            padding: 0;
+            margin-left: 0;
+            
+            transition: 
+                opacity 0.3s ease,
+                transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+                max-width 0.4s ease,
+                padding 0.4s ease,
+                margin-left 0.4s ease,
+                color 0.1s, text-shadow 0.1s, border-color 0.1s, background-color 0.1s; /* 呼吸灯快速响应 */
+        }
+
+        .callsign-item.active {
+            opacity: 1;
+            transform: translateX(0);
+            max-width: 150px; /* 足够显示呼号即可 */
+            padding: 6px 14px;
+            margin-left: 12px;
+        }
+
+        /* 呼吸灯动态样式 (通过 JS CSS 变量控制) */
+        .callsign-item.breathing {
+            --level: 0; /* JS will update this 0-1 */
+            
+            /* 颜色在主题色和亮白色之间变化 */
+            color: color-mix(in srgb, var(--accent-cyan), #fff calc(var(--level) * 50%));
+            
+            /* 发光效果 */
+            text-shadow: 0 0 calc(5px + 10px * var(--level)) var(--accent-cyan);
+            
+            /* 边框亮起 */
+            border-color: rgba(255, 255, 255, calc(0.2 + 0.6 * var(--level)));
+            
+            /* 背景微亮 */
+            background-color: rgba(0, 0, 0, calc(0.4 + 0.2 * var(--level)));
         }
 
         /* 控制面板区域 */

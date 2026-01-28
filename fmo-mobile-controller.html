@@ -23,6 +23,11 @@
             --radius-sm: 8px;
         }
 
+        /* 设备适配：桌面端/平板端字体放大 */
+        :root.device-desktop {
+            font-size: 19.2px; /* 16px * 1.2 */
+        }
+
         /* 主题定义 - 保留其他作为可选项 */
         body.theme-cyberpunk {
             --bg-color: #050505;
@@ -84,6 +89,58 @@
             --accent-green: #4CAF50;
             --border-color: rgba(0, 0, 0, 0.1);
             --viz-bg: #e0e0e0;
+        }
+
+        /* 新增主题：猛男粉 */
+        body.theme-pink {
+            --bg-color: #2e001f;
+            --panel-bg: rgba(60, 0, 40, 0.85);
+            --text-main: #ffc2d1;
+            --text-muted: #d88fa5;
+            --accent-cyan: #ff4081;
+            --accent-magenta: #f50057;
+            --accent-green: #ff80ab;
+            --border-color: rgba(255, 64, 129, 0.2);
+            --viz-bg: linear-gradient(to bottom, #2e001f, #1a0010);
+        }
+
+        /* 新增主题：基佬紫 */
+        body.theme-purple {
+            --bg-color: #1a002e;
+            --panel-bg: rgba(40, 0, 60, 0.85);
+            --text-main: #e1bee7;
+            --text-muted: #ba68c8;
+            --accent-cyan: #d500f9;
+            --accent-magenta: #aa00ff;
+            --accent-green: #e040fb;
+            --border-color: rgba(213, 0, 249, 0.2);
+            --viz-bg: linear-gradient(to bottom, #1a002e, #0d0017);
+        }
+
+        /* 新增主题：蕾丝红 */
+        body.theme-red {
+            --bg-color: #2b0000;
+            --panel-bg: rgba(50, 0, 0, 0.85);
+            --text-main: #ffcdd2;
+            --text-muted: #e57373;
+            --accent-cyan: #ff1744;
+            --accent-magenta: #d50000;
+            --accent-green: #ff5252;
+            --border-color: rgba(255, 23, 68, 0.2);
+            --viz-bg: linear-gradient(to bottom, #2b0000, #150000);
+        }
+
+        /* 新增主题：流氓黑 */
+        body.theme-black {
+            --bg-color: #000000;
+            --panel-bg: #111111;
+            --text-main: #ffffff;
+            --text-muted: #666666;
+            --accent-cyan: #ffffff;
+            --accent-magenta: #333333;
+            --accent-green: #999999;
+            --border-color: #333333;
+            --viz-bg: #000000;
         }
 
         * {
@@ -464,11 +521,11 @@
             width: 14px;
             height: 14px;
             background-color: currentColor;
-            border-radius: 2px; /* 矩形内也是矩形 */
+            border-radius: 50%; /* 录音图标为圆点 */
             transition: all 0.2s;
         }
         .btn-record.recording .icon {
-            border-radius: 2px;
+            border-radius: 50%;
             transform: scale(0.8);
         }
 
@@ -775,8 +832,13 @@
             height: 28px; /* 统一高度 */
             border-radius: 6px; /* 统一圆角 */
             border: 1px solid var(--border-color); /* 统一边框 */
-            cursor: default;
+            cursor: pointer; /* 可点击 */
             min-width: 40px; /* 保证最小宽度 */
+            transition: all 0.2s ease;
+        }
+        .qso-count-badge:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.1);
         }
         .qso-count-badge svg {
             width: 14px;
@@ -789,6 +851,7 @@
 </head>
 <body>
 
+    <!-- 顶部功能区：品牌、操作按钮、连接状态 -->
     <header>
         <div class="brand"><span>FMO CONTROLLER</span></div>
         <div class="header-right">
@@ -813,6 +876,7 @@
         </div>
     </header>
 
+    <!-- 设置面板：输入 IP、历史设备与发现设备 -->
     <div id="settings-area">
         <div class="input-group">
             <input type="text" id="inp-host" class="input-dark" placeholder="设备 IP 地址" value="">
@@ -823,11 +887,12 @@
         <div id="discovered-list" class="device-history" style="margin-top: 10px; border-top: 1px dashed #333; padding-top: 10px; display: none;"></div>
     </div>
 
+    <!-- 可视化区域：频谱/字幕/模式标记 -->
     <div class="viz-container" id="viz-area">
         <canvas id="viz-canvas"></canvas>
         <div class="viz-mode-badge" id="current-station-text" style="display: none;"></div>
         
-        <!-- 字幕覆盖层 -->
+        <!-- 字幕覆盖层：语音识别显示 -->
         <div id="subtitle-overlay" class="subtitle-overlay" style="display: none;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
@@ -843,12 +908,14 @@
         </div>
     </div>
 
+    <!-- 控制区：播放、录音、台站切换、音量 -->
     <div class="controls-area">
-        <!-- 播放器控制 -->
+        <!-- 播放器控制：包含播放/录音/上下台切换 -->
         <div class="control-btn-group">
             <button id="btn-play" class="btn-rect-lg">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
             </button>
+            <!-- 录音按钮：中间图标为圆点 -->
             <button id="btn-record" class="btn-rect-lg btn-record" title="录音">
                 <div class="icon"></div>
             </button>
@@ -967,7 +1034,9 @@
                     let percent = (clientX - rect.left) / rect.width;
                     percent = Math.max(0, Math.min(1, percent));
                     
-                    this.setVolume(percent);
+                    // 0-200% 音量映射 (0.0 - 2.0)
+                    const volumeValue = percent * 2.0;
+                    this.setVolume(volumeValue);
                 };
 
                 // 鼠标事件
@@ -1018,7 +1087,7 @@
                         this.lastValue = this.value;
                         this.setVolume(0);
                     } else {
-                        this.setVolume(this.lastValue || 0.5);
+                        this.setVolume(this.lastValue || 1.0);
                     }
                     // 震动
                     if (navigator.vibrate) navigator.vibrate(10);
@@ -1027,14 +1096,18 @@
 
             setVolume(val) {
                 this.value = val;
-                this.player.setVolume(val); // 假设 player 支持 0-1
+                this.player.setVolume(val); // 假设 player 支持 0-2.0
                 this.updateUI(val);
             }
 
             updateUI(val) {
-                const percent = Math.round(val * 100);
-                this.fill.style.width = `${percent}%`;
-                this.text.textContent = `${percent}%`;
+                // 显示百分比 (0-200%)
+                const displayPercent = Math.round(val * 100);
+                // 进度条宽度 (映射 0-2.0 到 0-100%)
+                const fillWidth = Math.min(100, (val / 2.0) * 100);
+                
+                this.fill.style.width = `${fillWidth}%`;
+                this.text.textContent = `${displayPercent}%`;
                 
                 // 更新图标状态
                 if (val === 0) {
@@ -1660,42 +1733,49 @@
                     for(let i = 0; i < barCount; i++) {
                         const value = dataArray[i * step] || 0;
                         
-                        const barHeight = (value / 255) * groundY * 0.9; 
+                        // 增强：增加高度敏感度
+                        const barHeight = (value / 255) * groundY * 0.95; 
                         const x = i * colWidth + colWidth/2;
                         
                         // 1. 绘制主体粒子柱 (向上)
-                        const particleCount = Math.floor(barHeight / 16); 
+                        // 增强：增加粒子密度和大小
+                        const particleCount = Math.floor(barHeight / 14); 
                         for (let j = 0; j < particleCount; j++) {
-                            const y = groundY - (j * 12 + 10);
+                            const y = groundY - (j * 14 + 10);
                             const ratio = j / particleCount; 
                             
                             this.ctx.beginPath();
-                            const size = 2 + ratio * 3; 
+                            // 增强：粒子更大，随高度变化
+                            const size = 3 + ratio * 3.5; 
                             this.ctx.arc(x, y, size, 0, Math.PI * 2);
                             
                             if (j === particleCount - 1) {
                                 this.ctx.fillStyle = '#ffffff';
+                                this.ctx.shadowBlur = 8;
+                                this.ctx.shadowColor = '#ffffff';
                             } else {
                                 this.ctx.fillStyle = i % 2 === 0 ? colorTheme : colorSecondary;
+                                this.ctx.shadowBlur = 0;
                             }
                             
-                            this.ctx.globalAlpha = ratio * 0.6 + 0.35;
+                            this.ctx.globalAlpha = ratio * 0.7 + 0.3;
                             this.ctx.fill();
                         }
+                        this.ctx.shadowBlur = 0; // Reset
 
                         // 2. 绘制倒影粒子 (向下)
                         const reflectCount = Math.floor(particleCount / 3);
                         for (let j = 0; j < reflectCount; j++) {
-                            const y = groundY + (j * 12 + 10);
+                            const y = groundY + (j * 14 + 10);
                             // 超出屏幕不绘制
                             if (y > h) break;
                             
                             const ratio = 1 - (j / reflectCount); // 越远越淡
                             
                             this.ctx.beginPath();
-                            this.ctx.arc(x, y, 2, 0, Math.PI * 2);
+                            this.ctx.arc(x, y, 2.5, 0, Math.PI * 2);
                             this.ctx.fillStyle = i % 2 === 0 ? colorTheme : colorSecondary;
-                            this.ctx.globalAlpha = ratio * 0.12;
+                            this.ctx.globalAlpha = ratio * 0.15;
                             this.ctx.fill();
                         }
                         
@@ -1707,9 +1787,9 @@
                         }
                         
                         if (this.peaks[i] > 0) {
-                            const peakY = groundY - this.peaks[i] - 10;
+                            const peakY = groundY - this.peaks[i] - 12;
                             this.ctx.beginPath();
-                            this.ctx.arc(x, peakY, 2.5, 0, Math.PI * 2);
+                            this.ctx.arc(x, peakY, 3, 0, Math.PI * 2);
                             this.ctx.fillStyle = colorSecondary;
                             this.ctx.globalAlpha = 1.0;
                             this.ctx.fill();
@@ -1721,8 +1801,8 @@
                     this.ctx.moveTo(0, groundY);
                     this.ctx.lineTo(w, groundY);
                     this.ctx.strokeStyle = colorTheme;
-                    this.ctx.lineWidth = 1;
-                    this.ctx.globalAlpha = 0.3;
+                    this.ctx.lineWidth = 2;
+                    this.ctx.globalAlpha = 0.4;
                     this.ctx.stroke();
                     
                     this.ctx.globalAlpha = 1.0;
@@ -2175,6 +2255,7 @@
                 this.btn = document.getElementById('btn-qso');
                 this.btnClose = document.getElementById('btn-qso-close');
                 this.countEl = document.getElementById('qso-count-value');
+                this.badge = document.getElementById('qso-badge');
                 
                 this.page = 0;
                 this.pageSize = 20; // Default page size
@@ -2188,9 +2269,10 @@
 
             initEvents() {
                 // Open Modal
-                this.btn.addEventListener('click', () => {
-                    this.show();
-                });
+                const openModal = () => this.show();
+                this.btn.addEventListener('click', openModal);
+                // 交互优化：点击星星直接打开 QSO 日志
+                if (this.badge) this.badge.addEventListener('click', openModal);
 
                 // Close Modal
                 this.btnClose.addEventListener('click', () => {
@@ -2426,8 +2508,23 @@
 
         let currentStationId = null;
         
+        // 设备检测与适配
+        const checkDevice = () => {
+            // 简单判断：屏幕宽度大于 768px 视为桌面端/平板
+            if (window.innerWidth >= 768) {
+                document.documentElement.classList.add('device-desktop');
+            } else {
+                document.documentElement.classList.remove('device-desktop');
+            }
+        };
+        // 初始化检测
+        checkDevice();
+        // 监听窗口大小变化
+        window.addEventListener('resize', checkDevice);
+
         // 0. 主题切换
-        const themes = ['', 'theme-matrix', 'theme-ocean', 'theme-sunset', 'theme-light'];
+        // 扩展主题列表：包含新增的4款主题
+        const themes = ['', 'theme-matrix', 'theme-ocean', 'theme-sunset', 'theme-light', 'theme-pink', 'theme-purple', 'theme-red', 'theme-black'];
         let currentThemeIndex = 0;
         
         ui.btnTheme.addEventListener('click', () => {
@@ -2511,10 +2608,10 @@
             ui.vizModeText.textContent = modeName;
         });
 
-        // 5. 录音控制
+        // 5. 录音控制：开始/停止录音，导出为 WAV
         ui.btnRecord.addEventListener('click', () => {
             if (!player.recording) {
-                // 开始录音
+                // 开始录音（需要音频已连接）
                 if (!player.connected) {
                     alert('请先连接音频！');
                     return;
@@ -2522,7 +2619,7 @@
                 player.startRecording();
                 ui.btnRecord.classList.add('recording');
             } else {
-                // 停止录音并下载
+                // 停止录音并下载（文件名带时间戳）
                 ui.btnRecord.classList.remove('recording');
                 const blob = player.stopRecording();
                 if (blob) {

@@ -8,6 +8,7 @@
     <meta name="format-detection" content="telephone=no">
     <title>FMO Mobile Controller</title>
     
+<meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src * ws: wss:;">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -23,9 +24,11 @@
             <button id="btn-settings-toggle" class="theme-btn" title="设置">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
-            <button id="btn-qso" class="theme-btn" title="QSO 日志">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-            </button>
+            <button id="btn-maximize" class="theme-btn" title="最大化窗口">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2-2h3"/>
+                    </svg>
+                </button>
 
             <button id="btn-theme" class="theme-btn" title="切换主题">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>
@@ -117,14 +120,24 @@
 
     <!-- QSO Log Modal -->
     <div id="qso-modal" class="modal-overlay">
-        <div class="modal-content">
+        <div class="modal-content qso-modal-content">
             <div class="modal-header">
-                <h3>QSO LOGS</h3>
+                <div class="radio-icon-container">
+                    <svg class="radio-icon-svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3.24 6.15C2.51 6.43 2 7.17 2 8v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8c0-1.1-.9-2-2-2H8.3l8.26-3.34L15.88 1 3.24 6.15zM7 20c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3 3 3zm13-8h-2v-2h-2v2H4V8h16v4z"/>
+                    </svg>
+                    <h5>QSO LOGS</h5>
+                </div>
                 <button id="btn-qso-close" class="btn-icon">×</button>
             </div>
-            <div id="qso-list" class="qso-list">
-                <!-- QSO items will be injected here -->
-                <div style="padding: 20px; text-align: center; color: #666;">Loading...</div>
+            <div class="modal-body-split">
+                <div id="qso-list" class="qso-list-panel">
+                    <!-- QSO items will be injected here -->
+                    <div style="padding: 20px; text-align: center; color: #666;">Loading...</div>
+                </div>
+                <div class="qso-map-panel">
+                    <iframe id="qso-map-frame" src="map.html" frameborder="0"></iframe>
+                </div>
             </div>
         </div>
     </div>
@@ -140,22 +153,32 @@
                 <div class="brand" style="justify-content: center; font-size: 1.5rem; margin-bottom: 20px; color: var(--accent-cyan);">
                     <span>FMO CONTROLLER</span>
                 </div>
-                <div id="credits-version" data-version="1.4" style="margin-bottom: 18px; color: var(--text-muted); font-size: 0.9rem;">v1.4</div>
+                <div id="credits-version" data-version="2.9" style="margin-bottom: 18px; color: var(--text-muted); font-size: 0.9rem;">v2.9</div>
                 
                 <div style="margin-bottom: 25px;">
-                    <h4 style="color: var(--accent-magenta); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block;">核心贡献者</h4>
-                    <div style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 5px;">BG5ESN、BG6RGQ、BG5EIT、BG4LLK</div>
-                    <div style="color: var(--text-muted); font-size: 0.9rem;">Lead Developer</div>
+                    <h4 style="color: var(--accent-magenta); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block;">特别鸣谢</h4>
+                    <div style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 5px;">FMO老板娘、老板、FMO深度搜索1群全体FMOER</div>
+ 
                 </div>
 
                 <div style="margin-bottom: 20px;">
-                    <h4 style="color: var(--accent-green); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block;">特别鸣谢</h4>
-                    <div style="color: var(--text-main); margin-bottom: 5px;">FMO Team</div>
+                    <h4 style="color: var(--accent-green); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block;">Design & Development</h4>
+                    <div style="color: var(--text-main); margin-bottom: 5px;">BG5EIT</div>
 
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--accent-cyan); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block;">Open Source</h4>
+                    <div style="color: var(--text-main); margin-bottom: 8px;">
+                        <a href="https://github.com/niufox/fmo-mobile-controller" target="_blank" style="color: var(--accent-cyan); text-decoration: none; border-bottom: 1px dashed var(--accent-cyan);">GitHub Repo</a>
+                    </div>
+                    <div style="color: var(--text-main);">
+                        <a href="https://github.com/niufox/fmo-mobile-controller/blob/main/release/fmo-controller-debug.apk" target="_blank" style="color: var(--accent-magenta); text-decoration: none; border-bottom: 1px dashed var(--accent-magenta);">Download APK</a>
+                    </div>
                 </div>
                 
                 <div style="margin-top: 30px; font-size: 0.8rem; color: #666;">
-                    Thank you for using FMO!
+                    天下Ham是一家 ham爱好者的分享，请勿用于商业用途。
                 </div>
             </div>
         </div>
@@ -163,6 +186,18 @@
 
     
 
+    <script src="js/api/audioPlayer.js"></script>
+    <script src="js/api/config.js"></script>
+    <script src="js/api/configService.js"></script>
+    <script src="js/api/eventsService.js"></script>
+    <script src="js/api/index.js"></script>
+    <script src="js/api/qso.js"></script>
+    <script src="js/api/qsoService.js"></script>
+    <script src="js/api/remote.js"></script>
+    <script src="js/api/remoteService.js"></script>
+    <script src="js/api/webSocketService.js"></script>
+    <script src="js/api/wifiCtl.js"></script>
+    <script src="js/api/wifiService.js"></script>
     <script src="cordova.js"></script>
     <script src="js/app.js"></script>
 </body>

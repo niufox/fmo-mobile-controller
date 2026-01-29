@@ -328,7 +328,8 @@
             color: #000;
             font-weight: bold;
             font-size: 0.75rem;
-            /* pointer-events: none; Handled by container */
+            pointer-events: auto; /* Allow clicks */
+            cursor: pointer; /* Show pointer */
             opacity: 1;
             white-space: nowrap;
         }
@@ -735,6 +736,138 @@
             text-overflow: ellipsis;
         }
 
+        /* QSO Modal 左右分栏布局 */
+        .qso-modal-content {
+            width: 95%;
+            height: 90vh;
+            max-width: 1400px;
+            display: flex;
+            flex-direction: column;
+            padding: 0; /* 重置 padding，由内部元素控制 */
+            overflow: hidden;
+        }
+        
+        .qso-modal-content .modal-header {
+            padding: 15px 20px;
+            flex-shrink: 0;
+        }
+
+        .modal-body-split {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            border-top: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .qso-list-panel {
+            width: 20%;
+            overflow-y: auto;
+            border-right: 1px solid var(--border-color);
+            background: rgba(0,0,0,0.2);
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 列表容器内的 padding 移到 item 或 wrapper */
+        .qso-list-panel .qso-item {
+            margin: 0;
+            border-radius: 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding: 8px 4px; /* 减小内边距 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            font-size: 0.75rem; /* 减小字号 (原0.85rem) */
+            cursor: pointer; /* 鼠标手势 */
+            transition: background 0.2s;
+        }
+        
+        .qso-list-panel .qso-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .qso-list-panel .qso-item:active {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .qso-list-panel .qso-item.active {
+            background: rgba(0, 243, 255, 0.15);
+            border-left: 3px solid var(--accent-cyan);
+        }
+        
+        .qso-list-panel .qso-call {
+            font-weight: bold;
+            color: #fff;
+            width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-bottom: 2px;
+            font-size: 0.85rem; /* 标题稍大 */
+        }
+
+        .qso-list-panel .qso-mode {
+            font-size: 0.7rem; /* 减小字号 (原0.75rem) */
+            color: var(--text-muted);
+            background: transparent; /* 移除背景色，保持极简 */
+            padding: 0;
+        }
+
+        .qso-map-panel {
+            width: 80%;
+            background: #121212;
+            position: relative;
+        }
+
+        #qso-map-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        /* 响应式调整 - 保持20:80比例 */
+        @media (max-width: 768px) {
+            .modal-body-split {
+                flex-direction: row; /* 强制保持左右分栏 */
+            }
+            .qso-list-panel {
+                width: 30%; /* 手机上给多一点空间 */
+            }
+            .qso-map-panel {
+                width: 70%;
+            }
+        }
+        
+        /* 超小屏幕下隐藏列表或特殊处理，但这里先尽量保持分栏 */
+        @media (max-width: 480px) {
+             .qso-list-panel {
+                width: 35%; /* 小屏给更多空间给列表 */
+            }
+            .qso-map-panel {
+                width: 65%;
+            }
+        }
+
+        /* Grid 可点击样式 */
+        .qso-mode.clickable {
+            cursor: pointer;
+            text-decoration: underline;
+            color: var(--accent-cyan);
+            transition: all 0.2s;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(0, 243, 255, 0.1);
+        }
+        .qso-mode.clickable:hover {
+            color: #fff;
+            background: var(--accent-cyan);
+            text-decoration: none;
+        }
+
         /* 设置面板 */
         .settings-panel {
             padding-top: 10px;
@@ -823,11 +956,11 @@
             }
         }
 
-        /* Modal Styles */
+        /* Modal Styles - Glassmorphism & Redesign */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.7); /* 70% opacity black mask */
             z-index: 200;
             display: flex;
             justify-content: center;
@@ -842,45 +975,157 @@
             pointer-events: auto;
         }
         .modal-content {
-            background: var(--panel-bg);
-            width: 90%; max-width: 600px; max-height: 80vh;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
+            background: rgba(30, 30, 30, 0.9); /* 90% opacity */
+            backdrop-filter: blur(10px); /* Glass effect */
+            width: 95%; max-width: 1200px; height: 85vh; /* Larger size */
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
             display: flex;
             flex-direction: column;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             transform: translateY(20px);
             transition: transform 0.3s;
+            overflow: hidden;
         }
         .modal-overlay.show .modal-content {
             transform: translateY(0);
         }
         .modal-header {
             padding: 15px 20px;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: rgba(0,0,0,0.2);
         }
-        .modal-header h3 { margin: 0; color: var(--text-main); font-size: 1.2rem; }
-        .btn-icon { background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; padding: 0 5px; }
-        .qso-list {
-            flex: 1; overflow-y: auto; padding: 0;
+        
+        /* Radio Icon & Pulse Animation */
+        .radio-icon-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        .qso-item {
-            padding: 15px 20px;
+        .radio-icon-svg {
+            width: 48px;
+            height: 48px;
+            color: #2196F3;
+            animation: radioPulse 2s infinite;
+        }
+        @keyframes radioPulse {
+            0% { filter: drop-shadow(0 0 0 rgba(33, 150, 243, 0.7)); transform: scale(1); }
+            50% { filter: drop-shadow(0 0 10px rgba(33, 150, 243, 0)); transform: scale(1.05); }
+            100% { filter: drop-shadow(0 0 0 rgba(33, 150, 243, 0.7)); transform: scale(1); }
+        }
+        
+        .modal-header h3 { margin: 0; color: #e0e0e0; font-size: 1.5rem; font-weight: bold; }
+        .btn-icon { background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; padding: 0 5px; transition: color 0.2s; }
+        .btn-icon:hover { color: #fff; }
+
+        /* Split Layout */
+        .modal-body-split {
+            display: flex;
+            flex: 1;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .qso-list-panel {
+            width: 35%; /* Increased width for details */
+            overflow-y: auto;
+            border-right: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.2);
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Typography & List Item Styling */
+        .qso-list-panel .qso-item {
+            margin: 0;
+            border-radius: 0;
             border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding: 12px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start; /* Left align */
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .qso-list-panel .qso-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .qso-list-panel .qso-item:active {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .qso-list-panel .qso-item.active {
+            background: rgba(33, 150, 243, 0.15); /* Tech Blue tint */
+            border-left: 3px solid #2196F3;
+        }
+        
+        /* Focus state for keyboard navigation */
+        .qso-list-panel .qso-item:focus {
+            outline: 2px solid #2196F3;
+            outline-offset: -2px;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* 1. Typography Hierarchy */
+        .qso-call {
+            font-size: 18px;
+            font-weight: bold;
+            color: #e0e0e0; /* Deep Gray/White */
+            line-height: 1.5;
+            margin-bottom: 2px;
+            width: 100%;
             display: flex;
             justify-content: space-between;
-            align-items: center;
         }
-        .qso-item:last-child { border-bottom: none; }
-        .qso-info { display: flex; flex-direction: column; gap: 4px; }
-        .qso-call { font-weight: bold; color: var(--text-main); font-size: 1.1rem; display: flex; align-items: center; }
-        .qso-meta { font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 10px; }
-        .qso-freq { color: var(--accent-green); font-family: monospace; }
-        .qso-mode { background: rgba(255, 152, 0, 0.2); color: var(--accent-cyan); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-left: 8px; }
-        .qso-time { font-size: 0.8rem; color: #666; }
+        
+        .qso-data-highlight {
+            color: #FF6B35; /* Orange Highlight */
+        }
+        
+        .qso-time {
+            font-family: monospace;
+            font-size: 12px;
+            color: #aaa;
+            line-height: 1.5;
+        }
+        
+        .qso-map-panel {
+            width: 65%;
+            background: #121212;
+            position: relative;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .qso-list-panel {
+                width: 40%;
+            }
+            .qso-map-panel {
+                width: 60%;
+            }
+            .qso-call { font-size: 16px; }
+        }
+        
+        @media (max-width: 480px) {
+            .modal-body-split { flex-direction: column; }
+            .qso-list-panel { width: 100%; height: 40%; }
+            .qso-map-panel { width: 100%; height: 60%; }
+        }
+
+        /* Animation for Legend/Badge */
+        .shrink-anim {
+            transform: scale(0.6) !important;
+            transition: transform 300ms ease;
+        }
+
 
         .qso-count-badge {
             display: flex;
@@ -925,9 +1170,11 @@
             <button id="btn-settings-toggle" class="theme-btn" title="设置">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
-            <button id="btn-qso" class="theme-btn" title="QSO 日志">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-            </button>
+            <button id="btn-maximize" class="theme-btn" title="最大化窗口">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2-2h3"/>
+                    </svg>
+                </button>
 
             <button id="btn-theme" class="theme-btn" title="切换主题">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>
@@ -1019,14 +1266,24 @@
 
     <!-- QSO Log Modal -->
     <div id="qso-modal" class="modal-overlay">
-        <div class="modal-content">
+        <div class="modal-content qso-modal-content">
             <div class="modal-header">
-                <h3>QSO LOGS</h3>
+                <div class="radio-icon-container">
+                    <svg class="radio-icon-svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3.24 6.15C2.51 6.43 2 7.17 2 8v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8c0-1.1-.9-2-2-2H8.3l8.26-3.34L15.88 1 3.24 6.15zM7 20c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3 3 3zm13-8h-2v-2h-2v2H4V8h16v4z"/>
+                    </svg>
+                    <h5>QSO LOGS</h5>
+                </div>
                 <button id="btn-qso-close" class="btn-icon">×</button>
             </div>
-            <div id="qso-list" class="qso-list">
-                <!-- QSO items will be injected here -->
-                <div style="padding: 20px; text-align: center; color: #666;">Loading...</div>
+            <div class="modal-body-split">
+                <div id="qso-list" class="qso-list-panel">
+                    <!-- QSO items will be injected here -->
+                    <div style="padding: 20px; text-align: center; color: #666;">Loading...</div>
+                </div>
+                <div class="qso-map-panel">
+                    <iframe id="qso-map-frame" src="map.html" frameborder="0"></iframe>
+                </div>
             </div>
         </div>
     </div>
@@ -1042,22 +1299,32 @@
                 <div class="brand" style="justify-content: center; font-size: 1.5rem; margin-bottom: 20px; color: var(--accent-cyan);">
                     <span>FMO CONTROLLER</span>
                 </div>
-                <div id="credits-version" data-version="2.0" style="margin-bottom: 18px; color: var(--text-muted); font-size: 0.9rem;">v2.0</div>
+                <div id="credits-version" data-version="2.9" style="margin-bottom: 18px; color: var(--text-muted); font-size: 0.9rem;">v2.9</div>
                 
                 <div style="margin-bottom: 25px;">
-                    <h4 style="color: var(--accent-magenta); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block;">核心贡献者</h4>
-                    <div style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 5px;">BG5ESN、BG6RGQ、BG5EIT、BG4LLK</div>
-                    <div style="color: var(--text-muted); font-size: 0.9rem;">Lead Developer</div>
+                    <h4 style="color: var(--accent-magenta); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block;">特别鸣谢</h4>
+                    <div style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 5px;">FMO老板娘、老板、FMO深度搜索1群全体FMOER</div>
+ 
                 </div>
 
                 <div style="margin-bottom: 20px;">
-                    <h4 style="color: var(--accent-green); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block;">特别鸣谢</h4>
-                    <div style="color: var(--text-main); margin-bottom: 5px;">FMO Team</div>
+                    <h4 style="color: var(--accent-green); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block;">Design & Development</h4>
+                    <div style="color: var(--text-main); margin-bottom: 5px;">BG5EIT</div>
 
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--accent-cyan); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block;">Open Source</h4>
+                    <div style="color: var(--text-main); margin-bottom: 8px;">
+                        <a href="https://github.com/niufox/fmo-mobile-controller" target="_blank" style="color: var(--accent-cyan); text-decoration: none; border-bottom: 1px dashed var(--accent-cyan);">GitHub Repo</a>
+                    </div>
+                    <div style="color: var(--text-main);">
+                        <a href="https://github.com/niufox/fmo-mobile-controller/blob/main/release/fmo-controller-debug.apk" target="_blank" style="color: var(--accent-magenta); text-decoration: none; border-bottom: 1px dashed var(--accent-magenta);">Download APK</a>
+                    </div>
                 </div>
                 
                 <div style="margin-top: 30px; font-size: 0.8rem; color: #666;">
-                    Thank you for using FMO!
+                    天下Ham是一家 ham爱好者的分享，请勿用于商业用途。
                 </div>
             </div>
         </div>
@@ -1700,6 +1967,1000 @@
         }
 
         /** 可视化引擎 */
+        /** 基础渲染器 */
+        class BaseRenderer {
+            constructor(ctx) { this.ctx = ctx; this.width = 0; this.height = 0; }
+            resize(w, h) { this.width = w; this.height = h; }
+            draw(analyser, dataArray, bufferLength, theme) {}
+        }
+
+        /** 1. 频谱模式渲染器 (SPECTRUM) */
+        class SpectrumRenderer extends BaseRenderer {
+            constructor(ctx) {
+                super(ctx);
+                this.peaks = [];
+            }
+
+            draw(analyser, dataArray, bufferLength, theme) {
+                analyser.getByteFrequencyData(dataArray);
+                const { ctx, width: w, height: h } = this;
+                
+                const displayW = this.ctx.canvas.clientWidth || (w / window.devicePixelRatio);
+                const barCount = Math.max(24, Math.min(36, Math.floor(displayW / 12)));
+                const step = Math.max(1, Math.floor(bufferLength / barCount));
+                const colWidth = w / barCount;
+                const groundY = h * 0.85;
+                
+                if (this.peaks.length !== barCount) this.peaks = new Array(barCount).fill(0);
+
+                ctx.shadowBlur = 0;
+                ctx.shadowColor = theme.primary;
+
+                for(let i = 0; i < barCount; i++) {
+                    const value = dataArray[i * step] || 0;
+                    const barHeight = (value / 255) * groundY * 0.95; 
+                    const x = i * colWidth + colWidth/2;
+                    
+                    // 1. 主体粒子柱
+                    const particleCount = Math.floor(barHeight / 14); 
+                    for (let j = 0; j < particleCount; j++) {
+                        const y = groundY - (j * 14 + 10);
+                        const ratio = j / particleCount; 
+                        
+                        ctx.beginPath();
+                        const size = 3 + ratio * 3.5; 
+                        ctx.arc(x, y, size, 0, Math.PI * 2);
+                        
+                        if (j === particleCount - 1) {
+                            ctx.fillStyle = '#ffffff';
+                            ctx.shadowBlur = 8;
+                            ctx.shadowColor = '#ffffff';
+                        } else {
+                            ctx.fillStyle = i % 2 === 0 ? theme.primary : theme.secondary;
+                            ctx.shadowBlur = 0;
+                        }
+                        
+                        ctx.globalAlpha = ratio * 0.7 + 0.3;
+                        ctx.fill();
+                    }
+                    ctx.shadowBlur = 0;
+
+                    // 2. 倒影
+                    const reflectCount = Math.floor(particleCount / 3);
+                    for (let j = 0; j < reflectCount; j++) {
+                        const y = groundY + (j * 14 + 10);
+                        if (y > h) break;
+                        const ratio = 1 - (j / reflectCount);
+                        ctx.beginPath();
+                        ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+                        ctx.fillStyle = i % 2 === 0 ? theme.primary : theme.secondary;
+                        ctx.globalAlpha = ratio * 0.15;
+                        ctx.fill();
+                    }
+                    
+                    // 3. 掉落峰值
+                    if (barHeight > this.peaks[i]) this.peaks[i] = barHeight;
+                    else this.peaks[i] -= 2; 
+                    
+                    if (this.peaks[i] > 0) {
+                        const peakY = groundY - this.peaks[i] - 12;
+                        ctx.beginPath();
+                        ctx.arc(x, peakY, 3, 0, Math.PI * 2);
+                        ctx.fillStyle = theme.secondary;
+                        ctx.globalAlpha = 1.0;
+                        ctx.fill();
+                    }
+                }
+                
+                // 地平线
+                ctx.beginPath();
+                ctx.moveTo(0, groundY);
+                ctx.lineTo(w, groundY);
+                ctx.strokeStyle = theme.primary;
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.4;
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        /** 2. 镜像模式渲染器 (MIRROR) - 优化：离屏Canvas缓存背景 */
+        class MirrorRenderer extends BaseRenderer {
+            constructor(ctx) {
+                super(ctx);
+                this.bgCanvas = document.createElement('canvas');
+                this.bgCtx = this.bgCanvas.getContext('2d');
+                this.bgCached = false;
+            }
+
+            resize(w, h) {
+                super.resize(w, h);
+                this.bgCanvas.width = w;
+                this.bgCanvas.height = h;
+                this.bgCached = false;
+            }
+
+            drawBackground() {
+                if (this.bgCached) return;
+                const { width: w, height: h } = this;
+                const ctx = this.bgCtx;
+                
+                ctx.clearRect(0, 0, w, h);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for(let i=0; i<=w; i+=40) { ctx.moveTo(i, 0); ctx.lineTo(i, h); }
+                for(let i=0; i<=h; i+=40) { ctx.moveTo(0, i); ctx.lineTo(w, i); }
+                ctx.stroke();
+                this.bgCached = true;
+            }
+
+            draw(analyser, dataArray, bufferLength, theme) {
+                analyser.getByteFrequencyData(dataArray);
+                const { ctx, width: w, height: h } = this;
+                const cx = w / 2;
+                const cy = h / 2;
+
+                this.drawBackground();
+                ctx.drawImage(this.bgCanvas, 0, 0);
+
+                const bars = 48;
+                const step = Math.floor(bufferLength / bars);
+                const barW = (w / 2) / bars;
+
+                for(let i = 0; i < bars; i++) {
+                    const value = dataArray[i * step];
+                    const percent = value / 255;
+                    let barH = percent * (h * 0.7);
+                    if (i < 5) barH *= 1.2;
+
+                    ctx.fillStyle = i % 3 === 0 ? theme.secondary : theme.primary;
+                    
+                    if (percent > 0.6) {
+                        ctx.shadowBlur = 15;
+                        ctx.shadowColor = ctx.fillStyle;
+                    } else {
+                        ctx.shadowBlur = 0;
+                    }
+
+                    const xOffset = i * barW;
+                    const blockHeight = 6;
+                    const gap = 2;
+                    const totalBlocks = Math.floor(barH / (blockHeight + gap));
+
+                    for (let b = 0; b < totalBlocks; b++) {
+                        ctx.globalAlpha = 1.0 - (b / totalBlocks) * 0.6;
+                        const yOffset = b * (blockHeight + gap);
+                        
+                        ctx.fillRect(cx + xOffset, cy - yOffset, barW - 2, blockHeight);
+                        ctx.fillRect(cx + xOffset, cy + yOffset, barW - 2, blockHeight);
+                        ctx.fillRect(cx - xOffset - barW, cy - yOffset, barW - 2, blockHeight);
+                        ctx.fillRect(cx - xOffset - barW, cy + yOffset, barW - 2, blockHeight);
+                    }
+                }
+                ctx.globalAlpha = 1.0;
+                ctx.shadowBlur = 0;
+
+                const bass = dataArray[3] / 255;
+                ctx.fillStyle = '#ffffff';
+                ctx.globalAlpha = 0.5 + bass * 0.5;
+                ctx.fillRect(cx - 1, cy - (h/2)*bass, 2, h*bass);
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        /** 3. 波形模式渲染器 (WAVEFORM) */
+        class WaveformRenderer extends BaseRenderer {
+            draw(analyser, dataArray, bufferLength, theme) {
+                analyser.getByteTimeDomainData(dataArray);
+                const { ctx, width: w, height: h } = this;
+                
+                // 1. 电流光晕
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = theme.primary;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = theme.primary;
+                ctx.lineJoin = 'round';
+                ctx.lineCap = 'round';
+                
+                ctx.beginPath();
+                const sliceWidth = w * 1.0 / bufferLength;
+                let x = 0;
+                for(let i = 0; i < bufferLength; i++) {
+                    const v = dataArray[i] / 128.0;
+                    const y = v * h/2;
+                    if(i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                    x += sliceWidth;
+                }
+                ctx.stroke();
+                
+                // 2. 幻影重影 (RGB分离)
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = theme.secondary;
+                ctx.globalAlpha = 0.4;
+                ctx.shadowBlur = 0;
+                
+                ctx.beginPath();
+                x = 0;
+                for(let i = 0; i < bufferLength; i++) {
+                    const v = dataArray[i] / 128.0;
+                    const y = v * h/2 + 4; 
+                    if(i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                    x += sliceWidth;
+                }
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        /** 4. 示波器渲染器 (OSCILLOSCOPE) */
+        class OscilloscopeRenderer extends BaseRenderer {
+            draw(analyser, dataArray, bufferLength, theme) {
+                analyser.getByteTimeDomainData(dataArray);
+                const { ctx, width: w, height: h } = this;
+
+                // 1. 全息网格
+                const time = Date.now() / 1000;
+                const gridOffset = (time * 50) % 50;
+                
+                ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let gx = 0; gx < w; gx += 50) { ctx.moveTo(gx, 0); ctx.lineTo(gx, h); }
+                for (let gy = gridOffset; gy < h; gy += 50) { ctx.moveTo(0, gy); ctx.lineTo(w, gy); }
+                ctx.stroke();
+
+                // 2. 高亮信号线
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#00ff00';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#00ff00';
+                ctx.beginPath();
+                
+                const sliceWidth = w * 1.0 / bufferLength;
+                let x = 0;
+                for(let i = 0; i < bufferLength; i++) {
+                    const v = dataArray[i] / 128.0;
+                    const y = v * h/2;
+                    if(i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                    x += sliceWidth;
+                }
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                // 3. 扫描线纹理
+                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                for(let i=0; i<h; i+=3) { ctx.fillRect(0, i, w, 1); }
+            }
+        }
+
+        /** 5. 放射模式渲染器 (RADIAL) */
+        class RadialRenderer extends BaseRenderer {
+            draw(analyser, dataArray, bufferLength, theme, extra) {
+                analyser.getByteFrequencyData(dataArray);
+                const { ctx, width: w, height: h } = this;
+                const cx = w / 2;
+                const cy = h / 2;
+                const radius = Math.min(w, h) / 4.5; 
+                
+                ctx.save();
+                ctx.translate(cx, cy);
+                
+                // 1. 核心 (空心)
+                const bass = dataArray[5] / 255.0;
+                ctx.beginPath();
+                const coreRadius = radius * (0.8 + bass * 0.3);
+                ctx.arc(0, 0, coreRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = theme.primary;
+                ctx.lineWidth = 2 + bass * 8; 
+                ctx.globalAlpha = 0.6 + bass * 0.4;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = theme.primary;
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+                ctx.shadowBlur = 0;
+
+                // 1.1 显示呼号 (动态)
+                if (extra && extra.callsign && extra.opacity > 0) {
+                    ctx.save();
+                    ctx.globalAlpha = extra.opacity;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    const baseSize = radius * 0.4;
+                    const dynamicSize = baseSize * (1 + bass * 0.2); 
+                    ctx.font = `bold ${Math.floor(dynamicSize)}px "Roboto Mono", monospace`;
+                    
+                    ctx.shadowBlur = 10 + bass * 20;
+                    ctx.shadowColor = theme.primary;
+                    
+                    ctx.fillText(extra.callsign, 0, 0);
+                    ctx.restore();
+                }
+
+                // 2. 旋转环
+                ctx.rotate(Date.now() * 0.0005); 
+                const bars = 64; 
+                const step = Math.floor(bufferLength / bars);
+                
+                for(let i = 0; i < bars; i++) { 
+                    const value = dataArray[i * step];
+                    const percent = value / 255;
+                    const angle = (i / bars) * Math.PI * 2;
+                    const nextAngle = ((i + 0.8) / bars) * Math.PI * 2;
+                    
+                    const innerR = radius;
+                    const barH = percent * (radius * 0.8);
+                    
+                    ctx.beginPath();
+                    ctx.arc(0, 0, innerR + barH, angle, nextAngle);
+                    ctx.arc(0, 0, innerR, nextAngle, angle, true);
+                    ctx.fillStyle = i % 2 === 0 ? theme.primary : theme.secondary;
+                    ctx.fill();
+                    
+                    if (percent > 0.5) {
+                        const outerStart = radius * 2.0;
+                        const outerEnd = outerStart + (percent * radius * 0.5);
+                        ctx.beginPath();
+                        ctx.moveTo(Math.cos(angle)*outerStart, Math.sin(angle)*outerStart);
+                        ctx.lineTo(Math.cos(angle)*outerEnd, Math.sin(angle)*outerEnd);
+                        ctx.strokeStyle = theme.secondary;
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    }
+                }
+                ctx.restore();
+            }
+        }
+
+        /** 6. 粒子模式渲染器 (PARTICLES) */
+        class ParticlesRenderer extends BaseRenderer {
+            constructor(ctx) {
+                super(ctx);
+                this.particles = [];
+                this.initialized = false;
+            }
+
+            resize(w, h) {
+                super.resize(w, h);
+                if (!this.initialized) {
+                    this.initParticles(w, h);
+                    this.initialized = true;
+                }
+            }
+
+            initParticles(w, h) {
+                this.particles = [];
+                for(let i=0; i<150; i++) {
+                    this.particles.push({
+                        x: Math.random() * w,
+                        y: Math.random() * h,
+                        baseSize: Math.random() * 5 + 3,
+                        randomSpeed: Math.random() * 0.05 + 0.02,
+                        colorType: Math.random() > 0.5 ? 'primary' : 'secondary'
+                    });
+                }
+            }
+
+            draw(analyser, dataArray, bufferLength, theme) {
+                analyser.getByteFrequencyData(dataArray);
+                const { ctx, width: w, height: h } = this;
+                
+                if (this.particles.length === 0) this.initParticles(w, h);
+
+                let bass = 0;
+                for(let i=0; i<20; i++) bass += dataArray[i];
+                bass = bass / 20 / 255; 
+
+                const cx = w / 2;
+                const cy = h / 2;
+                const speedBase = 1 + bass * 8;
+
+                ctx.globalCompositeOperation = 'lighter'; 
+
+                this.particles.forEach((p) => {
+                    const oldX = p.x;
+                    const oldY = p.y;
+                    
+                    let dx = p.x - cx;
+                    let dy = p.y - cy;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    let angle = Math.atan2(dy, dx);
+                    
+                    const maxDist = Math.max(w, h) * 0.8;
+                    if (dist < 5 || dist > maxDist) {
+                        angle = Math.random() * Math.PI * 2;
+                        dist = 10 + Math.random() * 20;
+                        p.x = cx + Math.cos(angle) * dist;
+                        p.y = cy + Math.sin(angle) * dist;
+                        return;
+                    }
+
+                    angle += 0.01 * p.randomSpeed * (bass > 0.5 ? 2 : 1); 
+                    dist += speedBase * p.randomSpeed * 5;
+
+                    p.x = cx + Math.cos(angle) * dist;
+                    p.y = cy + Math.sin(angle) * dist;
+
+                    const size = p.baseSize * (0.3 + bass * 0.7);
+                    const alpha = Math.min(1, (dist / (w/3))); 
+
+                    ctx.beginPath();
+                    ctx.moveTo(oldX, oldY);
+                    ctx.lineTo(p.x, p.y);
+                    ctx.lineWidth = size;
+                    ctx.strokeStyle = p.colorType === 'primary' ? theme.primary : theme.secondary;
+                    ctx.lineCap = 'round';
+                    ctx.globalAlpha = alpha;
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, size * 0.6, 0, Math.PI*2);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.globalAlpha = alpha;
+                    ctx.fill();
+                });
+                
+                ctx.globalCompositeOperation = 'source-over'; 
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        /** 7. 太阳系模拟渲染器 (SOLAR_SYSTEM) */
+        class SolarSystemRenderer extends BaseRenderer {
+            constructor(ctx) {
+                super(ctx);
+                
+                // 艺术配色库 (用于行星云微粒)
+                const palette = [
+                    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD',
+                    '#D4A5A5', '#9B59B6', '#3498DB', '#E67E22', '#2ECC71',
+                    '#F1C40F', '#E74C3C', '#1ABC9C', '#8E44AD', '#FF9F43'
+                ];
+                const getRandomColor = () => palette[Math.floor(Math.random() * palette.length)];
+
+                // 行星样式定义 (高饱和度艺术配色)
+                const planetStyles = {
+                    'Mercury': { type: 'crater', color1: '#B0B0B0', color2: '#808080', highlight: '#E0E0E0' }, 
+                    'Venus': { type: 'cloud', color1: '#FFD700', color2: '#DAA520', highlight: '#FFFACD' }, 
+                    'Earth': { type: 'earth', color1: '#00BFFF', color2: '#0000CD', highlight: '#87CEFA' }, 
+                    'Mars': { type: 'rust', color1: '#FF4500', color2: '#8B0000', highlight: '#FF7F50' }, 
+                    'Jupiter': { type: 'banded', color1: '#FFA500', color2: '#D2691E', highlight: '#FFE4B5', bands: ['#FFA500', '#FFE4B5', '#D2691E', '#FFE4B5'] }, 
+                    'Saturn': { type: 'banded', color1: '#FFD700', color2: '#B8860B', highlight: '#FFF8DC', bands: ['#FFD700', '#FFF8DC', '#DAA520'] }, 
+                    'Uranus': { type: 'gas', color1: '#00FFFF', color2: '#008B8B', highlight: '#E0FFFF' }, 
+                    'Neptune': { type: 'gas', color1: '#1E90FF', color2: '#00008B', highlight: '#87CEFA' }, 
+                    'Pluto': { type: 'ice', color1: '#F5DEB3', color2: '#A0522D', highlight: '#FFF5EE' } 
+                };
+
+                // 卫星配置 (相对于行星的尺寸和距离)
+                // 轨道速度符合开普勒定律 (T^2 ~ R^3, v ~ R^-0.5) 
+                // 基础速度: Earth = 1.0 (120s Period)
+                this.planets = [
+                    { name: 'Mercury', r: 0.8, dist: 1.5, speed: 4.15, style: planetStyles['Mercury'], moons: [] },
+                    { name: 'Venus', r: 1.8, dist: 2.5, speed: 1.62, style: planetStyles['Venus'], moons: [] },
+                    { name: 'Earth', r: 2.0, dist: 3.3, speed: 1.0, style: planetStyles['Earth'], moons: [
+                        { name: 'Moon', r: 0.27, dist: 0.3, speed: 2.5, color: '#D3D3D3' }
+                    ]},
+                    { name: 'Mars', r: 1.2, dist: 4.0, speed: 0.53, style: planetStyles['Mars'], moons: [
+                        { name: 'Phobos', r: 0.15, dist: 0.2, speed: 4.0, color: '#C0C0C0' },
+                        { name: 'Deimos', r: 0.12, dist: 0.3, speed: 2.0, color: '#A9A9A9' }
+                    ]},
+                    { name: 'Jupiter', r: 5.5, dist: 6.5, speed: 0.084, style: planetStyles['Jupiter'], moons: [
+                        { name: 'Io', r: 0.3, dist: 0.7, speed: 3.0, color: '#FFFFE0' },
+                        { name: 'Europa', r: 0.25, dist: 0.9, speed: 2.5, color: '#F0F8FF' },
+                        { name: 'Ganymede', r: 0.4, dist: 1.2, speed: 2.0, color: '#D3D3D3' },
+                        { name: 'Callisto', r: 0.35, dist: 1.5, speed: 1.5, color: '#708090' }
+                    ]},
+                    { name: 'Saturn', r: 4.8, dist: 8.0, speed: 0.034, style: planetStyles['Saturn'], moons: [
+                        { name: 'Titan', r: 0.4, dist: 0.8, speed: 2.0, color: '#F4A460' },
+                        { name: 'Rhea', r: 0.2, dist: 0.5, speed: 3.0, color: '#D3D3D3' }
+                    ]},
+                    { name: 'Uranus', r: 4.2, dist: 9.2, speed: 0.012, style: planetStyles['Uranus'], moons: [
+                        { name: 'Titania', r: 0.2, dist: 0.5, speed: 2.5, color: '#E0FFFF' },
+                        { name: 'Oberon', r: 0.2, dist: 0.6, speed: 2.0, color: '#E0FFFF' }
+                    ]},
+                    { name: 'Neptune', r: 4.0, dist: 10.2, speed: 0.006, style: planetStyles['Neptune'], moons: [
+                        { name: 'Triton', r: 0.3, dist: 0.5, speed: -2.0, color: '#FFC0CB' } // 逆行卫星
+                    ]},
+                    { name: 'Pluto', r: 2.5, dist: 11.0, speed: 0.004, style: planetStyles['Pluto'], moons: [
+                        { name: 'Charon', r: 1.2, dist: 0.3, speed: 1.0, color: '#808080' }
+                    ]}
+                ];
+                
+                // 构建呼号分配目标列表 (行星 + 卫星)
+                this.targets = [];
+                this.planets.forEach((p, pIdx) => {
+                    this.targets.push({ type: 'planet', pIdx: pIdx, name: p.name });
+                    if (p.moons) {
+                        p.moons.forEach((m, mIdx) => {
+                            this.targets.push({ type: 'moon', pIdx: pIdx, mIdx: mIdx, name: m.name });
+                        });
+                    }
+                });
+                
+                // 预计算恒星背景 (动态旋转与闪烁)
+                this.stars = [];
+                for(let i=0; i<300; i++) {
+                    this.stars.push({
+                        r: Math.random() * 1.5, // 归一化极径
+                        angle: Math.random() * Math.PI * 2, // 初始角度
+                        size: Math.random() * 2.5 + 0.5, // 大小差异化 (0.5 - 3.0)
+                        blinkSpeed: Math.random() * 0.005 + 0.002, // 闪烁速度
+                        blinkPhase: Math.random() * Math.PI * 2, // 闪烁相位
+                        baseAlpha: Math.random() * 0.5 + 0.2 // 基础透明度
+                    });
+                }
+                this.starRotation = 0; // 整体旋转角度
+
+                // 速度设置: 120s per Earth orbit
+                // Logic: 60fps, angleOffset += speed * 0.02
+                // 2*PI / (speed * 0.02 * 60) = 120  => speed = 0.0436
+                this.baseSpeed = 0.0436; 
+                this.currentSpeed = this.baseSpeed;
+                this.angleOffset = 0;
+                this.tilt = 0.6; // 视角倾斜 (0.6 约等于 37度，增加垂直空间)
+                
+                // 行星云数据 (右上角)
+                this.cloudAngle = 0;
+                this.cloudParticles = Array.from({length: 40}, () => ({
+                    x: (Math.random() - 0.5) * 100,
+                    y: (Math.random() - 0.5) * 60,
+                    size: Math.random() * 2 + 1,
+                    color: getRandomColor(),
+                    alpha: Math.random() * 0.6 + 0.2
+                }));
+
+                this.activeTarget = null;
+                this.lastCallsign = '';
+
+                // 太阳喷发系统配置
+                this.eruptions = [];
+                this.eruptionConfig = {
+                    sensitivity: 1.0,   // 音调敏感度
+                    randomness: 0.5,    // 随机性程度
+                    intensity: 1.0,     // 光芒强度缩放
+                    speed: 1.0          // 喷发速度缩放
+                };
+            }
+
+            draw(analyser, dataArray, bufferLength, theme, extra) {
+                analyser.getByteFrequencyData(dataArray);
+                const { ctx, width: w, height: h } = this;
+                const cx = w / 2;
+                const cy = h / 2;
+                const minDim = Math.min(w, h); // 用于自适应字体大小和显隐
+
+                // 辅助函数: 计算对比色文本
+                const getTextColor = (hex) => {
+                    if(!hex || hex[0]!=='#') return '#ffffff';
+                    const r = parseInt(hex.slice(1,3), 16);
+                    const g = parseInt(hex.slice(3,5), 16);
+                    const b = parseInt(hex.slice(5,7), 16);
+                    return (r*0.299 + g*0.587 + b*0.114) > 160 ? '#000000' : '#ffffff';
+                };
+                
+                // 1. 计算音频能量与速度
+                let energy = 0;
+                let bass = 0;
+                let mid = 0;
+                let treble = 0;
+                
+                for(let i=0; i<bufferLength; i++) {
+                    const val = dataArray[i];
+                    energy += val;
+                    if(i < 20) bass += val;
+                    else if(i < 200) mid += val;
+                    else treble += val;
+                }
+                energy /= (bufferLength * 255);
+                bass /= (20 * 255);
+                mid /= (180 * 255);
+                treble /= ((bufferLength - 200) * 255);
+
+                // 加速逻辑: 通联时(有能量)显著加速
+                const targetSpeed = this.baseSpeed + energy * 6.0;
+                this.currentSpeed += (targetSpeed - this.currentSpeed) * 0.05;
+                this.angleOffset += this.currentSpeed * 0.02;
+
+                // 2. 呼号分配逻辑
+                const callsign = (extra && extra.callsign && extra.opacity > 0) ? extra.callsign : null;
+                const input = extra.input || { x: 0, y: 0, active: false };
+                
+                if (callsign && callsign !== this.lastCallsign) {
+                    this.lastCallsign = callsign;
+                    let hash = 0;
+                    for (let i = 0; i < callsign.length; i++) hash = callsign.charCodeAt(i) + ((hash << 5) - hash);
+                    this.activeTarget = this.targets[Math.abs(hash) % this.targets.length];
+                }
+
+                // 3. 绘制背景星空
+                this.starRotation += 0.0002; 
+                const maxDim = Math.max(w, h);
+                const nowTime = Date.now();
+
+                this.stars.forEach(star => {
+                    const blink = Math.sin(nowTime * star.blinkSpeed + star.blinkPhase);
+                    const alpha = Math.max(0.1, Math.min(1, star.baseAlpha + blink * 0.3 + energy * 0.5));
+                    
+                    const currentAngle = star.angle + this.starRotation;
+                    const x = cx + Math.cos(currentAngle) * star.r * maxDim * 0.8;
+                    const y = cy + Math.sin(currentAngle) * star.r * maxDim * 0.8;
+
+                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, star.size, 0, Math.PI*2);
+                    ctx.fill();
+                });
+
+                // 4. 绘制轨道 (动态计算缩放以铺满屏幕)
+                // 目标：让最外层行星(冥王星 dist=11.0)贴近屏幕边缘
+                // 计算 X 轴和 Y 轴方向的最大允许缩放比例，取较小值以确保完整显示
+                const maxDist = 11.0; 
+                const scaleX = w / 2 / maxDist;
+                const scaleY = h / 2 / (maxDist * this.tilt);
+                const scale = Math.min(scaleX, scaleY) * 0.95; // 0.95 留一点点边距
+
+                ctx.lineWidth = 1;
+                this.planets.forEach(p => {
+                    ctx.beginPath();
+                    ctx.ellipse(cx, cy, p.dist * scale, p.dist * scale * this.tilt, 0, 0, Math.PI*2);
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${0.05 + bass * 0.1})`;
+                    ctx.stroke();
+                });
+
+                // 5. 准备渲染列表
+                const renderList = [];
+                let hoveredItem = null;
+
+                // 太阳 (含光芒喷发系统)
+                renderList.push({
+                    y: cy,
+                    draw: () => {
+                        const sunBaseSize = 25; 
+                        const sunSize = sunBaseSize + bass * 30;
+
+                        // --- 光芒喷发 ---
+                        const sensitivity = this.eruptionConfig.sensitivity;
+                        if (energy * sensitivity > 0.05) { 
+                            const count = Math.floor(energy * 8 * sensitivity); 
+                            let colorBase = '255, 69, 0'; 
+                            let type = 'bass';
+                            if (treble > mid && treble > bass) { colorBase = '200, 255, 255'; type = 'treble'; } 
+                            else if (mid > bass) { colorBase = '255, 215, 0'; type = 'mid'; }
+
+                            for(let k=0; k<count; k++) {
+                                const angle = Math.random() * Math.PI * 2;
+                                const speedVar = Math.random() * this.eruptionConfig.randomness;
+                                this.eruptions.push({
+                                    x: cx, y: cy, angle: angle,
+                                    r: sunSize * 0.8,
+                                    speed: (2 + speedVar * 5 + energy * 10) * this.eruptionConfig.speed,
+                                    length: (10 + Math.random() * 20 + energy * 50) * this.eruptionConfig.intensity,
+                                    width: (type === 'treble' ? 1 : (type === 'mid' ? 2 : 3)) * (1 + Math.random()),
+                                    colorBase: colorBase, alpha: 0.8 + Math.random() * 0.2, decay: 0.02 + Math.random() * 0.05
+                                });
+                            }
+                        }
+
+                        ctx.save();
+                        ctx.globalCompositeOperation = 'lighter';
+                        for (let i = this.eruptions.length - 1; i >= 0; i--) {
+                            const p = this.eruptions[i];
+                            p.r += p.speed;
+                            p.alpha -= p.decay;
+                            if (p.alpha <= 0) { this.eruptions.splice(i, 1); continue; }
+                            const sx = cx + Math.cos(p.angle) * p.r;
+                            const sy = cy + Math.sin(p.angle) * p.r;
+                            const ex = cx + Math.cos(p.angle) * (p.r + p.length);
+                            const ey = cy + Math.sin(p.angle) * (p.r + p.length);
+                            ctx.strokeStyle = `rgba(${p.colorBase}, ${p.alpha})`;
+                            ctx.lineWidth = p.width;
+                            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+                        }
+                        ctx.restore();
+                        
+                        // 太阳本体 (明亮橙黄渐变 - 65%透明度)
+                        const sunGrad = ctx.createRadialGradient(cx, cy, sunSize*0.2, cx, cy, sunSize);
+                        sunGrad.addColorStop(0, 'rgba(255, 215, 0, 0.85)'); // 金黄
+                        sunGrad.addColorStop(1, 'rgba(255, 140, 0, 0.65)'); // 深橙
+                        
+                        ctx.fillStyle = sunGrad;
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, sunSize, 0, Math.PI*2);
+                        ctx.fill();
+
+                        // 交互检测
+                        if (input.active && Math.hypot(input.x - cx, input.y - cy) < sunSize + 10) {
+                            hoveredItem = { name: 'Sun', info: 'Star Type: G2V', x: cx, y: cy - sunSize - 10 };
+                        }
+                    }
+                });
+
+                // 行星与卫星
+                this.planets.forEach((p, i) => {
+                    const angle = this.angleOffset * p.speed + i * 137.5; 
+                    const x = cx + Math.cos(angle) * p.dist * scale;
+                    const y = cy + Math.sin(angle) * p.dist * scale * this.tilt;
+                    
+                    renderList.push({
+                        y: y,
+                        draw: () => {
+                            const size = Math.max(3, p.r * scale * 0.12);
+                            const style = p.style;
+
+                            // 绘制卫星 (先画卫星，如果在行星后面会被行星遮挡? 不，这里作为行星的一部分绘制，顺序可能需要细化，但简化起见一起画)
+                            // 简单的卫星轨道绘制
+                            if (p.moons && p.moons.length > 0) {
+                                p.moons.forEach((m, idx) => {
+                                    // 卫星速度更快
+                                    const mAngle = this.angleOffset * m.speed * 4 + idx; 
+                                    // 卫星轨道半径需适当放大以可见
+                                    const mDist = (size + m.dist * scale * 2); 
+                                    const mx = x + Math.cos(mAngle) * mDist;
+                                    const my = y + Math.sin(mAngle) * mDist * this.tilt; // 卫星也受倾斜影响
+                                    // 增大卫星尺寸以提升可见度
+                                    const mSize = Math.max(2.0, m.r * scale * 0.15);
+
+                                    // 卫星轨道线
+                                    ctx.beginPath();
+                                    ctx.ellipse(x, y, mDist, mDist * this.tilt, 0, 0, Math.PI*2);
+                                    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                                    ctx.stroke();
+
+                                    // 卫星本体
+                                    ctx.fillStyle = m.color;
+                                    ctx.beginPath();
+                                    ctx.arc(mx, my, mSize, 0, Math.PI*2);
+                                    ctx.fill();
+
+                                    // 卫星交互
+                                    if (input.active && Math.hypot(input.x - mx, input.y - my) < mSize + 5) {
+                                        hoveredItem = { name: m.name, info: `Moon of ${p.name}`, x: mx, y: my - 10 };
+                                    }
+
+                                    // 呼号显示 (卫星)
+                                    if (callsign && this.activeTarget && this.activeTarget.type === 'moon' && this.activeTarget.pIdx === i && this.activeTarget.mIdx === idx) {
+                                        // 连接线
+                                        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(mx, my);
+                                        ctx.strokeStyle = theme.primary; ctx.globalAlpha = 0.3; ctx.stroke(); ctx.globalAlpha = 1.0;
+
+                                        // 呼号背景 (圆角矩形)
+                                        ctx.save();
+                                        ctx.translate(mx, my - mSize * 2.5 - 10);
+                                        
+                                        const text = callsign;
+                                        ctx.font = 'bold 12px "Roboto Mono"';
+                                        const textMetrics = ctx.measureText(text);
+                                        const bgW = textMetrics.width + 16;
+                                        const bgH = 20;
+                                        
+                                        // 使用卫星颜色作为背景
+                                        ctx.fillStyle = m.color; 
+                                        ctx.globalAlpha = 0.8;
+                                        ctx.shadowBlur = 10;
+                                        ctx.shadowColor = m.color;
+                                        
+                                        ctx.beginPath();
+                                        ctx.roundRect(-bgW/2, -bgH/2 - 5, bgW, bgH, 10);
+                                        ctx.fill();
+                                        
+                                        ctx.fillStyle = getTextColor(m.color); // 自适应对比色文字
+                                        ctx.textAlign = 'center';
+                                        ctx.textBaseline = 'middle';
+                                        ctx.shadowBlur = 0; 
+                                        ctx.fillText(text, 0, -5);
+                                        ctx.restore();
+                                    }
+                                });
+                            }
+
+                            // 绘制行星
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.arc(x, y, size, 0, Math.PI*2);
+                            ctx.clip(); 
+
+                            const grad = ctx.createRadialGradient(x - size*0.3, y - size*0.3, size*0.1, x, y, size);
+                            grad.addColorStop(0, style.highlight || style.color1);
+                            grad.addColorStop(0.5, style.color1);
+                            grad.addColorStop(1, style.color2);
+                            ctx.fillStyle = grad;
+                            ctx.fill();
+
+                            // 纹理细节
+                            if (style.type === 'banded' && style.bands) {
+                                ctx.globalCompositeOperation = 'overlay';
+                                const bandHeight = size * 2 / style.bands.length;
+                                style.bands.forEach((color, idx) => {
+                                    ctx.fillStyle = color;
+                                    ctx.fillRect(x - size, y - size + idx * bandHeight, size * 2, bandHeight);
+                                });
+                                ctx.globalCompositeOperation = 'source-over';
+                            } else if (style.type === 'earth') {
+                                ctx.globalCompositeOperation = 'source-atop';
+                                ctx.fillStyle = '#4CAF50'; 
+                                ctx.beginPath(); ctx.arc(x - size*0.4, y - size*0.2, size*0.6, 0, Math.PI*2); ctx.fill();
+                                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'; 
+                                ctx.beginPath(); ctx.arc(x + size*0.3, y + size*0.3, size*0.7, 0, Math.PI*2); ctx.fill();
+                                ctx.globalCompositeOperation = 'source-over';
+                            } else if (style.type === 'crater' || style.type === 'rust') {
+                                ctx.globalCompositeOperation = 'multiply';
+                                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                                for(let k=0; k<3; k++) {
+                                    ctx.beginPath(); ctx.arc(x + (Math.random()-0.5)*size, y + (Math.random()-0.5)*size, size*0.2, 0, Math.PI*2); ctx.fill();
+                                }
+                                ctx.globalCompositeOperation = 'source-over';
+                            }
+
+                            // 阴影
+                            const shadowGrad = ctx.createRadialGradient(x, y, size * 0.8, x, y, size);
+                            shadowGrad.addColorStop(0, 'rgba(0,0,0,0)');
+                            shadowGrad.addColorStop(1, 'rgba(0,0,0,0.5)');
+                            ctx.fillStyle = shadowGrad;
+                            ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI*2); ctx.fill();
+                            ctx.restore();
+                            
+                            // 行星名 (自适应显隐)
+                            if (minDim > 320) {
+                                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                                const nameSize = Math.max(10, Math.floor(minDim / 60));
+                                ctx.font = `${nameSize}px "Roboto Mono"`;
+                                ctx.textAlign = 'center';
+                                ctx.fillText(p.name, x, y + size + nameSize + 4);
+                            }
+
+                            // 行星交互
+                            if (input.active && Math.hypot(input.x - x, input.y - y) < size + 5) {
+                                hoveredItem = { name: p.name, info: `Dist: ${p.dist} AU`, x: x, y: y - size - 10 };
+                            }
+
+                            // 呼号显示 (行星)
+                            if (callsign && this.activeTarget && this.activeTarget.type === 'planet' && this.activeTarget.pIdx === i) {
+                                // 连接线
+                                ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y);
+                                ctx.strokeStyle = theme.primary; ctx.globalAlpha = 0.3; ctx.stroke(); ctx.globalAlpha = 1.0;
+
+                                // 呼号背景 (圆角矩形)
+                                ctx.save();
+                                ctx.translate(x, y - size * 2.5);
+                                
+                                const text = callsign;
+                                ctx.font = 'bold 14px "Roboto Mono"';
+                                const textMetrics = ctx.measureText(text);
+                                const bgW = textMetrics.width + 20;
+                                const bgH = 24;
+                                
+                                // 使用行星主色作为背景，半透明
+                                ctx.fillStyle = style.color1; 
+                                ctx.globalAlpha = 0.8;
+                                ctx.shadowBlur = 10;
+                                ctx.shadowColor = style.color1;
+                                
+                                // 绘制圆角矩形
+                                ctx.beginPath();
+                                ctx.roundRect(-bgW/2, -bgH/2 - 5, bgW, bgH, 12);
+                                ctx.fill();
+                                
+                                ctx.fillStyle = getTextColor(style.color1); // 自适应对比色文字
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.shadowBlur = 0; // 文字不加阴影以保持清晰
+                                ctx.fillText(text, 0, -5);
+                                ctx.restore();
+                            }
+                        }
+                    });
+                });
+
+                // 排序并绘制
+                renderList.sort((a, b) => a.y - b.y);
+                renderList.forEach(item => item.draw());
+
+                // 6. 右上角行星云 (不变)
+                this.cloudAngle += 0.002;
+                const cloudCx = w - 60; const cloudCy = 60;
+                ctx.save(); ctx.translate(cloudCx, cloudCy); ctx.rotate(this.cloudAngle);
+                this.cloudParticles.forEach(p => {
+                    ctx.fillStyle = p.color; ctx.globalAlpha = p.alpha;
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+                });
+                ctx.restore(); ctx.globalAlpha = 1.0;
+
+                // 7. 时钟 (自适应)
+                if (minDim > 280) { // 时钟保留优先级稍高
+                    const now = new Date();
+                    const offset = 8;
+                    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+                    const bjTime = new Date(utc + (3600000 * offset));
+                    const pad = (n) => n.toString().padStart(2, '0');
+                    const fullTimeStr = `${bjTime.getFullYear()}-${pad(bjTime.getMonth()+1)}-${pad(bjTime.getDate())} ${pad(bjTime.getHours())}:${pad(bjTime.getMinutes())}:${pad(bjTime.getSeconds())}`;
+                    
+                    const timeSize = Math.max(14, Math.floor(minDim / 40));
+
+                    ctx.save();
+                    ctx.fillStyle = theme.primary || '#00f3ff'; ctx.shadowColor = theme.primary || '#00f3ff'; ctx.shadowBlur = 10;
+                    ctx.font = `bold ${timeSize}px "Courier New", monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+                    ctx.fillText(fullTimeStr, cx, 30);
+                    ctx.restore();
+                }
+
+                // 8. 图例 (自适应)
+                if (minDim > 350) { // 图例需要更多空间，阈值稍高
+                    const legendY = h - 25;
+                    const legendItems = [
+                        { color: '#FFD700', label: 'Sun' },
+                        { color: '#A9A9A9', label: 'Rocky' },
+                        { color: '#FFA500', label: 'Gas Giant' },
+                        { color: '#00FFFF', label: 'Ice Giant' },
+                        { color: '#A0522D', label: 'Dwarf' },
+                        { color: '#D3D3D3', label: 'Moon' }
+                    ];
+                    
+                    const legendSize = Math.max(10, Math.floor(minDim / 70));
+
+                    ctx.save();
+                    ctx.font = `${legendSize}px "Roboto Mono"`;
+                    ctx.textBaseline = 'middle';
+                
+                // Calculate total width for centering
+                let totalWidth = 0;
+                const itemGap = 20;
+                const itemsWithWidth = legendItems.map(item => {
+                    const w = ctx.measureText(item.label).width + 15; // 8px circle + 7px gap
+                    totalWidth += w;
+                    return { ...item, w };
+                });
+                totalWidth += (legendItems.length - 1) * itemGap;
+                
+                let currentX = cx - totalWidth / 2;
+                
+                itemsWithWidth.forEach((item, idx) => {
+                    // Color dot
+                    ctx.fillStyle = item.color;
+                    ctx.beginPath();
+                    ctx.arc(currentX + 4, legendY, 4, 0, Math.PI*2);
+                    ctx.fill();
+                    
+                    // Text
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(item.label, currentX + 12, legendY);
+                    
+                    currentX += item.w + itemGap;
+                });
+                ctx.restore();
+                }
+
+                // 9. 悬停提示
+                if (hoveredItem) {
+                    ctx.save();
+                    ctx.translate(hoveredItem.x, hoveredItem.y);
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                    ctx.strokeStyle = theme.primary;
+                    ctx.lineWidth = 1;
+                    const infoW = ctx.measureText(hoveredItem.info).width + 20;
+                    ctx.beginPath();
+                    ctx.roundRect(-infoW/2, -40, infoW, 35, 5);
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = theme.primary;
+                    ctx.font = 'bold 12px "Roboto Mono"';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(hoveredItem.name, 0, -25);
+                    ctx.fillStyle = '#ccc';
+                    ctx.font = '10px "Roboto Mono"';
+                    ctx.fillText(hoveredItem.info, 0, -12);
+                    ctx.restore();
+                }
+            }
+        }
+
+        /** 可视化引擎 (重构版) */
         class Visualizer {
             constructor(canvas, analyser) {
                 this.canvas = canvas;
@@ -1707,37 +2968,47 @@
                 this.analyser = analyser;
                 this.freqData = null;
                 this.mode = 0; 
-                this.modes = ['SPECTRUM', 'MIRROR', 'WAVEFORM', 'OSCILLOSCOPE', 'RADIAL', 'PARTICLES'];
+                this.modes = ['SOLAR', 'SPECTRUM', 'MIRROR', 'WAVEFORM', 'OSCILLOSCOPE', 'RADIAL', 'PARTICLES'];
                 this.running = false;
+                this.currentCallsign = '';
+                this.callsignState = { text: '', opacity: 0, targetOpacity: 0 };
+                this.lastLoopTime = 0;
                 
-                // 1. 初始化颜色 (修复：防止粒子颜色为 undefined)
                 this.colorTheme = '#00f3ff';
                 this.colorSecondary = '#ff00ff';
                 this.updateThemeColors();
 
-                // 2. 初始化尺寸
-                this.resize();
+                this.renderers = [
+                    new SolarSystemRenderer(this.ctx),
+                    new SpectrumRenderer(this.ctx),
+                    new MirrorRenderer(this.ctx),
+                    new WaveformRenderer(this.ctx),
+                    new OscilloscopeRenderer(this.ctx),
+                    new RadialRenderer(this.ctx),
+                    new ParticlesRenderer(this.ctx)
+                ];
 
-                // 3. 粒子系统状态 (用于 PARTICLES 模式)
-                this.particles = [];
-                // 增强：增加粒子数量
-                for(let i=0; i<150; i++) {
-                    this.particles.push({
-                        x: Math.random() * this.canvas.width,
-                        y: Math.random() * this.canvas.height,
-                        vx: (Math.random() - 0.5) * 2,
-                        vy: (Math.random() - 0.5) * 2,
-                        // 1. 调整基础粒子大小：3px - 8px (原为 1-4px)
-                        baseSize: Math.random() * 5 + 3,
-                        // 3. 引入随机动态变化状态
-                        sizeOffset: 0,
-                        targetOffset: 0,
-                        randomSpeed: Math.random() * 0.05 + 0.02,
-                        color: Math.random() > 0.5 ? this.colorTheme : this.colorSecondary
-                    });
-                }
+                this.resize();
                 
-                // 使用 ResizeObserver 监听容器大小变化，解决布局变动导致的变形问题
+                // 交互状态追踪
+                this.inputState = { x: 0, y: 0, active: false };
+                
+                // 监听鼠标/触摸移动
+                const updateInput = (x, y) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.inputState.x = (x - rect.left) * window.devicePixelRatio;
+                    this.inputState.y = (y - rect.top) * window.devicePixelRatio;
+                    this.inputState.active = true;
+                };
+
+                this.canvas.addEventListener('mousemove', e => updateInput(e.clientX, e.clientY));
+                this.canvas.addEventListener('touchmove', e => {
+                    if(e.touches.length > 0) updateInput(e.touches[0].clientX, e.touches[0].clientY);
+                }, {passive: true});
+                
+                this.canvas.addEventListener('mouseleave', () => { this.inputState.active = false; });
+                this.canvas.addEventListener('touchend', () => { this.inputState.active = false; });
+
                 this.resizeObserver = new ResizeObserver(() => this.resize());
                 this.resizeObserver.observe(this.canvas);
             }
@@ -1751,9 +3022,20 @@
             resize() {
                 this.canvas.width = this.canvas.clientWidth * window.devicePixelRatio;
                 this.canvas.height = this.canvas.clientHeight * window.devicePixelRatio;
+                this.renderers.forEach(r => r.resize(this.canvas.width, this.canvas.height));
             }
 
             setAnalyser(analyser) { this.analyser = analyser; this.freqData = null; }
+
+            setCallsign(callsign) { 
+                if (callsign) {
+                    this.callsignState.text = callsign;
+                    this.callsignState.targetOpacity = 1;
+                    this.currentCallsign = callsign;
+                } else {
+                    this.callsignState.targetOpacity = 0;
+                }
+            }
 
             switchMode() {
                 this.mode = (this.mode + 1) % this.modes.length;
@@ -1770,15 +3052,23 @@
                 if (!this.running) return;
                 requestAnimationFrame(() => this.loop());
                 
-                const w = this.canvas.width;
-                const h = this.canvas.height;
+                const now = Date.now();
+                const dt = (now - (this.lastLoopTime || now)) / 1000;
+                this.lastLoopTime = now;
                 
-                // 使用缓存的主题颜色
-                const colorTheme = this.colorTheme;
-                const colorSecondary = this.colorSecondary;
+                const fadeSpeed = 3.0;
+                if (this.callsignState.opacity < this.callsignState.targetOpacity) {
+                    this.callsignState.opacity = Math.min(1, this.callsignState.opacity + fadeSpeed * dt);
+                } else if (this.callsignState.opacity > this.callsignState.targetOpacity) {
+                    this.callsignState.opacity = Math.max(0, this.callsignState.opacity - fadeSpeed * dt);
+                }
+                
+                if (this.callsignState.opacity <= 0 && this.callsignState.targetOpacity === 0) {
+                    this.callsignState.text = '';
+                    this.currentCallsign = '';
+                }
 
-                // 清空画布
-                this.ctx.clearRect(0, 0, w, h);
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
                 if (!this.analyser) return;
 
@@ -1786,435 +3076,28 @@
                 const dataArray = (this.freqData && this.freqData.length === bufferLength)
                     ? this.freqData
                     : (this.freqData = new Uint8Array(bufferLength));
-                const modeName = this.modes[this.mode];
 
-                // 通用粒子绘制设置
-                // 性能优化：移动端减少阴影渲染
-                this.ctx.shadowBlur = 0; 
-                this.ctx.shadowColor = colorTheme;
-                this.ctx.fillStyle = colorTheme;
-                this.ctx.strokeStyle = colorTheme;
-
-                if (modeName === 'SPECTRUM') { 
-                    this.analyser.getByteFrequencyData(dataArray);
-                    
-                    const displayW = this.canvas.clientWidth || (w / window.devicePixelRatio);
-                    const barCount = Math.max(24, Math.min(36, Math.floor(displayW / 12)));
-                    const step = Math.max(1, Math.floor(bufferLength / barCount));
-                    const colWidth = w / barCount;
-                    const groundY = h * 0.85; // 地平线位置
-                    
-                    // 初始化峰值数组
-                    if (!this.peaks || this.peaks.length !== barCount) {
-                        this.peaks = new Array(barCount).fill(0);
-                    }
-
-                    for(let i = 0; i < barCount; i++) {
-                        const value = dataArray[i * step] || 0;
-                        
-                        // 增强：增加高度敏感度
-                        const barHeight = (value / 255) * groundY * 0.95; 
-                        const x = i * colWidth + colWidth/2;
-                        
-                        // 1. 绘制主体粒子柱 (向上)
-                        // 增强：增加粒子密度和大小
-                        const particleCount = Math.floor(barHeight / 14); 
-                        for (let j = 0; j < particleCount; j++) {
-                            const y = groundY - (j * 14 + 10);
-                            const ratio = j / particleCount; 
-                            
-                            this.ctx.beginPath();
-                            // 增强：粒子更大，随高度变化
-                            const size = 3 + ratio * 3.5; 
-                            this.ctx.arc(x, y, size, 0, Math.PI * 2);
-                            
-                            if (j === particleCount - 1) {
-                                this.ctx.fillStyle = '#ffffff';
-                                this.ctx.shadowBlur = 8;
-                                this.ctx.shadowColor = '#ffffff';
-                            } else {
-                                this.ctx.fillStyle = i % 2 === 0 ? colorTheme : colorSecondary;
-                                this.ctx.shadowBlur = 0;
-                            }
-                            
-                            this.ctx.globalAlpha = ratio * 0.7 + 0.3;
-                            this.ctx.fill();
-                        }
-                        this.ctx.shadowBlur = 0; // Reset
-
-                        // 2. 绘制倒影粒子 (向下)
-                        const reflectCount = Math.floor(particleCount / 3);
-                        for (let j = 0; j < reflectCount; j++) {
-                            const y = groundY + (j * 14 + 10);
-                            // 超出屏幕不绘制
-                            if (y > h) break;
-                            
-                            const ratio = 1 - (j / reflectCount); // 越远越淡
-                            
-                            this.ctx.beginPath();
-                            this.ctx.arc(x, y, 2.5, 0, Math.PI * 2);
-                            this.ctx.fillStyle = i % 2 === 0 ? colorTheme : colorSecondary;
-                            this.ctx.globalAlpha = ratio * 0.15;
-                            this.ctx.fill();
-                        }
-                        
-                        // 3. 绘制掉落峰值
-                        if (barHeight > this.peaks[i]) {
-                            this.peaks[i] = barHeight;
-                        } else {
-                            this.peaks[i] -= 2; 
-                        }
-                        
-                        if (this.peaks[i] > 0) {
-                            const peakY = groundY - this.peaks[i] - 12;
-                            this.ctx.beginPath();
-                            this.ctx.arc(x, peakY, 3, 0, Math.PI * 2);
-                            this.ctx.fillStyle = colorSecondary;
-                            this.ctx.globalAlpha = 1.0;
-                            this.ctx.fill();
-                        }
-                    }
-                    
-                    // 绘制地平线光晕
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(0, groundY);
-                    this.ctx.lineTo(w, groundY);
-                    this.ctx.strokeStyle = colorTheme;
-                    this.ctx.lineWidth = 2;
-                    this.ctx.globalAlpha = 0.4;
-                    this.ctx.stroke();
-                    
-                    this.ctx.globalAlpha = 1.0;
-                }
-                else if (modeName === 'MIRROR') {
-                    this.analyser.getByteFrequencyData(dataArray);
-                    const cx = w / 2;
-                    const cy = h / 2;
-                    
-                    // 1. 赛博网格背景 (透视效果)
-                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-                    this.ctx.lineWidth = 1;
-                    this.ctx.beginPath();
-                    // 垂直线
-                    for(let i=0; i<=w; i+=40) { 
-                        this.ctx.moveTo(i, 0); 
-                        this.ctx.lineTo(i, h); 
-                    }
-                    // 水平线
-                    for(let i=0; i<=h; i+=40) { 
-                        this.ctx.moveTo(0, i); 
-                        this.ctx.lineTo(w, i); 
-                    }
-                    this.ctx.stroke();
-
-                    // 2. 镜像数字方块
-                    const bars = 48; // 增加密度
-                    const step = Math.floor(bufferLength / bars);
-                    const barW = (w / 2) / bars;
-
-                    for(let i = 0; i < bars; i++) {
-                        const value = dataArray[i * step];
-                        const percent = value / 255;
-                        
-                        // 动态高度，增加低频权重
-                        let barH = percent * (h * 0.7);
-                        if (i < 5) barH *= 1.2; // 增强低音视觉
-
-                        // 颜色渐变: 中心(高能) -> 边缘(冷色)
-                        this.ctx.fillStyle = i % 3 === 0 ? colorSecondary : colorTheme;
-                        
-                        // 发光效果
-                        if (percent > 0.6) {
-                            this.ctx.shadowBlur = 15;
-                            this.ctx.shadowColor = this.ctx.fillStyle;
-                        } else {
-                            this.ctx.shadowBlur = 0;
-                        }
-
-                        const xOffset = i * barW;
-                        
-                        // 绘制分段方块 (Tech Block Style)
-                        const blockHeight = 6;
-                        const gap = 2;
-                        const totalBlocks = Math.floor(barH / (blockHeight + gap));
-
-                        for (let b = 0; b < totalBlocks; b++) {
-                            // 随着高度增加透明度递减
-                            this.ctx.globalAlpha = 1.0 - (b / totalBlocks) * 0.6;
-                            
-                            const yOffset = b * (blockHeight + gap);
-                            
-                            // Right
-                            this.ctx.fillRect(cx + xOffset, cy - yOffset, barW - 2, blockHeight);
-                            this.ctx.fillRect(cx + xOffset, cy + yOffset, barW - 2, blockHeight);
-                            
-                            // Left
-                            this.ctx.fillRect(cx - xOffset - barW, cy - yOffset, barW - 2, blockHeight);
-                            this.ctx.fillRect(cx - xOffset - barW, cy + yOffset, barW - 2, blockHeight);
-                        }
-                    }
-                    this.ctx.globalAlpha = 1.0;
-                    this.ctx.shadowBlur = 0;
-
-                    // 3. 中心能量线
-                    const bass = dataArray[3] / 255;
-                    this.ctx.fillStyle = '#ffffff';
-                    this.ctx.globalAlpha = 0.5 + bass * 0.5;
-                    this.ctx.fillRect(cx - 1, cy - (h/2)*bass, 2, h*bass);
-                    this.ctx.globalAlpha = 1.0;
-                }
-                else if (modeName === 'WAVEFORM') {
-                    this.analyser.getByteTimeDomainData(dataArray);
-                    
-                    // 1. 电流光晕效果
-                    this.ctx.lineWidth = 3;
-                    this.ctx.strokeStyle = colorTheme;
-                    this.ctx.shadowBlur = 20;
-                    this.ctx.shadowColor = colorTheme;
-                    this.ctx.lineJoin = 'round';
-                    this.ctx.lineCap = 'round';
-                    
-                    this.ctx.beginPath();
-                    const sliceWidth = w * 1.0 / bufferLength;
-                    let x = 0;
-                    
-                    for(let i = 0; i < bufferLength; i++) {
-                        const v = dataArray[i] / 128.0;
-                        const y = v * h/2;
-
-                        if(i === 0) this.ctx.moveTo(x, y);
-                        else this.ctx.lineTo(x, y);
-
-                        x += sliceWidth;
-                    }
-                    this.ctx.stroke();
-                    
-                    // 2. 幻影重影 (RGB分离效果)
-                    this.ctx.lineWidth = 2;
-                    this.ctx.strokeStyle = colorSecondary;
-                    this.ctx.globalAlpha = 0.4;
-                    this.ctx.shadowBlur = 0;
-                    
-                    this.ctx.beginPath();
-                    x = 0;
-                    for(let i = 0; i < bufferLength; i++) {
-                        const v = dataArray[i] / 128.0;
-                        // 稍微延迟和偏移
-                        const y = v * h/2 + 4; 
-                        if(i === 0) this.ctx.moveTo(x, y);
-                        else this.ctx.lineTo(x, y);
-                        x += sliceWidth;
-                    }
-                    this.ctx.stroke();
-                    
-                    this.ctx.globalAlpha = 1.0;
-                }
-                else if (modeName === 'OSCILLOSCOPE') {
-                    this.analyser.getByteTimeDomainData(dataArray);
-                    
-                    // 1. 全息网格背景 (动态扫描)
-                    const time = Date.now() / 1000;
-                    const gridOffset = (time * 50) % 50;
-                    
-                    this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
-                    this.ctx.lineWidth = 1;
-                    this.ctx.beginPath();
-                    // 垂直线
-                    for (let gx = 0; gx < w; gx += 50) {
-                        this.ctx.moveTo(gx, 0);
-                        this.ctx.lineTo(gx, h);
-                    }
-                    // 水平扫描线
-                    for (let gy = gridOffset; gy < h; gy += 50) {
-                         this.ctx.moveTo(0, gy);
-                         this.ctx.lineTo(w, gy);
-                    }
-                    this.ctx.stroke();
-
-                    // 2. 高亮信号线 (CRT风格)
-                    this.ctx.lineWidth = 2;
-                    this.ctx.strokeStyle = '#00ff00'; // 复古绿
-                    this.ctx.shadowBlur = 10;
-                    this.ctx.shadowColor = '#00ff00';
-                    this.ctx.beginPath();
-                    
-                    const sliceWidth = w * 1.0 / bufferLength;
-                    let x = 0;
-                    
-                    for(let i = 0; i < bufferLength; i++) {
-                        const v = dataArray[i] / 128.0;
-                        const y = v * h/2;
-                        
-                        if(i === 0) this.ctx.moveTo(x, y);
-                        else this.ctx.lineTo(x, y);
-                        
-                        x += sliceWidth;
-                    }
-                    this.ctx.stroke();
-                    this.ctx.shadowBlur = 0;
-
-                    // 3. 扫描线纹理遮罩
-                    this.ctx.fillStyle = 'rgba(0,0,0,0.1)';
-                    for(let i=0; i<h; i+=3) {
-                        this.ctx.fillRect(0, i, w, 1);
-                    }
-                }
-                else if (modeName === 'RADIAL') { 
-                    this.analyser.getByteFrequencyData(dataArray);
-                    const cx = w / 2;
-                    const cy = h / 2;
-                    const radius = Math.min(w, h) / 4.5; 
-                    
-                    this.ctx.save();
-                    this.ctx.translate(cx, cy);
-                    
-                    // 1. 核心反应堆 (呼吸效果)
-                    const bass = dataArray[5] / 255.0;
-                    this.ctx.beginPath();
-                    this.ctx.arc(0, 0, radius * (0.8 + bass * 0.2), 0, Math.PI * 2);
-                    this.ctx.fillStyle = colorTheme;
-                    this.ctx.globalAlpha = 0.2 + bass * 0.3;
-                    this.ctx.shadowBlur = 20;
-                    this.ctx.shadowColor = colorTheme;
-                    this.ctx.fill();
-                    this.ctx.globalAlpha = 1.0;
-                    this.ctx.shadowBlur = 0;
-
-                    // 2. 旋转 HUD 环
-                    this.ctx.rotate(Date.now() * 0.0005); 
-                    
-                    const bars = 64; 
-                    const step = Math.floor(bufferLength / bars);
-                    
-                    for(let i = 0; i < bars; i++) { 
-                        const value = dataArray[i * step];
-                        const percent = value / 255;
-                        const angle = (i / bars) * Math.PI * 2;
-                        const nextAngle = ((i + 0.8) / bars) * Math.PI * 2;
-                        
-                        // 内圈实心弧 (能量)
-                        const innerR = radius;
-                        const barH = percent * (radius * 0.8);
-                        
-                        this.ctx.beginPath();
-                        this.ctx.arc(0, 0, innerR + barH, angle, nextAngle);
-                        this.ctx.arc(0, 0, innerR, nextAngle, angle, true);
-                        this.ctx.fillStyle = i % 2 === 0 ? colorTheme : colorSecondary;
-                        this.ctx.fill();
-                        
-                        // 外圈放射线 (高能预警)
-                        if (percent > 0.5) {
-                            const outerStart = radius * 2.0;
-                            const outerEnd = outerStart + (percent * radius * 0.5);
-                            
-                            this.ctx.beginPath();
-                            this.ctx.moveTo(Math.cos(angle)*outerStart, Math.sin(angle)*outerStart);
-                            this.ctx.lineTo(Math.cos(angle)*outerEnd, Math.sin(angle)*outerEnd);
-                            this.ctx.strokeStyle = colorSecondary;
-                            this.ctx.lineWidth = 2;
-                            this.ctx.stroke();
-                        }
-                    }
-                    this.ctx.restore();
-                }
-                else if (modeName === 'PARTICLES') {
-                    this.analyser.getByteFrequencyData(dataArray);
-                    
-                    // 计算能量
-                    let bass = 0;
-                    for(let i=0; i<20; i++) bass += dataArray[i];
-                    bass = bass / 20 / 255; // 0.0 - 1.0
-
-                    const cx = w / 2;
-                    const cy = h / 2;
-                    
-                    // 速度基数 (受低频控制)
-                    const speedBase = 1 + bass * 8;
-
-                    this.ctx.globalCompositeOperation = 'lighter'; // 混合模式
-
-                    this.particles.forEach((p) => {
-                        // 记录旧位置用于画拖尾
-                        const oldX = p.x;
-                        const oldY = p.y;
-
-                        // 运动: 从中心向外
-                        const dx = p.x - cx;
-                        const dy = p.y - cy;
-                        let dist = Math.sqrt(dx*dx + dy*dy);
-                        let angle = Math.atan2(dy, dx);
-                        
-                        // 边界检测与重置
-                        const maxDist = Math.max(w, h) * 0.8;
-                        if (dist < 5 || dist > maxDist) {
-                            // 在中心附近重生
-                            angle = Math.random() * Math.PI * 2;
-                            dist = 10 + Math.random() * 20;
-                            p.x = cx + Math.cos(angle) * dist;
-                            p.y = cy + Math.sin(angle) * dist;
-                            // 重置颜色
-                            p.color = Math.random() > 0.5 ? colorTheme : colorSecondary;
-                            return; // 跳过这一帧绘制，避免穿越屏幕的线条
-                        }
-
-                        // 螺旋 + 辐射加速
-                        angle += 0.01 * p.randomSpeed * (bass > 0.5 ? 2 : 1); 
-                        dist += speedBase * p.randomSpeed * 5;
-
-                        p.x = cx + Math.cos(angle) * dist;
-                        p.y = cy + Math.sin(angle) * dist;
-                        
-                        // 绘制拖尾线 (光速穿梭感)
-                        const size = p.baseSize * (0.3 + bass * 0.7);
-                        // 距离中心越远越亮
-                        const alpha = Math.min(1, (dist / (w/3))); 
-
-                        this.ctx.beginPath();
-                        this.ctx.moveTo(oldX, oldY);
-                        this.ctx.lineTo(p.x, p.y);
-                        this.ctx.lineWidth = size;
-                        this.ctx.strokeStyle = p.color;
-                        this.ctx.lineCap = 'round';
-                        this.ctx.globalAlpha = alpha;
-                        this.ctx.stroke();
-                        
-                        // 头部高亮
-                        this.ctx.beginPath();
-                        this.ctx.arc(p.x, p.y, size * 0.6, 0, Math.PI*2);
-                        this.ctx.fillStyle = '#ffffff';
-                        this.ctx.globalAlpha = alpha;
-                        this.ctx.fill();
-                    });
-                    this.ctx.globalCompositeOperation = 'source-over';
-                    this.ctx.globalAlpha = 1.0;
-                }
-                
-                // Reset shadow for next frame performance
-                this.ctx.shadowBlur = 0;
+                this.renderers[this.mode].draw(this.analyser, dataArray, bufferLength, {
+                    primary: this.colorTheme,
+                    secondary: this.colorSecondary
+                }, { 
+                    callsign: this.callsignState.text,
+                    opacity: this.callsignState.opacity,
+                    input: this.inputState
+                });
             }
 
-            // 新增：获取当前音频能量 (0.0 - 1.0)
             getAudioEnergy() {
                 if (!this.analyser) return 0;
-                
-                // 复用 freqData，如果不存在则创建
                 const bufferLength = this.analyser.frequencyBinCount;
                 if (!this.freqData || this.freqData.length !== bufferLength) {
                     this.freqData = new Uint8Array(bufferLength);
                 }
-                
-                // 注意：这里可能会重复调用 getByteFrequencyData，但开销很小
                 this.analyser.getByteFrequencyData(this.freqData);
-                
-                // 计算平均音量
                 let sum = 0;
-                // 只计算低中频部分 (前50%)，人声主要集中在此
                 const count = Math.floor(bufferLength / 2);
-                for(let i = 0; i < count; i++) {
-                    sum += this.freqData[i];
-                }
-                const avg = sum / count;
-                return avg / 255.0;
+                for(let i = 0; i < count; i++) sum += this.freqData[i];
+                return (sum / count) / 255.0;
             }
         }
 
@@ -2223,11 +3106,28 @@
             constructor(containerId, visualizer) {
                 this.container = document.getElementById(containerId);
                 this.visualizer = visualizer;
-                this.maxItems = 8; // 垂直布局减少数量
+                this.maxItems = 8; // Default
                 this.items = []; // 存储 DOM 元素
                 
                 // 启动呼吸灯循环
                 this.animateLoop();
+                
+                // 动态计算容量
+                this.updateCapacity();
+                window.addEventListener('resize', () => this.updateCapacity());
+            }
+
+            updateCapacity() {
+                if (!this.container) return;
+                // 计算容器可用高度
+                const containerHeight = this.container.clientHeight;
+                // 估算每个条目的高度：内容(~40px) + 间距(10px) = ~50px
+                const itemHeight = 50;
+                // 计算最大容纳数量 (稍微多一点以填满)
+                const capacity = Math.floor(containerHeight / itemHeight);
+                // 至少保留8个，最大不超过30个
+                this.maxItems = Math.max(8, Math.min(30, capacity));
+                // console.log(`Ticker capacity updated: ${this.maxItems} (h=${containerHeight})`);
             }
 
             addCallsign(callsign) {
@@ -2519,6 +3419,7 @@
                 this.client = client;
                 this.modal = document.getElementById('qso-modal');
                 this.listEl = document.getElementById('qso-list');
+                this.mapFrame = document.getElementById('qso-map-frame'); // Map iframe
                 this.btn = document.getElementById('btn-qso');
                 this.btnClose = document.getElementById('btn-qso-close');
                 this.countEl = document.getElementById('qso-count-value');
@@ -2529,7 +3430,7 @@
                 this.isLoading = false;
                 this.refreshTimer = null; // Auto refresh timer
 
-                if (this.btn && this.modal) {
+                if (this.modal) {
                     this.initEvents();
                 }
             }
@@ -2537,7 +3438,7 @@
             initEvents() {
                 // Open Modal
                 const openModal = () => this.show();
-                this.btn.addEventListener('click', openModal);
+                if (this.btn) this.btn.addEventListener('click', openModal);
                 // 交互优化：点击星星直接打开 QSO 日志
                 if (this.badge) this.badge.addEventListener('click', openModal);
 
@@ -2550,6 +3451,36 @@
                 this.modal.addEventListener('click', (e) => {
                     if (e.target === this.modal) this.hide();
                 });
+                
+                // 处理列表点击事件 (事件委托)
+                if (this.listEl) {
+                    this.listEl.addEventListener('click', (e) => {
+                        const item = e.target.closest('.qso-item');
+                        if (item) {
+                            // 缩小图例
+                            this.shrinkBadge();
+
+                            const grid = item.dataset.grid;
+                            if (grid && grid !== '-') {
+                                this.locateGrid(grid);
+                                
+                                // 高亮选中项
+                                const prev = this.listEl.querySelector('.qso-item.active');
+                                if (prev) prev.classList.remove('active');
+                                item.classList.add('active');
+                            }
+                        }
+                    });
+
+                    // Keyboard support for accessibility
+                    this.listEl.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            const item = e.target.closest('.qso-item');
+                            if (item) item.click();
+                            e.preventDefault();
+                        }
+                    });
+                }
 
                 // Handle WS messages
                 this.client.on('qsoMessage', (msg) => {
@@ -2603,6 +3534,7 @@
 
             hide() {
                 this.modal.classList.remove('show');
+                this.restoreBadge();
             }
 
             fetchData(showLoading = false) {
@@ -2612,40 +3544,59 @@
                 this.client.getQsoList(this.page, this.pageSize);
             }
 
+            locateGrid(grid) {
+                if (this.mapFrame && this.mapFrame.contentWindow) {
+                    console.log('Locating grid:', grid);
+                    this.mapFrame.contentWindow.postMessage({
+                        type: 'LOCATE_GRID',
+                        grid: grid
+                    }, '*');
+                }
+            }
+
+            shrinkBadge() {
+                if (this.badge) {
+                    this.badge.style.transition = 'all 300ms ease';
+                    this.badge.style.transform = 'scale(0.6)';
+                }
+            }
+
+            restoreBadge() {
+                if (this.badge) {
+                    this.badge.style.transform = 'scale(1)';
+                }
+            }
+
             formatDate(ts) {
                 if (!ts) return '-';
                 const d = new Date(ts * 1000);
                 const pad = (n) => String(n).padStart(2, '0');
-                return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
             }
 
             renderList(list) {
                 if (!list || list.length === 0) {
-                    this.listEl.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No QSO logs found.</div>';
+                    this.listEl.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; font-size: 0.8rem;">No logs</div>';
                     return;
                 }
 
-                this.listEl.innerHTML = list.map(item => {
+                this.listEl.innerHTML = list.map((item, index) => {
                     const call = item.toCallsign || 'UNKNOWN';
                     const grid = item.grid || '-';
-                    const time = this.formatDate(item.timestamp);
-                    // item.freqHz unit is uncertain, assuming Hz and converting to MHz
-                    const freq = item.freqHz ? (item.freqHz / 1000000).toFixed(4) + ' MHz' : ''; 
+                    // Use item.ts if available, otherwise current time
+                    const ts = this.formatDate(item.ts || Date.now()/1000);
                     
                     return `
-                    <div class="qso-item">
-                        <div class="qso-info">
-                            <div class="qso-call">
-                                ${call}
-                                <span class="qso-mode">${grid}</span>
-                            </div>
-                            <div class="qso-meta">
-                                ${freq ? `<span class="qso-freq">${freq}</span>` : ''}
-                                <span class="qso-time">${time}</span>
-                            </div>
-                        </div>
+                <div class="qso-item" data-grid="${grid}" tabindex="0" role="button" aria-label="QSO Record: ${call}, Grid: ${grid}">
+                    <div class="qso-main">
+                        <div class="qso-call" title="${call}">${call}</div>
+                        <div class="qso-time">${ts}</div>
                     </div>
-                    `;
+                    <div class="qso-sub">
+                        <div class="qso-grid">${grid}</div>
+                    </div>
+                </div>
+                `;
                 }).join('');
             }
         }
@@ -2733,6 +3684,9 @@
                         // 简单的去重逻辑：如果最后一个呼号相同且时间很近，则不添加？
                         // 暂时直接添加，让Ticker处理队列
                         if (this.onCallsign) this.onCallsign(callsign);
+                        if (this.onSpeakingState) this.onSpeakingState(callsign, true);
+                    } else {
+                        if (this.onSpeakingState) this.onSpeakingState(callsign, false);
                     }
                 }
             }
@@ -2740,6 +3694,10 @@
             // 注册回调
             onCallsignReceived(callback) {
                 this.onCallsign = callback;
+            }
+
+            onSpeakingStateChanged(callback) {
+                this.onSpeakingState = callback;
             }
         }
 
@@ -2757,6 +3715,17 @@
         // 连接事件
         events.onCallsignReceived((callsign) => {
             ticker.addCallsign(callsign);
+        });
+
+        events.onSpeakingStateChanged((callsign, isSpeaking) => {
+            if (isSpeaking) {
+                viz.setCallsign(callsign);
+            } else {
+                // 如果当前显示的正是停止说话的人，则清除
+                if (viz.currentCallsign === callsign) {
+                    viz.setCallsign('');
+                }
+            }
         });
 
         const deviceMgr = new DeviceManager();
@@ -2879,10 +3848,37 @@
         const volSlider = new VolumeSlider(volContainer, player);
 
         // 3. 可视化切换
-        ui.vizArea.addEventListener('click', () => {
+        // 改为仅点击文字切换，避免误触
+        ui.vizModeText.addEventListener('click', (e) => {
+            e.stopPropagation(); // 阻止冒泡
             const modeName = viz.switchMode();
             ui.vizModeText.textContent = modeName;
         });
+
+        // 最大化按钮逻辑
+        const btnMaximize = document.getElementById('btn-maximize');
+        if (btnMaximize) {
+            btnMaximize.addEventListener('click', () => {
+                const elem = document.documentElement;
+                if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+                    if (elem.requestFullscreen) {
+                        elem.requestFullscreen();
+                    } else if (elem.webkitRequestFullscreen) { /* Safari */
+                        elem.webkitRequestFullscreen();
+                    } else if (elem.msRequestFullscreen) { /* IE11 */
+                        elem.msRequestFullscreen();
+                    }
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) { /* Safari */
+                        document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) { /* IE11 */
+                        document.msExitFullscreen();
+                    }
+                }
+            });
+        }
 
         // 5. 录音控制：开始/停止录音，导出为 WAV
         ui.btnRecord.addEventListener('click', () => {
@@ -2928,19 +3924,29 @@
                 return;
             }
 
+            // Optimization: Use DocumentFragment for batch insertion
+            const fragment = document.createDocumentFragment();
+
             list.forEach(st => {
                 const el = document.createElement('div');
                 el.className = 'station-item';
                 el.dataset.uid = st.uid;
                 if (st.uid == currentStationId) el.classList.add('active');
                 
-                el.innerHTML = `
-                    <div class="st-name">${st.name || 'Station ' + st.uid}</div>
-                `;
+                // Security Fix: Use textContent instead of innerHTML to prevent XSS
+                const nameEl = document.createElement('div');
+                nameEl.className = 'st-name';
+                nameEl.textContent = st.name || 'Station ' + st.uid;
+                el.appendChild(nameEl);
+
                 el.onclick = () => {
                     ctrl.setStation(st.uid);
                     // 乐观更新 UI
-                    document.querySelectorAll('.station-item').forEach(i => i.classList.remove('active'));
+                    // Use ui.stList scope to avoid global query
+                    const allItems = ui.stList.querySelectorAll('.station-item');
+                    for (let i = 0; i < allItems.length; i++) {
+                        allItems[i].classList.remove('active');
+                    }
                     el.classList.add('active');
                     currentStationId = st.uid;
                     
@@ -2950,8 +3956,9 @@
                         ui.currentStationText.style.display = 'block';
                     }
                 };
-                ui.stList.appendChild(el);
+                fragment.appendChild(el);
             });
+            ui.stList.appendChild(fragment);
 
 
         });

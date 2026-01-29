@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FMO</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module">
+    import { getQsoPage } from './qso.js';
+    document.addEventListener('DOMContentLoaded', () => {
+      getQsoPage();
+    });
+  </script>
+</head>
+
+<body>
+  <div class="container">
+    <header id="qso-title"></header>
+    <content>
+      <div class="config-content-box" style="width:100%">
+        <div class="config-grid">
+          <div class="config-text-item config-section-primary">
+            <label class="config-grid-title" id="qso-backup-restore-title"></label>
+            <label class="config-grid-help" id="qso-backup-restore-help"></label>
+          </div>
+          <div class="config-text-item">
+            <label class="config-grid-subtitle" id="qso-restore-hint"></label>
+            <div class="config-item-operation" id="qso-backup-restore-op">
+              <a class="config-item-user-button" id="qso-backup" href="/api/qso/backup"></a>
+              <button class="config-item-user-button" id="qso-restore-btn"></button>
+              <input type="file" id="qso-restore-file" accept=".db,.bak" />
+            </div>
+          </div>
+          <div class="config-text-item config-section-primary">
+            <label class="config-grid-title" id="qso-hint"></label>
+            <label class="config-grid-subtitle" id="qso-subhint"></label>
+          </div>
+          <div class="config-text-item">
+            <label class="config-grid-subtitle" id="qso-page"></label>
+            <div class="config-item-operation" id="qso-toolbar">
+              <label class="config-item-user-button" id="qso-prev"></label>
+              <label class="config-item-user-button" id="qso-next"></label>
+            </div>
+          </div>
+          <div class="config-text-item">
+            <div id="qso-list"></div>
+          </div>
+        </div>
+      </div>
+    </content>
+    <footer>v1.10@BG5ESN</footer>
+  </div>
+</body>
+
+</html>

@@ -3609,19 +3609,29 @@
                 return;
             }
 
+            // Optimization: Use DocumentFragment for batch insertion
+            const fragment = document.createDocumentFragment();
+
             list.forEach(st => {
                 const el = document.createElement('div');
                 el.className = 'station-item';
                 el.dataset.uid = st.uid;
                 if (st.uid == currentStationId) el.classList.add('active');
                 
-                el.innerHTML = `
-                    <div class="st-name">${st.name || 'Station ' + st.uid}</div>
-                `;
+                // Security Fix: Use textContent instead of innerHTML to prevent XSS
+                const nameEl = document.createElement('div');
+                nameEl.className = 'st-name';
+                nameEl.textContent = st.name || 'Station ' + st.uid;
+                el.appendChild(nameEl);
+
                 el.onclick = () => {
                     ctrl.setStation(st.uid);
                     // 乐观更新 UI
-                    document.querySelectorAll('.station-item').forEach(i => i.classList.remove('active'));
+                    // Use ui.stList scope to avoid global query
+                    const allItems = ui.stList.querySelectorAll('.station-item');
+                    for (let i = 0; i < allItems.length; i++) {
+                        allItems[i].classList.remove('active');
+                    }
                     el.classList.add('active');
                     currentStationId = st.uid;
                     
@@ -3631,8 +3641,9 @@
                         ui.currentStationText.style.display = 'block';
                     }
                 };
-                ui.stList.appendChild(el);
+                fragment.appendChild(el);
             });
+            ui.stList.appendChild(fragment);
 
 
         });

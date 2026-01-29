@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FMO</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module">
+    import { getRemotePage } from './remote.js';
+    import { initAudioUI } from './audioPlayer.js';
+    document.addEventListener('DOMContentLoaded', () => {
+      getRemotePage();
+      initAudioUI();
+    });
+  </script>
+</head>
+
+<body>
+  <div class="container">
+    <header id="remote-title"></header>
+    <content>
+      <div class="config-content-box" style="width:100%">
+        <div class="config-grid">
+          <div class="config-text-item">
+            <label class="config-grid-title" id="remote-hint"></label>
+            <label class="config-grid-subtitle" id="remote-current"></label>
+          </div>
+          <div class="config-text-item">
+            <div class="config-item-operation" id="remote-toolbar">
+              <label class="config-item-user-button" id="remote-prev"></label>
+              <label class="config-item-user-button" id="remote-next"></label>
+            </div>
+          </div>
+          <div class="config-text-item">
+            <div id="remote-list"></div>
+            <div class="config-item-operation" style="margin-top:10px;">
+              <label class="config-item-user-button" id="remote-more"></label>
+            </div>
+          </div>
+
+          <!-- Audio controls -->
+          <div class="config-text-item">
+            <label class="config-grid-title" id="audio-title"></label>
+            <div class="config-item-operation" id="audio-toolbar" style="gap:10px; align-items:center;">
+              <label class="config-item-user-button" id="audio-connect"></label>
+              <label class="config-item-user-button" id="audio-disconnect"></label>
+              <div style="display:flex; align-items:center; gap:8px; min-width:200px;">
+                <span style="font-size: var(--font-size-label);" id="audio-volume-label"></span>
+                <input type="range" id="audio-volume" min="0" max="2" step="0.1" value="1" style="width:180px;">
+              </div>
+              <canvas id="audio-fft" style="width:100%; height:44px; border-radius:6px; background:#101010;"></canvas>
+            </div>
+            <div id="audio-status" class="audio-status"></div>
+          </div>
+        </div>
+      </div>
+    </content>
+    <footer>v1.10@BG5ESN</footer>
+  </div>
+</body>
+
+</html>

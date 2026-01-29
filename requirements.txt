@@ -1,0 +1,8 @@
+PyQt6
+PyQt6-WebEngine
+sounddevice
+numpy
+websocket-client
+requests
+scipy
+sherpa-onnx

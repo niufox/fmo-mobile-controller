@@ -10,8 +10,9 @@
     <content src="index.html" />
     
     <access origin="*" />
-    <allow-intent href="http://*/*" />
-    <allow-intent href="https://*/*" />
+    <allow-navigation href="*" />
+    <allow-intent href="ws://*/*" />
+    <allow-intent href="wss://*/*" />
     <platform name="android">
         <config-file parent="/manifest" target="AndroidManifest.xml">
             <uses-permission android:name="android.permission.INTERNET" />
@@ -31,6 +32,60 @@
         <resource-file src="res/drawable/ic_launcher.xml" target="app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" />
         <resource-file src="res/drawable/ic_launcher.xml" target="app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" />
     </platform>
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
 
     
     

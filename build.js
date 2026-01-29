@@ -68,11 +68,49 @@ try {
         console.log('  - Extracted CSS');
     }
 
+    // WebSocket Configuration to Inject
+    const WS_CONFIG = {
+        FETCH_PAGE_SIZE: 20,
+        AUTO_REFRESH_INTERVAL: 30000,
+        RECONNECT_DELAY: 3000,
+        POST_SWITCH_DELAY: 3000,
+        WS_PATH: '/ws'
+    };
+
     // Extract JS
     const scriptRegex = /<script>([\s\S]*?)<\/script>/i;
     const scriptMatch = htmlContent.match(scriptRegex);
     if (scriptMatch) {
-        fs.writeFileSync(path.join(WWW_DIR, 'js', 'app.js'), scriptMatch[1].trim());
+        let jsContent = scriptMatch[1].trim();
+
+        // Inject Configuration
+        const configInjection = `
+/** Injected Configuration */
+window.APP_CONFIG = ${JSON.stringify(WS_CONFIG, null, 4)};
+`;
+        jsContent = configInjection + jsContent;
+
+        // Replace hardcoded config in ControlClient
+        const configPattern = /this\.CONFIG\s*=\s*\{[\s\S]*?\};/;
+        if (configPattern.test(jsContent)) {
+             jsContent = jsContent.replace(configPattern, `this.CONFIG = Object.assign({
+                    FETCH_PAGE_SIZE: 20,
+                    AUTO_REFRESH_INTERVAL: 30000,
+                    RECONNECT_DELAY: 3000,
+                    POST_SWITCH_DELAY: 3000,
+                    WS_PATH: '/ws'
+                }, window.APP_CONFIG || {});`);
+             console.log('  - Injected WebSocket Configuration into ControlClient');
+        }
+
+        // Replace WebSocket instantiation to use dynamic path
+        const wsCreationPattern = /this\.ws\s*=\s*new\s*WebSocket\(`ws:\/\/\${this\.host}\/ws`\);/;
+        if (wsCreationPattern.test(jsContent)) {
+             jsContent = jsContent.replace(wsCreationPattern, "this.ws = new WebSocket(`ws://${this.host}${this.CONFIG.WS_PATH || '/ws'}`);");
+             console.log('  - Updated WebSocket connection URL to use injected path');
+        }
+
+        fs.writeFileSync(path.join(WWW_DIR, 'js', 'app.js'), jsContent);
         htmlContent = htmlContent.replace(scriptRegex, '');
         console.log('  - Extracted JS');
     }

@@ -336,56 +336,74 @@
         /* 字幕/呼号显示组件 */
         .callsign-ticker-container {
             position: absolute;
-            bottom: 40px; /* 位于频谱上方一些 */
-            left: 0;
-            width: 100%;
-            height: 50px;
+            top: 20px;
+            left: 10px;
+            bottom: 50px; /* 留出底部空间 */
+            width: auto;
+            max-width: 140px;
             display: flex;
-            justify-content: flex-end; /* 右对齐，新元素从右侧进入 */
-            align-items: center;
-            padding: 0 20px;
+            flex-direction: column; /* 垂直排列 */
+            justify-content: flex-start; /* 从上往下 */
+            align-items: flex-start; /* 左对齐 */
+            padding: 10px 0;
             box-sizing: border-box;
             overflow: hidden;
             pointer-events: none;
             z-index: 20;
-            mask-image: linear-gradient(to right, transparent, black 20%); /* 左侧淡出效果 */
-            -webkit-mask-image: linear-gradient(to right, transparent, black 20%);
+            mask-image: linear-gradient(to bottom, black 80%, transparent); /* 底部淡出 */
+            -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent);
         }
 
         .callsign-item {
             background: rgba(0, 0, 0, 0.4);
             color: var(--accent-cyan);
-            padding: 6px 14px;
-            border-radius: 16px;
-            margin-left: 12px;
-            font-weight: bold;
+            padding: 6px 10px;
+            border-radius: 8px; /* Slightly less rounded for rect shape */
+            margin-bottom: 10px; /* 垂直间距 */
             font-family: 'Roboto Mono', monospace;
             white-space: nowrap;
-            font-size: 14px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
             /* 初始状态用于动画 */
             opacity: 0;
-            transform: translateX(50px);
-            max-width: 0;
-            padding: 0;
-            margin-left: 0;
+            transform: translateX(-20px); /* 从左侧滑入 */
+            max-height: 0; /* 高度动画 */
+            margin-bottom: 0;
             
             transition: 
                 opacity 0.3s ease,
                 transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-                max-width 0.4s ease,
+                max-height 0.4s ease,
                 padding 0.4s ease,
-                margin-left 0.4s ease,
+                margin-bottom 0.4s ease,
                 color 0.1s, text-shadow 0.1s, border-color 0.1s, background-color 0.1s; /* 呼吸灯快速响应 */
+        }
+
+        .callsign-time {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 2px;
+            line-height: 1;
+            font-weight: normal;
+        }
+
+        .callsign-text {
+            font-size: 14px;
+            font-weight: bold;
+            line-height: 1.2;
         }
 
         .callsign-item.active {
             opacity: 1;
             transform: translateX(0);
-            max-width: 150px; /* 足够显示呼号即可 */
-            padding: 6px 14px;
-            margin-left: 12px;
+            max-height: 80px; /* 展开高度 */
+            padding: 6px 10px;
+            margin-bottom: 10px;
         }
 
         /* 呼吸灯动态样式 (通过 JS CSS 变量控制) */
@@ -1024,7 +1042,7 @@
                 <div class="brand" style="justify-content: center; font-size: 1.5rem; margin-bottom: 20px; color: var(--accent-cyan);">
                     <span>FMO CONTROLLER</span>
                 </div>
-                <div id="credits-version" data-version="1.2" style="margin-bottom: 18px; color: var(--text-muted); font-size: 0.9rem;">v1.2</div>
+                <div id="credits-version" data-version="2.0" style="margin-bottom: 18px; color: var(--text-muted); font-size: 0.9rem;">v2.0</div>
                 
                 <div style="margin-bottom: 25px;">
                     <h4 style="color: var(--accent-magenta); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block;">核心贡献者</h4>
@@ -1213,7 +1231,7 @@
                 }
 
                 try {
-                    this.ws = new WebSocket(`ws://${this.host}/ws`);
+                    this.ws = new WebSocket(`${(window.location && window.location.protocol === 'https:' ? 'wss' : 'ws')}://${this.host}/ws`);
                     
                     this.ws.onopen = () => {
                         this.connected = true;
@@ -1243,6 +1261,11 @@
                         console.error('WS Error:', e);
                         this.connected = false;
                         this.emit('status', false);
+                        // APK Debugging helper
+                        if (window.cordova) {
+                             // Try to extract useful info, though WS errors are often empty in JS
+                             alert(`WebSocket Error connecting to ${this.host}\nPlease check:\n1. Server is running\n2. Phone is on same Wi-Fi\n3. Use IP address instead of 'fmo.local'`);
+                        }
                     };
 
                     this.ws.onmessage = (e) => {
@@ -1257,6 +1280,9 @@
                 } catch (e) {
                     console.error('Connection Failed:', e);
                     this.emit('status', false);
+                    if (window.cordova) {
+                        alert(`Connection Exception: ${e.message}\nHost: ${host}`);
+                    }
                 }
             }
 
@@ -1414,75 +1440,82 @@
 
             async ensureAudioContext() {
                 if (!this.audioCtx) {
-                    this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    this.analyser = this.audioCtx.createAnalyser();
-                    this.analyser.fftSize = 1024; // 降低分辨率以提高性能 (原 2048)
-                    this.analyser.smoothingTimeConstant = 0.8;
-                    
-                    this.gainNode = this.audioCtx.createGain();
-                    this.gainNode.gain.value = 1.0;
-
-                    // 音频处理链优化 (参考 API 文档)
-                    // 1. 300Hz HPF: 去除亚音频 (CTCSS/DCS) 和低频噪声
-                    this.hpfNode = this.audioCtx.createBiquadFilter();
-                    this.hpfNode.type = 'highpass';
-                    this.hpfNode.frequency.value = 300;
-
-                    // 2. 3000Hz LPF: 模拟电台带宽，去除高频刺耳噪声
-                    this.lpfNode = this.audioCtx.createBiquadFilter();
-                    this.lpfNode.type = 'lowpass';
-                    this.lpfNode.frequency.value = 3000;
-                    this.lpfNode.Q.value = 0.5;
-
-                    // 3. EQ 低频 (LowShelf 180Hz +0.5dB)
-                    this.eqLow = this.audioCtx.createBiquadFilter();
-                    this.eqLow.type = 'lowshelf';
-                    this.eqLow.frequency.value = 180;
-                    this.eqLow.gain.value = 0.5;
-
-                    // 4. EQ 中频 (Peaking 1400Hz +1.0dB Q=0.8) - 增强人声清晰度
-                    this.eqMid = this.audioCtx.createBiquadFilter();
-                    this.eqMid.type = 'peaking';
-                    this.eqMid.frequency.value = 1400;
-                    this.eqMid.Q.value = 0.8;
-                    this.eqMid.gain.value = 1.0;
-
-                    // 5. EQ 高频 (HighShelf 2600Hz 0dB)
-                    this.eqHigh = this.audioCtx.createBiquadFilter();
-                    this.eqHigh.type = 'highshelf';
-                    this.eqHigh.frequency.value = 2600;
-                    this.eqHigh.gain.value = 0;
-
-                    // 6. 动态压缩器: 平衡音量，防止爆音
-                    this.compressor = this.audioCtx.createDynamicsCompressor();
-                    this.compressor.threshold.value = -22;
-                    this.compressor.knee.value = 24;
-                    this.compressor.ratio.value = 2;
-
-                    // 连线: Source -> Gain -> HPF -> LPF -> EQ(L/M/H) -> Comp -> Analyser -> Dest
-                    this.gainNode.connect(this.hpfNode);
-                    this.hpfNode.connect(this.lpfNode);
-                    this.lpfNode.connect(this.eqLow);
-                    this.eqLow.connect(this.eqMid);
-                    this.eqMid.connect(this.eqHigh);
-                    this.eqHigh.connect(this.compressor);
-                    this.compressor.connect(this.analyser);
-                    this.analyser.connect(this.audioCtx.destination);
-                }
-                if (this.audioCtx.state === 'suspended') {
                     try {
-                        await this.audioCtx.resume();
+                        const AudioContext = window.AudioContext || window.webkitAudioContext;
+                        this.audioCtx = new AudioContext();
+                        
+                        this.analyser = this.audioCtx.createAnalyser();
+                        this.analyser.fftSize = 1024; // 降低分辨率以提高性能 (原 2048)
+                        this.analyser.smoothingTimeConstant = 0.8;
+                        
+                        this.gainNode = this.audioCtx.createGain();
+                        this.gainNode.gain.value = 1.0;
+
+                        // 音频处理链优化 (参考 API 文档)
+                        // 1. 300Hz HPF: 去除亚音频 (CTCSS/DCS) 和低频噪声
+                        this.hpfNode = this.audioCtx.createBiquadFilter();
+                        this.hpfNode.type = 'highpass';
+                        this.hpfNode.frequency.value = 300;
+
+                        // 2. 3000Hz LPF: 模拟电台带宽，去除高频刺耳噪声
+                        this.lpfNode = this.audioCtx.createBiquadFilter();
+                        this.lpfNode.type = 'lowpass';
+                        this.lpfNode.frequency.value = 3000;
+                        this.lpfNode.Q.value = 0.5;
+
+                        // 3. EQ 低频 (LowShelf 180Hz +0.5dB)
+                        this.eqLow = this.audioCtx.createBiquadFilter();
+                        this.eqLow.type = 'lowshelf';
+                        this.eqLow.frequency.value = 180;
+                        this.eqLow.gain.value = 0.5;
+
+                        // 4. EQ 中频 (Peaking 1400Hz +1.0dB Q=0.8) - 增强人声清晰度
+                        this.eqMid = this.audioCtx.createBiquadFilter();
+                        this.eqMid.type = 'peaking';
+                        this.eqMid.frequency.value = 1400;
+                        this.eqMid.Q.value = 0.8;
+                        this.eqMid.gain.value = 1.0;
+
+                        // 5. EQ 高频 (HighShelf 2600Hz 0dB)
+                        this.eqHigh = this.audioCtx.createBiquadFilter();
+                        this.eqHigh.type = 'highshelf';
+                        this.eqHigh.frequency.value = 2600;
+                        this.eqHigh.gain.value = 0;
+
+                        // 6. 动态压缩器: 平衡音量，防止爆音
+                        this.compressor = this.audioCtx.createDynamicsCompressor();
+                        this.compressor.threshold.value = -22;
+                        this.compressor.knee.value = 24;
+                        this.compressor.ratio.value = 2;
+
+                        // 连线: Source -> Gain -> HPF -> LPF -> EQ(L/M/H) -> Comp -> Analyser -> Dest
+                        this.gainNode.connect(this.hpfNode);
+                        this.hpfNode.connect(this.lpfNode);
+                        this.lpfNode.connect(this.eqLow);
+                        this.eqLow.connect(this.eqMid);
+                        this.eqMid.connect(this.eqHigh);
+                        this.eqHigh.connect(this.compressor);
+                        this.compressor.connect(this.analyser);
+                        this.analyser.connect(this.audioCtx.destination);
                     } catch (e) {
-                        console.warn('Auto-resume failed, waiting for user gesture.');
+                        console.warn('AudioContext creation failed (waiting for user gesture):', e);
+                        return;
                     }
                 }
+                
+                // Do NOT auto-resume here. Rely on unlock() called by user gesture.
             }
 
             unlock() {
+                // Try to create if missing (e.g. failed during auto-connect)
+                if (!this.audioCtx) {
+                    this.ensureAudioContext();
+                }
+                
                 if (this.audioCtx && this.audioCtx.state === 'suspended') {
                     this.audioCtx.resume().then(() => {
                         console.log('AudioContext resumed via user interaction');
-                    }).catch(e => console.error(e));
+                    }).catch(e => console.error('AudioContext resume failed:', e));
                 }
             }
 
@@ -1497,7 +1530,7 @@
                 this.buffering = true;
 
                 try {
-                    this.ws = new WebSocket(`ws://${host}/audio`);
+                    this.ws = new WebSocket(`${(window.location && window.location.protocol === 'https:' ? 'wss' : 'ws')}://${host}/audio`);
                     this.ws.binaryType = 'arraybuffer';
 
                     this.ws.onopen = () => {
@@ -1855,69 +1888,156 @@
                 }
                 else if (modeName === 'MIRROR') {
                     this.analyser.getByteFrequencyData(dataArray);
-                    const step = Math.ceil(bufferLength / 64);
                     const cx = w / 2;
+                    const cy = h / 2;
                     
-                    for(let i = 0; i < bufferLength; i += step) {
-                        const value = dataArray[i];
-                        const barHeight = (value / 255) * (h / 2);
-                        const offset = (i / bufferLength) * (w / 2);
-                        
-                        // 绘制对称粒子
-                        const particleCount = Math.floor(barHeight / 8);
-                        for (let j = 0; j < particleCount; j++) {
-                            const dy = j * 10;
-                            const size = 2.5;
-                            const alpha = (j / particleCount) * 0.8 + 0.2;
-                            
-                            this.ctx.globalAlpha = alpha;
-                            
-                            // 右侧
-                            this.ctx.beginPath();
-                            this.ctx.arc(cx + offset, (h/2) - dy, size, 0, Math.PI*2); // 上
-                            this.ctx.fill();
-                            this.ctx.beginPath();
-                            this.ctx.arc(cx + offset, (h/2) + dy, size, 0, Math.PI*2); // 下
-                            this.ctx.fill();
+                    // 1. 赛博网格背景 (透视效果)
+                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.beginPath();
+                    // 垂直线
+                    for(let i=0; i<=w; i+=40) { 
+                        this.ctx.moveTo(i, 0); 
+                        this.ctx.lineTo(i, h); 
+                    }
+                    // 水平线
+                    for(let i=0; i<=h; i+=40) { 
+                        this.ctx.moveTo(0, i); 
+                        this.ctx.lineTo(w, i); 
+                    }
+                    this.ctx.stroke();
 
-                            // 左侧
-                            this.ctx.beginPath();
-                            this.ctx.arc(cx - offset, (h/2) - dy, size, 0, Math.PI*2);
-                            this.ctx.fill();
-                            this.ctx.beginPath();
-                            this.ctx.arc(cx - offset, (h/2) + dy, size, 0, Math.PI*2);
-                            this.ctx.fill();
+                    // 2. 镜像数字方块
+                    const bars = 48; // 增加密度
+                    const step = Math.floor(bufferLength / bars);
+                    const barW = (w / 2) / bars;
+
+                    for(let i = 0; i < bars; i++) {
+                        const value = dataArray[i * step];
+                        const percent = value / 255;
+                        
+                        // 动态高度，增加低频权重
+                        let barH = percent * (h * 0.7);
+                        if (i < 5) barH *= 1.2; // 增强低音视觉
+
+                        // 颜色渐变: 中心(高能) -> 边缘(冷色)
+                        this.ctx.fillStyle = i % 3 === 0 ? colorSecondary : colorTheme;
+                        
+                        // 发光效果
+                        if (percent > 0.6) {
+                            this.ctx.shadowBlur = 15;
+                            this.ctx.shadowColor = this.ctx.fillStyle;
+                        } else {
+                            this.ctx.shadowBlur = 0;
+                        }
+
+                        const xOffset = i * barW;
+                        
+                        // 绘制分段方块 (Tech Block Style)
+                        const blockHeight = 6;
+                        const gap = 2;
+                        const totalBlocks = Math.floor(barH / (blockHeight + gap));
+
+                        for (let b = 0; b < totalBlocks; b++) {
+                            // 随着高度增加透明度递减
+                            this.ctx.globalAlpha = 1.0 - (b / totalBlocks) * 0.6;
+                            
+                            const yOffset = b * (blockHeight + gap);
+                            
+                            // Right
+                            this.ctx.fillRect(cx + xOffset, cy - yOffset, barW - 2, blockHeight);
+                            this.ctx.fillRect(cx + xOffset, cy + yOffset, barW - 2, blockHeight);
+                            
+                            // Left
+                            this.ctx.fillRect(cx - xOffset - barW, cy - yOffset, barW - 2, blockHeight);
+                            this.ctx.fillRect(cx - xOffset - barW, cy + yOffset, barW - 2, blockHeight);
                         }
                     }
+                    this.ctx.globalAlpha = 1.0;
+                    this.ctx.shadowBlur = 0;
+
+                    // 3. 中心能量线
+                    const bass = dataArray[3] / 255;
+                    this.ctx.fillStyle = '#ffffff';
+                    this.ctx.globalAlpha = 0.5 + bass * 0.5;
+                    this.ctx.fillRect(cx - 1, cy - (h/2)*bass, 2, h*bass);
                     this.ctx.globalAlpha = 1.0;
                 }
                 else if (modeName === 'WAVEFORM') {
                     this.analyser.getByteTimeDomainData(dataArray);
-                    this.ctx.lineWidth = 0; // 不画线
                     
+                    // 1. 电流光晕效果
+                    this.ctx.lineWidth = 3;
+                    this.ctx.strokeStyle = colorTheme;
+                    this.ctx.shadowBlur = 20;
+                    this.ctx.shadowColor = colorTheme;
+                    this.ctx.lineJoin = 'round';
+                    this.ctx.lineCap = 'round';
+                    
+                    this.ctx.beginPath();
                     const sliceWidth = w * 1.0 / bufferLength;
                     let x = 0;
                     
-                    // 仅每隔几个点绘制一个发光粒子，形成离散波形
-                    const pointStep = 4; 
-                    for(let i = 0; i < bufferLength; i += pointStep) {
+                    for(let i = 0; i < bufferLength; i++) {
                         const v = dataArray[i] / 128.0;
-                        const y = v * h/2; // 居中
-                        
-                        this.ctx.beginPath();
-                        this.ctx.arc(x, y, 2, 0, Math.PI * 2);
-                        this.ctx.fillStyle = colorTheme;
-                        // 动态透明度模拟闪烁
-                        this.ctx.globalAlpha = Math.random() * 0.5 + 0.5;
-                        this.ctx.fill();
-                        
-                        x += sliceWidth * pointStep;
+                        const y = v * h/2;
+
+                        if(i === 0) this.ctx.moveTo(x, y);
+                        else this.ctx.lineTo(x, y);
+
+                        x += sliceWidth;
                     }
+                    this.ctx.stroke();
+                    
+                    // 2. 幻影重影 (RGB分离效果)
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeStyle = colorSecondary;
+                    this.ctx.globalAlpha = 0.4;
+                    this.ctx.shadowBlur = 0;
+                    
+                    this.ctx.beginPath();
+                    x = 0;
+                    for(let i = 0; i < bufferLength; i++) {
+                        const v = dataArray[i] / 128.0;
+                        // 稍微延迟和偏移
+                        const y = v * h/2 + 4; 
+                        if(i === 0) this.ctx.moveTo(x, y);
+                        else this.ctx.lineTo(x, y);
+                        x += sliceWidth;
+                    }
+                    this.ctx.stroke();
+                    
                     this.ctx.globalAlpha = 1.0;
                 }
                 else if (modeName === 'OSCILLOSCOPE') {
                     this.analyser.getByteTimeDomainData(dataArray);
-                    // 示波器：高速运动的粒子轨迹
+                    
+                    // 1. 全息网格背景 (动态扫描)
+                    const time = Date.now() / 1000;
+                    const gridOffset = (time * 50) % 50;
+                    
+                    this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.beginPath();
+                    // 垂直线
+                    for (let gx = 0; gx < w; gx += 50) {
+                        this.ctx.moveTo(gx, 0);
+                        this.ctx.lineTo(gx, h);
+                    }
+                    // 水平扫描线
+                    for (let gy = gridOffset; gy < h; gy += 50) {
+                         this.ctx.moveTo(0, gy);
+                         this.ctx.lineTo(w, gy);
+                    }
+                    this.ctx.stroke();
+
+                    // 2. 高亮信号线 (CRT风格)
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeStyle = '#00ff00'; // 复古绿
+                    this.ctx.shadowBlur = 10;
+                    this.ctx.shadowColor = '#00ff00';
+                    this.ctx.beginPath();
+                    
                     const sliceWidth = w * 1.0 / bufferLength;
                     let x = 0;
                     
@@ -1925,191 +2045,147 @@
                         const v = dataArray[i] / 128.0;
                         const y = v * h/2;
                         
-                        if (i % 2 === 0) { // 减少绘制点数优化性能
-                            this.ctx.beginPath();
-                            this.ctx.rect(x, y, 2, 2); // 使用方块增加科技感
-                            this.ctx.fillStyle = colorTheme;
-                            this.ctx.fill();
-                        }
+                        if(i === 0) this.ctx.moveTo(x, y);
+                        else this.ctx.lineTo(x, y);
+                        
                         x += sliceWidth;
                     }
-                    
-                    // 网格背景 (点阵)
-                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                    this.ctx.stroke();
                     this.ctx.shadowBlur = 0;
-                    for (let gx = 0; gx < w; gx += 50) {
-                        for (let gy = 0; gy < h; gy += 50) {
-                            this.ctx.fillRect(gx, gy, 1, 1);
-                        }
+
+                    // 3. 扫描线纹理遮罩
+                    this.ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                    for(let i=0; i<h; i+=3) {
+                        this.ctx.fillRect(0, i, w, 1);
                     }
                 }
                 else if (modeName === 'RADIAL') { 
                     this.analyser.getByteFrequencyData(dataArray);
                     const cx = w / 2;
                     const cy = h / 2;
-                    const radius = Math.min(w, h) / 5; // 稍微缩小基础半径
+                    const radius = Math.min(w, h) / 4.5; 
                     
-                    // 整体旋转效果
                     this.ctx.save();
                     this.ctx.translate(cx, cy);
-                    this.ctx.rotate(Date.now() * 0.0005); // 缓慢自转
                     
-                    // 镜像绘制两圈
-                    const count = 40; 
-                    const step = Math.floor(bufferLength / count);
-                    
-                    for(let i = 0; i < count; i++) { 
-                        const value = dataArray[i * step];
-                        const angle = (i / count) * Math.PI * 2;
-                        
-                        // 1. 内圈 (Theme Color)
-                        const r1 = radius + (value / 255) * 40;
-                        const x1 = Math.cos(angle) * r1;
-                        const y1 = Math.sin(angle) * r1;
-                        
-                        this.ctx.beginPath();
-                        this.ctx.arc(x1, y1, 3, 0, Math.PI * 2);
-                        this.ctx.fillStyle = colorTheme;
-                        this.ctx.fill();
-                        
-                        // 2. 外圈 (Secondary Color) - 增加偏移
-                        const v2 = dataArray[Math.min((i * step + 5), bufferLength-1)];
-                        const r2 = radius * 1.8 + (v2 / 255) * 60;
-                        const x2 = Math.cos(angle) * r2;
-                        const y2 = Math.sin(angle) * r2;
-                        
-                        this.ctx.beginPath();
-                        this.ctx.arc(x2, y2, 2, 0, Math.PI * 2);
-                        this.ctx.fillStyle = colorSecondary;
-                        this.ctx.fill();
-                        
-                        // 3. 能量连线 (当音量较大时)
-                        if (value > 128) {
-                            this.ctx.beginPath();
-                            this.ctx.moveTo(x1, y1);
-                            this.ctx.lineTo(x2, y2);
-                            this.ctx.strokeStyle = colorTheme;
-                            this.ctx.lineWidth = 1;
-                            this.ctx.globalAlpha = 0.3;
-                            this.ctx.stroke();
-                            this.ctx.globalAlpha = 1.0;
-                        }
-                    }
-                    
-                    // 核心呼吸效果
+                    // 1. 核心反应堆 (呼吸效果)
                     const bass = dataArray[5] / 255.0;
                     this.ctx.beginPath();
-                    this.ctx.arc(0, 0, radius * (0.8 + bass * 0.4), 0, Math.PI * 2);
+                    this.ctx.arc(0, 0, radius * (0.8 + bass * 0.2), 0, Math.PI * 2);
                     this.ctx.fillStyle = colorTheme;
-                    this.ctx.globalAlpha = 0.1 + bass * 0.2;
+                    this.ctx.globalAlpha = 0.2 + bass * 0.3;
+                    this.ctx.shadowBlur = 20;
+                    this.ctx.shadowColor = colorTheme;
                     this.ctx.fill();
+                    this.ctx.globalAlpha = 1.0;
+                    this.ctx.shadowBlur = 0;
+
+                    // 2. 旋转 HUD 环
+                    this.ctx.rotate(Date.now() * 0.0005); 
                     
+                    const bars = 64; 
+                    const step = Math.floor(bufferLength / bars);
+                    
+                    for(let i = 0; i < bars; i++) { 
+                        const value = dataArray[i * step];
+                        const percent = value / 255;
+                        const angle = (i / bars) * Math.PI * 2;
+                        const nextAngle = ((i + 0.8) / bars) * Math.PI * 2;
+                        
+                        // 内圈实心弧 (能量)
+                        const innerR = radius;
+                        const barH = percent * (radius * 0.8);
+                        
+                        this.ctx.beginPath();
+                        this.ctx.arc(0, 0, innerR + barH, angle, nextAngle);
+                        this.ctx.arc(0, 0, innerR, nextAngle, angle, true);
+                        this.ctx.fillStyle = i % 2 === 0 ? colorTheme : colorSecondary;
+                        this.ctx.fill();
+                        
+                        // 外圈放射线 (高能预警)
+                        if (percent > 0.5) {
+                            const outerStart = radius * 2.0;
+                            const outerEnd = outerStart + (percent * radius * 0.5);
+                            
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(Math.cos(angle)*outerStart, Math.sin(angle)*outerStart);
+                            this.ctx.lineTo(Math.cos(angle)*outerEnd, Math.sin(angle)*outerEnd);
+                            this.ctx.strokeStyle = colorSecondary;
+                            this.ctx.lineWidth = 2;
+                            this.ctx.stroke();
+                        }
+                    }
                     this.ctx.restore();
                 }
                 else if (modeName === 'PARTICLES') {
                     this.analyser.getByteFrequencyData(dataArray);
                     
-                    // 计算能量分区
-                    let bass = 0, mid = 0, treble = 0;
-                    for(let i=0; i<bufferLength; i++) {
-                        if(i < 10) bass += dataArray[i];
-                        else if(i < 100) mid += dataArray[i];
-                        else treble += dataArray[i];
-                    }
-                    bass = bass / 10;
-                    mid = mid / 90;
-                    treble = treble / (bufferLength - 100);
-                    
-                    // 2. 获取整体声音电平 (0.0 - 1.0)
-                    const audioLevel = (bass * 0.6 + mid * 0.3 + treble * 0.1) / 255.0;
+                    // 计算能量
+                    let bass = 0;
+                    for(let i=0; i<20; i++) bass += dataArray[i];
+                    bass = bass / 20 / 255; // 0.0 - 1.0
 
                     const cx = w / 2;
                     const cy = h / 2;
                     
-                    // 4. 参数可调性 (常量定义)
-                    const SIZE_RESPONSE_SENSITIVITY = 1.5; // 响应灵敏度
-                    const RANDOM_VARIATION_RANGE = 4.0;    // 随机变化幅度 (px)
+                    // 速度基数 (受低频控制)
+                    const speedBase = 1 + bass * 8;
 
-                    // 粒子漩涡效果
-                    this.particles.forEach((p, index) => {
-                        // 1. 运动逻辑
+                    this.ctx.globalCompositeOperation = 'lighter'; // 混合模式
+
+                    this.particles.forEach((p) => {
+                        // 记录旧位置用于画拖尾
+                        const oldX = p.x;
+                        const oldY = p.y;
+
+                        // 运动: 从中心向外
                         const dx = p.x - cx;
                         const dy = p.y - cy;
-                        const dist = Math.sqrt(dx*dx + dy*dy);
-                        const angle = Math.atan2(dy, dx);
+                        let dist = Math.sqrt(dx*dx + dy*dy);
+                        let angle = Math.atan2(dy, dx);
                         
-                        // 速度随低频能量变化
-                        const spiralSpeed = 0.01 + (bass / 1000);
-                        const outSpeed = 1 + (mid / 20) + (dist * 0.01);
-                        
-                        const newAngle = angle + spiralSpeed;
-                        const newDist = dist + outSpeed;
-                        
-                        p.x = cx + Math.cos(newAngle) * newDist;
-                        p.y = cy + Math.sin(newAngle) * newDist;
-                        
-                        // 2. 边界重生
-                        const maxDist = Math.max(w, h) * 0.7;
-                        if(dist > maxDist) {
-                            p.x = cx + (Math.random() - 0.5) * 10;
-                            p.y = cy + (Math.random() - 0.5) * 10;
+                        // 边界检测与重置
+                        const maxDist = Math.max(w, h) * 0.8;
+                        if (dist < 5 || dist > maxDist) {
+                            // 在中心附近重生
+                            angle = Math.random() * Math.PI * 2;
+                            dist = 10 + Math.random() * 20;
+                            p.x = cx + Math.cos(angle) * dist;
+                            p.y = cy + Math.sin(angle) * dist;
+                            // 重置颜色
                             p.color = Math.random() > 0.5 ? colorTheme : colorSecondary;
-                            // 重置平滑状态
-                            p.targetOffset = 0;
-                            p.sizeOffset = 0;
+                            return; // 跳过这一帧绘制，避免穿越屏幕的线条
                         }
-                        
-                        // 3. 尺寸动态计算 (新增核心逻辑)
-                        
-                        // A. 随机动态变化 (平滑过渡)
-                        // 计算当前与目标的差异
-                        const diff = p.targetOffset - p.sizeOffset;
-                        if (Math.abs(diff) < 0.2) {
-                            // 接近目标时，随机选择新的目标大小偏移 (-range 到 +range)
-                            p.targetOffset = (Math.random() - 0.5) * RANDOM_VARIATION_RANGE;
-                        }
-                        // 缓动更新：逐步逼近目标
-                        p.sizeOffset += diff * p.randomSpeed;
-                        
-                        // B. 声音响应计算
-                        // 建立粒子大小与声音电平的映射：声音越大，基准倍率越大
-                        const audioScale = 1.0 + (audioLevel * SIZE_RESPONSE_SENSITIVITY);
-                        
-                        // C. 最终尺寸合成
-                        // 最终大小 = 基础大小 * 音频倍率 + 随机偏移
-                        let renderSize = (p.baseSize || 3) * audioScale + p.sizeOffset;
-                        
-                        // 限制最小尺寸，防止消失或过小
-                        renderSize = Math.max(2, renderSize);
 
-                        // 绘制
-                        this.ctx.beginPath();
-                        this.ctx.arc(p.x, p.y, renderSize, 0, Math.PI * 2);
-                        this.ctx.fillStyle = p.color;
+                        // 螺旋 + 辐射加速
+                        angle += 0.01 * p.randomSpeed * (bass > 0.5 ? 2 : 1); 
+                        dist += speedBase * p.randomSpeed * 5;
+
+                        p.x = cx + Math.cos(angle) * dist;
+                        p.y = cy + Math.sin(angle) * dist;
                         
-                        // 透明度随距离增加
-                        const alpha = Math.min(1, dist / (maxDist/2));
+                        // 绘制拖尾线 (光速穿梭感)
+                        const size = p.baseSize * (0.3 + bass * 0.7);
+                        // 距离中心越远越亮
+                        const alpha = Math.min(1, (dist / (w/3))); 
+
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(oldX, oldY);
+                        this.ctx.lineTo(p.x, p.y);
+                        this.ctx.lineWidth = size;
+                        this.ctx.strokeStyle = p.color;
+                        this.ctx.lineCap = 'round';
+                        this.ctx.globalAlpha = alpha;
+                        this.ctx.stroke();
+                        
+                        // 头部高亮
+                        this.ctx.beginPath();
+                        this.ctx.arc(p.x, p.y, size * 0.6, 0, Math.PI*2);
+                        this.ctx.fillStyle = '#ffffff';
                         this.ctx.globalAlpha = alpha;
                         this.ctx.fill();
-                        
-                        // 4. 动态连线 (当低频强劲时)
-                        if (bass > 180) {
-                            // 只与附近的点连线，优化性能
-                            for(let j=index+1; j<Math.min(index+10, this.particles.length); j++) {
-                                const p2 = this.particles[j];
-                                const d2 = Math.hypot(p.x - p2.x, p.y - p2.y);
-                                if (d2 < 50) {
-                                    this.ctx.beginPath();
-                                    this.ctx.moveTo(p.x, p.y);
-                                    this.ctx.lineTo(p2.x, p2.y);
-                                    this.ctx.strokeStyle = p.color;
-                                    this.ctx.lineWidth = 0.5;
-                                    this.ctx.globalAlpha = 0.3 * (bass/255);
-                                    this.ctx.stroke();
-                                }
-                            }
-                        }
                     });
+                    this.ctx.globalCompositeOperation = 'source-over';
                     this.ctx.globalAlpha = 1.0;
                 }
                 
@@ -2147,7 +2223,7 @@
             constructor(containerId, visualizer) {
                 this.container = document.getElementById(containerId);
                 this.visualizer = visualizer;
-                this.maxItems = 6;
+                this.maxItems = 8; // 垂直布局减少数量
                 this.items = []; // 存储 DOM 元素
                 
                 // 启动呼吸灯循环
@@ -2160,26 +2236,45 @@
                 // 1. 创建新元素
                 const el = document.createElement('div');
                 el.className = 'callsign-item breathing';
-                el.textContent = callsign;
                 
-                // 2. 添加到容器末尾
-                this.container.appendChild(el);
-                this.items.push(el);
+                // 创建时间元素
+                const timeEl = document.createElement('div');
+                timeEl.className = 'callsign-time';
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-GB', { hour12: false });
+                timeEl.textContent = timeStr;
+
+                // 创建呼号文本元素
+                const textEl = document.createElement('div');
+                textEl.className = 'callsign-text';
+                textEl.textContent = callsign;
+
+                el.appendChild(timeEl);
+                el.appendChild(textEl);
+                
+                // 2. 添加到容器开头 (最新的在最上面)
+                if (this.container.firstChild) {
+                    this.container.insertBefore(el, this.container.firstChild);
+                } else {
+                    this.container.appendChild(el);
+                }
+                this.items.unshift(el);
                 
                 // 3. 强制重绘以触发 transition
                 el.offsetHeight; 
                 
-                // 4. 激活进场动画 (从右侧滑入，挤开左侧)
+                // 4. 激活进场动画 (从左侧滑入，挤开下方)
                 el.classList.add('active');
 
-                // 5. 移除多余元素
+                // 5. 移除多余元素 (移除最底部/最旧的)
                 if (this.items.length > this.maxItems) {
-                    const removed = this.items.shift();
+                    const removed = this.items.pop();
                     // 优雅移除
-                    removed.style.maxWidth = '0';
+                    removed.style.maxHeight = '0';
                     removed.style.padding = '0';
-                    removed.style.marginLeft = '0';
+                    removed.style.marginBottom = '0';
                     removed.style.opacity = '0';
+                    removed.style.border = 'none';
                     
                     setTimeout(() => {
                         if (removed.parentNode === this.container) {
@@ -2194,7 +2289,10 @@
                 
                 if (this.visualizer && this.items.length > 0) {
                     // 获取当前能量值 (0.0 - 1.0)
-                    const energy = this.visualizer.getAudioEnergy();
+                    let energy = 0;
+                    if (this.visualizer.getAudioEnergy) {
+                        energy = this.visualizer.getAudioEnergy();
+                    }
                     
                     // 平滑处理 (简单的低通滤波)
                     if (this.lastEnergy === undefined) this.lastEnergy = 0;
@@ -2203,11 +2301,6 @@
                     // 更新所有呼号的 CSS 变量
                     const level = this.lastEnergy.toFixed(3);
                     
-                    // 优化：使用 setProperty 批量更新
-                    // 由于所有 item 都在一个容器内，且都需要呼吸效果
-                    // 我们可以只更新最新那个，或者全部更新
-                    // 需求是“模拟呼吸灯效果”，通常是全部一起闪烁，或者只有最新的闪烁
-                    // 假设全部闪烁以增强氛围
                     this.items.forEach(el => {
                         el.style.setProperty('--level', level);
                     });
@@ -2576,7 +2669,7 @@
                 if (this.ws) return;
 
                 try {
-                    this.ws = new WebSocket(`ws://${host}/events`);
+                    this.ws = new WebSocket(`${(window.location && window.location.protocol === 'https:' ? 'wss' : 'ws')}://${host}/events`);
                     
                     this.ws.onopen = () => {
                         this.connected = true;
@@ -2658,6 +2751,8 @@
         
         // 实例化呼号显示组件
         const ticker = new CallsignTicker('callsign-ticker', viz);
+        // Expose to window for Python injection
+        window.ticker = ticker;
         
         // 连接事件
         events.onCallsignReceived((callsign) => {

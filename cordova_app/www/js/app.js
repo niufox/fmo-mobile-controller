@@ -1,3 +1,12 @@
+
+window.APP_CONFIG = {
+    "FETCH_PAGE_SIZE": 20,
+    "AUTO_REFRESH_INTERVAL": 30000,
+    "RECONNECT_DELAY": 3000,
+    "POST_SWITCH_DELAY": 3000,
+    "WS_PATH": "/ws"
+};
+window.WS_SCHEME = (function(){try{var p=(window.location&&window.location.protocol)||'';return p==='https:'?'wss':'ws';}catch(e){return'ws';}})();
 // --- 核心类定义区域 ---
         
         /** 音量条控制器 */
@@ -128,12 +137,13 @@
             constructor() {
                 super();
                 // 配置常量 - 提取以提高可维护性
-                this.CONFIG = {
+                this.CONFIG = Object.assign({
                     FETCH_PAGE_SIZE: 20,
                     AUTO_REFRESH_INTERVAL: 30000,
                     RECONNECT_DELAY: 3000,
-                    POST_SWITCH_DELAY: 3000
-                };
+                    POST_SWITCH_DELAY: 3000,
+                    WS_PATH: '/ws'
+                }, window.APP_CONFIG || {});
 
                 this.ws = null;
                 this.connected = false;
@@ -165,7 +175,7 @@
                 }
 
                 try {
-                    this.ws = new WebSocket(`ws://${this.host}/ws`);
+                    this.ws = new WebSocket(`${(window.location && window.location.protocol === 'https:' ? 'wss' : 'ws')}://${this.host}/ws`);
                     
                     this.ws.onopen = () => {
                         this.connected = true;
@@ -195,6 +205,11 @@
                         console.error('WS Error:', e);
                         this.connected = false;
                         this.emit('status', false);
+                        // APK Debugging helper
+                        if (window.cordova) {
+                             // Try to extract useful info, though WS errors are often empty in JS
+                             alert(`WebSocket Error connecting to ${this.host}\nPlease check:\n1. Server is running\n2. Phone is on same Wi-Fi\n3. Use IP address instead of 'fmo.local'`);
+                        }
                     };
 
                     this.ws.onmessage = (e) => {
@@ -209,6 +224,9 @@
                 } catch (e) {
                     console.error('Connection Failed:', e);
                     this.emit('status', false);
+                    if (window.cordova) {
+                        alert(`Connection Exception: ${e.message}\nHost: ${host}`);
+                    }
                 }
             }
 
@@ -449,7 +467,7 @@
                 this.buffering = true;
 
                 try {
-                    this.ws = new WebSocket(`ws://${host}/audio`);
+                    this.ws = new WebSocket(`${(window.location && window.location.protocol === 'https:' ? 'wss' : 'ws')}://${host}/audio`);
                     this.ws.binaryType = 'arraybuffer';
 
                     this.ws.onopen = () => {
@@ -1099,7 +1117,7 @@
             constructor(containerId, visualizer) {
                 this.container = document.getElementById(containerId);
                 this.visualizer = visualizer;
-                this.maxItems = 6;
+                this.maxItems = 20; // 增加容量以确保满屏后移除不抖动
                 this.items = []; // 存储 DOM 元素
                 
                 // 启动呼吸灯循环
@@ -1146,7 +1164,10 @@
                 
                 if (this.visualizer && this.items.length > 0) {
                     // 获取当前能量值 (0.0 - 1.0)
-                    const energy = this.visualizer.getAudioEnergy();
+                    let energy = 0;
+                    if (this.visualizer.getAudioEnergy) {
+                        energy = this.visualizer.getAudioEnergy();
+                    }
                     
                     // 平滑处理 (简单的低通滤波)
                     if (this.lastEnergy === undefined) this.lastEnergy = 0;
@@ -1155,11 +1176,6 @@
                     // 更新所有呼号的 CSS 变量
                     const level = this.lastEnergy.toFixed(3);
                     
-                    // 优化：使用 setProperty 批量更新
-                    // 由于所有 item 都在一个容器内，且都需要呼吸效果
-                    // 我们可以只更新最新那个，或者全部更新
-                    // 需求是“模拟呼吸灯效果”，通常是全部一起闪烁，或者只有最新的闪烁
-                    // 假设全部闪烁以增强氛围
                     this.items.forEach(el => {
                         el.style.setProperty('--level', level);
                     });
@@ -1528,7 +1544,7 @@
                 if (this.ws) return;
 
                 try {
-                    this.ws = new WebSocket(`ws://${host}/events`);
+                    this.ws = new WebSocket(`${(window.location && window.location.protocol === 'https:' ? 'wss' : 'ws')}://${host}/events`);
                     
                     this.ws.onopen = () => {
                         this.connected = true;

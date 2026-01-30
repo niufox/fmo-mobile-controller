@@ -29,118 +29,16 @@
         }
 
         /* 主题定义 - 保留其他作为可选项 */
-         body[data-theme="cyberpunk"] {
-             --bg-color: #050505;
-             --panel-bg: rgba(20, 20, 20, 0.85);
-             --text-main: #e0e0e0;
-             --text-muted: #888;
-             --accent-cyan: #00f3ff;
-             --accent-magenta: #ff00ff;
-             --accent-green: #00ff66;
-             --border-color: rgba(255,255,255, 0.15);
-             --viz-bg: radial-gradient(circle at center, #111 0%, #000 100%);
-         }
-
-
-        /* 主题定义 */
-        body[data-theme="matrix"] {
-            --bg-color: #000000;
-            --panel-bg: rgba(0, 20, 0, 0.9);
-            --text-main: #00ff00;
-            --text-muted: #008800;
-            --accent-cyan: #00ff00; /* 主色调 */
-            --accent-magenta: #008f11; /* 辅色调 */
-            --accent-green: #00ff00;
-            --border-color: rgba(0, 255, 0, 0.2);
-            --viz-bg: #000;
-        }
-
-        body[data-theme="ocean"] {
-            --bg-color: #001f3f;
-            --panel-bg: rgba(0, 31, 63, 0.85);
-            --text-main: #b3e5fc;
-            --text-muted: #568ea3;
-            --accent-cyan: #7FDBFF;
-            --accent-magenta: #0074D9;
-            --accent-green: #39CCCC;
-            --border-color: rgba(127, 219, 255, 0.2);
-            --viz-bg: linear-gradient(to bottom, #001f3f, #001020);
-        }
-
-        body[data-theme="sunset"] {
-            --bg-color: #2d1b2e;
-            --panel-bg: rgba(45, 27, 46, 0.85);
-            --text-main: #ffd1dc;
-            --text-muted: #b07289;
-            --accent-cyan: #ff9e64;
-            --accent-magenta: #ff0055;
-            --accent-green: #ffca28;
-            --border-color: rgba(255, 158, 100, 0.2);
-            --viz-bg: linear-gradient(to bottom, #2d1b2e, #1a0f1a);
-        }
-
-        body[data-theme="light"] {
-            --bg-color: #f0f2f5;
-            --panel-bg: rgba(255,255,255, 0.9);
-            --text-main: #333333;
-            --text-muted: #666666;
-            --accent-cyan: #2196F3;
-            --accent-magenta: #673AB7;
-            --accent-green: #4CAF50;
-            --border-color: rgba(0, 0, 0, 0.1);
-            --viz-bg: #e0e0e0;
-        }
-
-        /* 新增主题：猛男粉 */
-        body[data-theme="pink"] {
-            --bg-color: #2e001f;
-            --panel-bg: rgba(60, 0, 40, 0.85);
-            --text-main: #ffc2d1;
-            --text-muted: #d88fa5;
-            --accent-cyan: #ff4081;
-            --accent-magenta: #f50057;
-            --accent-green: #ff80ab;
-            --border-color: rgba(255, 64, 129, 0.2);
-            --viz-bg: linear-gradient(to bottom, #2e001f, #1a0010);
-        }
-
-        /* 新增主题：基佬紫 */
-        body[data-theme="purple"] {
-            --bg-color: #1a002e;
-            --panel-bg: rgba(40, 0, 60, 0.85);
-            --text-main: #e1bee7;
-            --text-muted: #ba68c8;
-            --accent-cyan: #d500f9;
-            --accent-magenta: #aa00ff;
-            --accent-green: #e040fb;
-            --border-color: rgba(213, 0, 249, 0.2);
-            --viz-bg: linear-gradient(to bottom, #1a002e, #0d0017);
-        }
-
-        /* 新增主题：蕾丝红 */
-        body[data-theme="red"] {
-            --bg-color: #2b0000;
-            --panel-bg: rgba(50, 0, 0, 0.85);
-            --text-main: #ffcdd2;
-            --text-muted: #e57373;
-            --accent-cyan: #ff1744;
-            --accent-magenta: #d50000;
-            --accent-green: #ff5252;
-            --border-color: rgba(255, 23, 68, 0.2);
-            --viz-bg: linear-gradient(to bottom, #2b0000, #150000);
-        }
-
-        /* 新增主题：流氓黑 */
-        body[data-theme="black"] {
-            --bg-color: #000000;
-            --panel-bg: #111111;
-            --text-main: #ffffff;
-            --text-muted: #666666;
-            --accent-cyan: #ffffff;
-            --accent-magenta: #333333;
-            --accent-green: #999999;
-            --border-color: #333333;
-            --viz-bg: #000000;
+        body.theme-cyberpunk {
+            --bg-color: #050505;
+            --panel-bg: rgba(20, 20, 20, 0.85);
+            --text-main: #e0e0e0;
+            --text-muted: #888;
+            --accent-cyan: #00f3ff;
+            --accent-magenta: #ff00ff;
+            --accent-green: #00ff66;
+            --border-color: rgba(255, 255, 255, 0.15);
+            --viz-bg: radial-gradient(circle at center, #111 0%, #000 100%);
         }
 
 
@@ -249,18 +147,8 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-        }
-
-        /* 只在特定元素上禁用用户选择，避免影响输入框 */
-        button, .btn-rect-lg, .theme-btn, .station-item, .station-drag-handle, .qso-item {
             user-select: none;
             -webkit-tap-highlight-color: transparent;
-        }
-
-        /* 允许输入框和文本区域选择 */
-        input, textarea, .debug-content {
-            user-select: auto;
-            -webkit-user-select: text;
         }
 
         body {
@@ -270,33 +158,25 @@
             height: 100dvh; /* 适配移动端视口 */
             display: grid;
             grid-template-rows: auto auto 1fr auto; /* Header, Settings, Viz, Controls */
-            grid-template-areas:
+            grid-template-areas: 
                 "header"
                 "settings"
                 "viz"
                 "controls";
             overflow: hidden;
             transition: background-color 0.5s, color 0.5s;
-
+            
             /* Safe Area Adaptation */
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
             padding-left: env(safe-area-inset-left);
             padding-right: env(safe-area-inset-right);
-
-            /* iOS 滚动兼容：在 iOS 设备上保留部分 overscroll 行为 */
+            
             overscroll-behavior: none; /* 防止页面整体回弹 */
         }
 
-        /* iOS 特定调整：确保可滚动容器能够正常工作 */
-        @supports (-webkit-touch-callout: none) {
-            body {
-                overscroll-behavior: auto; /* iOS 上允许原生滚动行为 */
-            }
-        }
-
-        /* 按钮触摸优化 - 移除 .station-item 以允许滚动 */
-        button, .btn-rect-lg, .vol-track-wrapper {
+        /* 按钮触摸优化 */
+        button, .btn-rect-lg, .vol-track-wrapper, .station-item {
             touch-action: manipulation;
         }
 
@@ -603,7 +483,7 @@
             
             /* 样式优化 */
             color: var(--text-main);
-            font-size: 0.6rem;
+            font-size: 1.2rem;
             font-weight: 500;
             text-shadow: 0 2px 4px rgba(0,0,0,0.8);
             background: transparent;
@@ -623,26 +503,22 @@
             display: -webkit-box;
         }
 
-        /* 按钮触摸优化 */
-        button, .btn-rect-lg, .vol-track-wrapper {
-            touch-action: manipulation;
-        }
-
-        .controls-area { 
-            grid-area: controls; 
-            background: var(--panel-bg); 
-            border-top: 1px solid var(--border-color); 
-            padding: 20px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 15px; 
-            height: auto; 
-            max-height: 50vh; 
-            overflow-y: hidden; /* 关键：禁用父容器纵向滚动 */ 
-            transition: background 0.5s, border-color 0.5s; 
-            margin: 0 10px 10px 10px; 
-            border-radius: var(--radius-md); 
-            border: 1px solid var(--border-color); 
+        /* 控制面板区域 */
+        .controls-area {
+            grid-area: controls;
+            background: var(--panel-bg);
+            border-top: 1px solid var(--border-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            height: auto;
+            max-height: 50vh; /* 限制最大高度，给波形留空间 */
+            overflow-y: auto;
+            transition: background 0.5s, border-color 0.5s;
+            margin: 0 10px 10px 10px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
         }
 
         /* 播放控制 */
@@ -900,9 +776,44 @@
             border-color: #30d158;
         }
 
-        /* 旧样式保留用于非modal的station-item */
+        /* 台站列表 */
+        .station-panel {
+            background: rgba(0,0,0,0.2);
+            border-radius: var(--radius-md);
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex: 1; /* 填充剩余空间 */
+            min-height: 150px; /* 保证最小高度 */
+            overflow: hidden;
+            margin: 0 0px 0px 0px; /* 与 Controls 对齐 */
+        }
+        
+        .station-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.85rem; /* 稍微调小 */
+            color: var(--text-muted);
+        }
+
+        .station-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 8px;
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden; /* 防止横向滚动 */
+            padding-right: 2px; /* 给滚动条留点位置 */
+            padding-bottom: 50px; /* 底部留白给按钮 */
+            position: relative;
+        }
+
+
+
+
         .station-item {
-            touch-action: manipulation;
             padding: 10px;
             background: rgba(255,255,255,0.05);
             border-radius: 8px;
@@ -912,23 +823,21 @@
             align-items: flex-start;
             transition: all 0.2s;
             border-left: 3px solid transparent;
-            font-size: 0.9rem;
-            cursor: pointer;
+            font-size: 0.9rem; /* 调小列表字体 */
         }
         .station-item.active {
             background: rgba(0, 243, 255, 0.1);
             border-left-color: var(--accent-cyan);
         }
         .station-item:active { background: rgba(255,255,255,0.1); }
-
-        .st-name {
+        
+        .st-name { 
             font-weight: 500;
             width: 100%;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        
 
         /* QSO Modal 左右分栏布局 */
         .qso-modal-content {
@@ -1350,144 +1259,7 @@
             stroke-width: 2;
         }
 
-        /* Station Modal - Bottom Sheet Style for iOS */
-        .station-modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 300;
-            display: flex;
-            justify-content: center;
-            align-items: flex-end;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-        .station-modal-overlay.show {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .station-modal-content {
-            width: 100%;
-            max-width: 600px;
-            max-height: 80vh;
-            background: var(--panel-bg);
-            border-radius: 20px 20px 0 0;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            transform: translateY(100%);
-            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.5);
-        }
-        .station-modal-content .station-modal-header {
-            flex-shrink: 0;
-        }
-        .station-modal-content .station-list-modal {
-            flex: 1;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        .station-modal-overlay.show .station-modal-content {
-            transform: translateY(0);
-        }
-        .station-modal-header {
-            flex-shrink: 0;
-            padding: 8px 15px;
-            background: rgba(0, 0, 0, 0.2);
-            border-bottom: 1px solid var(--border-color);
-            cursor: pointer;
-        }
-        .station-modal-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            font-size: 0.9rem;
-            color: var(--text-main);
-        }
-        .station-modal-title span:last-child {
-            color: var(--accent-cyan);
-            background: rgba(255, 152, 0, 0.1);
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.75rem;
-        }
-        .station-drag-handle {
-            width: 40px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 2px;
-            margin: 8px auto 10px;
-        }
-        .station-modal-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            font-size: 1rem;
-            color: var(--text-main);
-        }
-        .station-modal-title span:last-child {
-            color: var(--accent-cyan);
-            background: rgba(255, 152, 0, 0.1);
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-        }
-        .station-list-modal {
-            flex: 1;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            padding: 15px;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-        }
-        .station-list-modal .station-item {
-            touch-action: manipulation;
-            padding: 8px;
-            font-size: 0.75rem;
-            min-height: 45px;
-        }
-        .station-list-modal .st-name {
-            font-size: 0.75rem;
-        }
 
-        /* 小屏幕适配：改为2列 */
-        @media (max-width: 480px) {
-            .station-list-modal {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 6px;
-                padding: 10px;
-            }
-            .station-list-modal .station-item {
-                padding: 6px;
-                font-size: 0.7rem;
-                min-height: 40px;
-            }
-            .station-list-modal .st-name {
-                font-size: 0.7rem;
-            }
-        }
-
-        /* Station Panel - Simplified to just show button */
-        .station-panel {
-            background: rgba(0,0,0,0.2);
-            border-radius: var(--radius-md);
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        .station-panel .station-header {
-            font-size: 0.75rem;
-            margin-bottom: 4px;
-        }
 
     </style>
 </head>
@@ -1503,6 +1275,9 @@
             </div>
             <button id="btn-settings-toggle" class="theme-btn" title="设置">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            <button id="btn-qso" class="theme-btn" title="QSO 日志">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
             </button>
             <button id="btn-maximize" class="theme-btn" title="最大化窗口">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1602,15 +1377,16 @@
             </div>
         </div>
 
-        <!-- 台站列表 - 改为触发按钮 -->
+        <!-- 台站列表 -->
         <div class="station-panel">
             <div class="station-header">
                 <span>STATIONS</span>
                 <span id="st-count">0/0</span>
             </div>
-            <button id="btn-open-stations" class="btn-rect-lg" style="background: var(--panel-bg); border: 1px solid var(--border-color);">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/></svg>
-            </button>
+            <div id="st-list" class="station-list">
+                <div class="station-item" style="grid-column: 1 / -1; justify-content: center; align-items: center; color: #666;">等待连接...点击顶部设置按钮设置IP</div>
+            </div>
+
         </div>
 
 
@@ -1642,22 +1418,6 @@
         </div>
     </div>
 
-    <!-- Station List Modal - Bottom Sheet Style -->
-    <div id="station-modal" class="station-modal-overlay">
-        <div class="station-modal-content">
-            <div class="station-modal-header">
-                <div class="station-drag-handle"></div>
-                <div class="station-modal-title">
-                    <span>STATIONS</span>
-                    <span id="st-count-modal">0</span>
-                </div>
-            </div>
-            <div id="st-list" class="station-list-modal">
-                <div class="station-item" style="grid-column: 1 / -1; justify-content: center; align-items: center; color: #666;">等待连接...点击顶部设置按钮设置IP</div>
-            </div>
-        </div>
-    </div>
-
     <!-- Credits Modal -->
     <div id="credits-modal" class="modal-overlay">
         <div class="modal-content">
@@ -1669,7 +1429,7 @@
                 <div class="brand" style="justify-content: center; font-size: 1.5rem; margin-bottom: 20px; color: var(--accent-cyan);">
                     <span>FMO CONTROLLER</span>
                 </div>
-                <div id="credits-version" data-version="3.3" style="margin-bottom: 18px; color: var(--text-muted); font-size: 0.9rem;">v3.3</div>
+                <div id="credits-version" data-version="3.1" style="margin-bottom: 18px; color: var(--text-muted); font-size: 0.9rem;">v3.1</div>
                 
                 <div style="margin-bottom: 25px;">
                     <h4 style="color: var(--accent-magenta); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block;">特别鸣谢</h4>
@@ -1703,96 +1463,15 @@
                         <div id="debug-content" style="background:#111; color:#0f0; padding:10px; border-radius:4px; font-family:monospace; font-size:10px; text-align:left; max-height:200px; overflow:auto; white-space:pre-wrap; user-select:text;"></div>
                     </div>
                 </div>
-
+                
                 <div style="margin-top: 30px; font-size: 0.8rem; color: #666;">
                     天下Ham是一家 ham爱好者的分享，请勿用于商业用途。
-                </div>
-
-                <div style="margin-top: 20px; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
-                    <div style="margin-bottom: 8px;">
-                        <strong>GitHub:</strong>
-                        <a href="https://github.com/niufox/fmo-mobile-controller" target="_blank" style="color: var(--accent-cyan); text-decoration: none; margin-left: 8px;">
-                            github.com/niufox/fmo-mobile-controller
-                        </a>
-                    </div>
-                    <div>
-                        <span style="color: var(--text-main);">Designed by:</span>
-                        <span style="color: var(--accent-magenta); margin-left: 8px; font-weight: bold;">BG5EIT</span>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 工具函数 ---
-        const Utils = {
-            // 防抖函数
-            debounce(fn, delay) {
-                let timer;
-                return (...args) => {
-                    clearTimeout(timer);
-                    timer = setTimeout(() => fn(...args), delay);
-                };
-            },
-
-            // 节流函数
-            throttle(fn, limit) {
-                let inThrottle;
-                return (...args) => {
-                    if (!inThrottle) {
-                        fn(...args);
-                        inThrottle = true;
-                        setTimeout(() => inThrottle = false, limit);
-                    }
-                };
-            },
-
-            // 显示用户友好的错误提示
-            showError(message, error = null) {
-                console.error('[Error]', message, error);
-                alert(`${message}${error ? `\n\n详细信息: ${error.message}` : ''}`);
-            },
-
-            // 安全的JSON解析
-            safeJSONParse(str, fallback = null) {
-                try {
-                    return JSON.parse(str);
-                } catch (e) {
-                    console.warn('JSON parse failed:', e);
-                    return fallback;
-                }
-            },
-
-            // 检查网络连接状态
-            isOnline() {
-                return navigator.onLine;
-            }
-        };
-
-        // --- 错误处理增强 ---
-        window.addEventListener('error', (e) => {
-            console.error('[Global Error]', e.message, e.filename, e.lineno, e.error);
-        });
-
-        window.addEventListener('unhandledrejection', (e) => {
-            console.error('[Unhandled Promise Rejection]', e.reason);
-            e.preventDefault();
-        });
-
-        // --- 网络状态监听 ---
-        window.addEventListener('online', () => {
-            console.log('[Network] Online');
-            if (ctrl && !ctrl.connected) {
-                ctrl.connect(ui.inpHost.value.trim());
-            }
-        });
-
-        window.addEventListener('offline', () => {
-            console.log('[Network] Offline');
-            Utils.showError('网络连接已断开，请检查网络设置');
-        });
-
         // --- Debug Log Capture ---
         window.__DEBUG_LOGS__ = [];
         (function(){
@@ -1824,17 +1503,10 @@
                 this.text = container.querySelector('#vol-value-text');
                 this.muteBtn = container.querySelector('#vol-mute-btn');
                 this.localMuteBtn = container.querySelector('#local-mute-toggle');
-
+                
                 this.isDragging = false;
                 this.value = 1.0; // 0.0 - 1.0
-                this.lastValue = 1.0;
-
-                // 绑定方法到实例，确保可以正确移除事件监听器
-                this.onMove = this.onMove.bind(this);
-                this.onUp = this.onUp.bind(this);
-                this.onTouchMove = this.onTouchMove.bind(this);
-                this.onTouchEnd = this.onTouchEnd.bind(this);
-
+                
                 this.initEvents();
                 this.updateUI(this.value);
                 if (this.player.localMuteEnabled !== undefined) {
@@ -1842,55 +1514,60 @@
                 }
             }
 
-            updateFromEvent(e) {
-                const rect = this.trackWrapper.getBoundingClientRect();
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                let percent = (clientX - rect.left) / rect.width;
-                percent = Math.max(0, Math.min(1, percent));
-
-                // 0-200% 音量映射 (0.0 - 2.0)
-                const volumeValue = percent * 2.0;
-                this.setVolume(volumeValue);
-            }
-
-            onMove(e) {
-                if (this.isDragging) {
-                    this.updateFromEvent(e);
-                    e.preventDefault();
-                }
-            }
-
-            onUp() {
-                this.isDragging = false;
-            }
-
-            onTouchMove(e) {
-                if (this.isDragging) {
-                    this.updateFromEvent(e);
-                    e.preventDefault();
-                }
-            }
-
-            onTouchEnd() {
-                this.isDragging = false;
-            }
-
             initEvents() {
+                // 点击或拖动处理
+                const updateFromEvent = (e) => {
+                    const rect = this.trackWrapper.getBoundingClientRect();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    let percent = (clientX - rect.left) / rect.width;
+                    percent = Math.max(0, Math.min(1, percent));
+                    
+                    // 0-200% 音量映射 (0.0 - 2.0)
+                    const volumeValue = percent * 2.0;
+                    this.setVolume(volumeValue);
+                };
+
                 // 鼠标事件
                 this.trackWrapper.addEventListener('mousedown', (e) => {
                     this.isDragging = true;
-                    this.updateFromEvent(e);
-                    document.addEventListener('mousemove', this.onMove);
-                    document.addEventListener('mouseup', this.onUp);
+                    updateFromEvent(e);
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
                 });
+
+                const onMove = (e) => {
+                    if (this.isDragging) {
+                        updateFromEvent(e);
+                        e.preventDefault();
+                    }
+                };
+
+                const onUp = () => {
+                    this.isDragging = false;
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                };
 
                 // 触摸事件
                 this.trackWrapper.addEventListener('touchstart', (e) => {
                     this.isDragging = true;
-                    this.updateFromEvent(e);
-                    document.addEventListener('touchmove', this.onTouchMove, { passive: false });
-                    document.addEventListener('touchend', this.onTouchEnd);
+                    updateFromEvent(e);
+                    document.addEventListener('touchmove', onTouchMove, { passive: false });
+                    document.addEventListener('touchend', onTouchEnd);
                 });
+
+                const onTouchMove = (e) => {
+                    if (this.isDragging) {
+                        updateFromEvent(e);
+                        e.preventDefault();
+                    }
+                };
+
+                const onTouchEnd = () => {
+                    this.isDragging = false;
+                    document.removeEventListener('touchmove', onTouchMove);
+                    document.removeEventListener('touchend', onTouchEnd);
+                };
 
                 // 静音切换
                 this.muteBtn.addEventListener('click', () => {
@@ -1951,22 +1628,6 @@
                     // Play icon (Green)
                     this.localMuteBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
                 }
-            }
-
-            destroy() {
-                // 清理所有事件监听器，防止内存泄漏
-                document.removeEventListener('mousemove', this.onMove);
-                document.removeEventListener('mouseup', this.onUp);
-                document.removeEventListener('touchmove', this.onTouchMove);
-                document.removeEventListener('touchend', this.onTouchEnd);
-
-                // 清理组件引用
-                this.container = null;
-                this.trackWrapper = null;
-                this.fill = null;
-                this.text = null;
-                this.muteBtn = null;
-                this.localMuteBtn = null;
             }
         }
 
@@ -3103,15 +2764,6 @@
                 this.activeTarget = null;
                 this.lastCallsign = '';
 
-                // 中继台星星系统
-                this.repeaterStars = []; // 存储中继台星星数据
-                this.repeaterStations = []; // 中继台列表
-                this.repeaterSpawnTimer = 0; // 中继台浮现计时器
-                this.repeaterSpawnInterval = 5000; // 每5秒尝试浮现1-3个中继台
-                this.repeaterFadeTimer = 0; // 中继台消失计时器
-                this.repeaterFadeInterval = 8000; // 8秒后开始消失
-                this.repeaterFadeDuration = 2000; // 2秒完全消失
-
                 // 太阳喷发系统配置
                 this.eruptions = [];
                 this.eruptionConfig = {
@@ -3164,7 +2816,7 @@
                 // 2. 呼号分配逻辑
                 const callsign = (extra && extra.callsign && extra.opacity > 0) ? extra.callsign : null;
                 const input = extra.input || { x: 0, y: 0, active: false };
-
+                
                 if (callsign && callsign !== this.lastCallsign) {
                     this.lastCallsign = callsign;
                     let hash = 0;
@@ -3173,151 +2825,39 @@
                 }
 
                 // 3. 绘制背景星空
-                this.starRotation += 0.0001;
+                this.starRotation += 0.0001; 
                 const maxDim = Math.max(w, h);
                 const nowTime = Date.now();
 
-                // 处理中继台浮现/消失逻辑
-                this.repeaterSpawnTimer += 16; // 假设60fps，每次约16ms
-                this.repeaterFadeTimer += 16;
-
-                // 定期浮现新的中继台星星
-                if (this.repeaterSpawnTimer >= this.repeaterSpawnInterval && this.repeaterStations.length > 0) {
-                    this.repeaterSpawnTimer = 0;
-                    // 随机选择5-9个中继台
-                    const count = Math.floor(Math.random() * 5) + 5;
-                    const shuffled = [...this.repeaterStations].sort(() => Math.random() - 0.5);
-                    const selectedRepeater = shuffled.slice(0, count);
-
-                    selectedRepeater.forEach(station => {
-                        // 检查是否已存在
-                        const exists = this.repeaterStars.find(rs => rs.uid === station.uid);
-                        if (!exists) {
-                            // 创建新的中继台星星
-                            const starIndex = Math.floor(Math.random() * this.stars.length);
-                            const baseStar = this.stars[starIndex];
-                            this.repeaterStars.push({
-                                ...station,
-                                starIndex: starIndex,
-                                spawnTime: nowTime,
-                                alpha: 0,
-                                targetAlpha: 1,
-                                phase: 'spawning', // spawning -> visible -> fading
-                                blinkOffset: Math.random() * Math.PI * 2
-                            });
-                        }
-                    });
-                }
-
-                // 绘制中继台星星
-                this.repeaterStars.forEach((rs, idx) => {
-                    const baseStar = this.stars[rs.starIndex];
-                    if (!baseStar) return;
-
-                    // 计算透明度（浮现/消失动画）
-                    if (rs.phase === 'spawning') {
-                        rs.alpha += 0.05;
-                        if (rs.alpha >= 1) {
-                            rs.alpha = 1;
-                            rs.phase = 'visible';
-                            rs.visibleStartTime = nowTime;
-                        }
-                    } else if (rs.phase === 'visible') {
-                        // 8秒后开始消失
-                        if (nowTime - rs.visibleStartTime > this.repeaterFadeInterval) {
-                            rs.phase = 'fading';
-                        }
-                    } else if (rs.phase === 'fading') {
-                        rs.alpha -= 0.02;
-                        if (rs.alpha <= 0) {
-                            this.repeaterStars.splice(idx, 1);
-                            return;
-                        }
-                    }
-
-                    const blink = Math.sin(nowTime * baseStar.blinkSpeed + baseStar.blinkPhase + rs.blinkOffset);
-                    const starAlpha = Math.max(0.1, Math.min(1, baseStar.baseAlpha + blink * 0.3 + energy * 0.5));
-                    const finalAlpha = starAlpha * rs.alpha;
-
-                    const currentAngle = baseStar.angle + this.starRotation;
-                    const x = cx + Math.cos(currentAngle) * baseStar.r * maxDim * 0.8;
-                    const y = cy + Math.sin(currentAngle) * baseStar.r * maxDim * 0.8;
-
-                    // 绘制发光效果
-                    ctx.save();
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = theme.primary || '#ff9800';
-                    ctx.fillStyle = `rgba(255, 200, 100, ${finalAlpha * 0.6})`;
-                    ctx.beginPath();
-                    ctx.arc(x, y, baseStar.size * 1.5, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.restore();
-
-                    // 绘制星星本体
-                    ctx.fillStyle = `rgba(255, 220, 150, ${finalAlpha})`;
-                    ctx.beginPath();
-                    ctx.arc(x, y, baseStar.size, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // 绘制台站名称
-                    if (rs.alpha > 0.5 && rs.name) {
-                        ctx.save();
-                        ctx.font = 'bold 10px "Roboto Mono"';
-                        const text = rs.name;
-                        const textMetrics = ctx.measureText(text);
-                        const textW = textMetrics.width;
-                        const textH = 14;
-
-                        // 背景
-                        ctx.fillStyle = `rgba(255, 152, 0, ${finalAlpha * 0.7})`;
-                        ctx.globalAlpha = finalAlpha;
-                        ctx.beginPath();
-                        ctx.roundRect(x - textW / 2 - 4, y - textH - 8, textW + 8, textH, 4);
-                        ctx.fill();
-
-                        // 文字
-                        ctx.fillStyle = `rgba(255, 255, 255, ${finalAlpha})`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(text, x, y - 14);
-                        ctx.restore();
-                    }
-                });
-
                 this.stars.forEach(star => {
-                    // 跳过已被中继台占用的星星
-                    const isRepeaterStar = this.repeaterStars.some(rs => rs.starIndex === this.stars.indexOf(star));
-                    if (isRepeaterStar) return;
-
                     const blink = Math.sin(nowTime * star.blinkSpeed + star.blinkPhase);
                     const alpha = Math.max(0.1, Math.min(1, star.baseAlpha + blink * 0.3 + energy * 0.5));
-
+                    
                     const currentAngle = star.angle + this.starRotation;
                     const x = cx + Math.cos(currentAngle) * star.r * maxDim * 0.8;
                     const y = cy + Math.sin(currentAngle) * star.r * maxDim * 0.8;
 
-                    ctx.fillStyle = `rgba(255,255, 255, ${alpha})`;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
                     ctx.beginPath();
                     ctx.arc(x, y, star.size, 0, Math.PI*2);
                     ctx.fill();
                 });
 
-                // 4. 绘制轨道 (动态计算缩放以铺满屏幕) - 已隐藏
+                // 4. 绘制轨道 (动态计算缩放以铺满屏幕)
                 // 目标：让最外层行星(冥王星 dist=11.0)贴近屏幕边缘
                 // 计算 X 轴和 Y 轴方向的最大允许缩放比例，取较小值以确保完整显示
-                const maxDist = 11.0;
+                const maxDist = 11.0; 
                 const scaleX = w / 2 / maxDist;
                 const scaleY = h / 2 / (maxDist * this.tilt);
                 const scale = Math.min(scaleX, scaleY) * 0.95; // 0.95 留一点点边距
 
                 ctx.lineWidth = 1;
-                // 注释掉行星轨道绘制 - 隐藏所有轨道
-                // this.planets.forEach(p => {
-                //     ctx.beginPath();
-                //     ctx.ellipse(cx, cy, p.dist * scale, p.dist * scale * this.tilt, 0, 0, Math.PI*2);
-                //     ctx.strokeStyle = `rgba(255, 255, 255, ${0.05 + bass * 0.1})`;
-                //     ctx.stroke();
-                // });
+                this.planets.forEach(p => {
+                    ctx.beginPath();
+                    ctx.ellipse(cx, cy, p.dist * scale, p.dist * scale * this.tilt, 0, 0, Math.PI*2);
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${0.05 + bass * 0.1})`;
+                    ctx.stroke();
+                });
 
                 // 5. 准备渲染列表
                 const renderList = [];
@@ -3412,11 +2952,11 @@
                                     // 增大卫星尺寸以提升可见度
                                     const mSize = Math.max(2.0, m.r * scale * 0.15);
 
-                                     // 卫星轨道线 - 已隐藏
-                                    // ctx.beginPath();
-                                    // ctx.ellipse(x, y, mDist, mDist * this.tilt, 0, 0, Math.PI*2);
-                                    // ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-                                    // ctx.stroke();
+                                    // 卫星轨道线
+                                    ctx.beginPath();
+                                    ctx.ellipse(x, y, mDist, mDist * this.tilt, 0, 0, Math.PI*2);
+                                    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                                    ctx.stroke();
 
                                     // 卫星本体
                                     ctx.fillStyle = m.color;
@@ -3665,11 +3205,6 @@
                     ctx.restore();
                 }
             }
-
-            // 更新中继台列表
-            updateRepeaterStations(stations) {
-                this.repeaterStations = stations.filter(s => s.name && s.name.length > 0);
-            }
         }
 
         /** 可视化引擎 (重构版) */
@@ -3811,21 +3346,6 @@
                 for(let i = 0; i < count; i++) sum += this.freqData[i];
                 return (sum / count) / 255.0;
             }
-
-            destroy() {
-                this.running = false;
-                if (this.resizeObserver) {
-                    this.resizeObserver.disconnect();
-                    this.resizeObserver = null;
-                }
-                // 清理渲染器
-                this.renderers = null;
-                // 清理引用
-                this.canvas = null;
-                this.ctx = null;
-                this.analyser = null;
-                this.freqData = null;
-            }
         }
 
         /** 语音转录器 - 实时语音识别 */
@@ -3846,7 +3366,7 @@
                 // 动态分段配置 - 基于VAD（语音活动检测）或Callsign事件
                 // Callsign驱动模式参数（唯一支持的分段方式）
                 this.CALLSIGN_END_DELAY_MS = 2000;   // callsign后2秒无新呼号则结束分段
-                this.MAX_CALLSIGN_DURATION_MS = 5000; // 单个callsign最长说话时间（5秒）
+                this.MAX_CALLSIGN_DURATION_MS = 60000; // 单个callsign最长说话时间（60秒）
                 this.lastCallsignTime = null;        // 最后一个callsign的时间
                 this.callsignStartTime = null;       // 当前callsign的开始时间
                 this.currentCallsign = null;         // 当前callsign
@@ -4747,7 +4267,7 @@
                 const isSeconds = ts < 10000000000;
                 const d = new Date(isSeconds ? ts * 1000 : ts);
                 const pad = (n) => String(n).padStart(2, '0');
-                return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+                return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
             }
 
             hasCallsign(callsign) {
@@ -4766,8 +4286,9 @@
                 this.listEl.innerHTML = list.map((item, index) => {
                     const call = item.toCallsign || 'UNKNOWN';
                     const grid = item.grid || '-';
-                    const ts = this.formatDate(item.ts);
-
+                    // Use item.ts if available, otherwise current time
+                    const ts = this.formatDate(item.ts || Date.now()/1000);
+                    
                     return `
                 <div class="qso-item" data-grid="${grid}" tabindex="0" role="button" aria-label="QSO Record: ${call}, Grid: ${grid}">
                     <div class="qso-main">
@@ -4945,44 +4466,44 @@
             btnNext: document.getElementById('btn-next'),
             inpHost: document.getElementById('inp-host'),
             btnConnect: document.getElementById('btn-connect'),
-            btnOpenStations: document.getElementById('btn-open-stations'),
-            stationModal: document.getElementById('station-modal'),
-            stCountModal: document.getElementById('st-count-modal'),
         };
 
         // API Key 设置逻辑
         const inpApiKey = document.getElementById('inp-apikey');
         const btnSaveKey = document.getElementById('btn-save-key');
-
+        const DEFAULT_API_KEY = 'sk-lickpcbkftopqzyemjqdtgggkcdcsafwpjeameotbtuqklao';
+        
         // 加载已保存的 Key
-        if (transcriber.apiKey) {
+        if (transcriber.apiKey && transcriber.apiKey !== DEFAULT_API_KEY) {
             inpApiKey.value = transcriber.apiKey;
         } else {
             inpApiKey.value = '';
-            inpApiKey.placeholder = '请输入 SiliconFlow API Key';
+            inpApiKey.placeholder = '采用SiliconFlow API key，已使用内置默认 API Key，暂时无需设置';
         }
-
+        
         btnSaveKey.addEventListener('click', () => {
             const key = inpApiKey.value.trim();
             if (key === '') {
+                // 恢复默认
+                transcriber.setAPIKey(DEFAULT_API_KEY);
                 localStorage.removeItem('transcriber_apiKey');
-                transcriber.apiKey = null;
-                alert('API Key 已清除');
-                if (ui.settingsArea.classList.contains('active')) {
+                alert('已恢复默认 API Key');
+                 if (ui.settingsArea.classList.contains('active')) {
                     ui.settingsArea.classList.remove('active');
                 }
             } else if (transcriber.setAPIKey(key)) {
                 alert('API Key 已保存');
+                // 切换设置面板
                 if (ui.settingsArea.classList.contains('active')) {
                     ui.settingsArea.classList.remove('active');
                 }
             } else {
-                alert('API Key 格式无效，请检查');
+                alert('API Key 格式无效');
             }
         });
 
         let currentStationId = null;
-
+        
         // 设备检测与适配
         const checkDevice = () => {
             // 简单判断：屏幕宽度大于 768px 视为桌面端/平板
@@ -4994,39 +4515,22 @@
         };
         // 初始化检测
         checkDevice();
-        // 监听窗口大小变化 - 使用防抖优化性能
-        window.addEventListener('resize', Utils.debounce(checkDevice, 200));
+        // 监听窗口大小变化
+        window.addEventListener('resize', checkDevice);
 
         // 0. 主题切换
         // 扩展主题列表：包含新增的4款主题
-        const themes = ['', 'matrix', 'ocean', 'sunset', 'light', 'pink', 'purple', 'red', 'black'];
+        const themes = ['', 'theme-matrix', 'theme-ocean', 'theme-sunset', 'theme-light', 'theme-pink', 'theme-purple', 'theme-red', 'theme-black'];
         let currentThemeIndex = 0;
-
-        // 初始化主题 - 从localStorage加载
-        const savedTheme = localStorage.getItem('fmo_theme');
-        if (savedTheme !== null && themes.includes(savedTheme)) {
-            currentThemeIndex = themes.indexOf(savedTheme);
-            if (savedTheme) {
-                document.body.dataset.theme = savedTheme;
-            } else {
-                document.body.removeAttribute('data-theme');
-            }
-        }
-
+        
         ui.btnTheme.addEventListener('click', () => {
-            const currentTheme = themes[currentThemeIndex];
-            if (currentTheme) {
-                document.body.removeAttribute('data-theme');
+            if (themes[currentThemeIndex]) {
+                document.body.classList.remove(themes[currentThemeIndex]);
             }
             currentThemeIndex = (currentThemeIndex + 1) % themes.length;
-            const newTheme = themes[currentThemeIndex];
-            if (newTheme) {
-                document.body.dataset.theme = newTheme;
-            } else {
-                document.body.removeAttribute('data-theme');
+            if (themes[currentThemeIndex]) {
+                document.body.classList.add(themes[currentThemeIndex]);
             }
-            // 保存主题设置
-            localStorage.setItem('fmo_theme', newTheme);
             // Update visualizer colors
             viz.updateThemeColors();
         });
@@ -5161,100 +4665,58 @@
             }
         });
 
-         // 4. 台站列表逻辑 - 性能优化版本
-         ctrl.on('stationList', (list) => {
-             ui.stCount.textContent = `${list.length} STATIONS`;
+        // 4. 台站列表逻辑
+        ctrl.on('stationList', (list) => {
+            ui.stCount.textContent = `${list.length} STATIONS`;
+            ui.stList.innerHTML = '';
+            
+            if (list.length === 0) {
+                ui.stList.innerHTML = '<div class="station-item" style="grid-column: 1 / -1; justify-content: center; align-items: center; color: #666;">暂无台站</div>';
+                return;
+            }
 
-             // 将台站列表传递给太阳系可视化器的中继台系统
-             if (viz && viz.renderers && viz.renderers[0]) {
-                 const solarRenderer = viz.renderers[0]; // SolarSystemRenderer是第一个
-                 if (solarRenderer && solarRenderer.updateRepeaterStations) {
-                     solarRenderer.updateRepeaterStations(list);
-                 }
-             }
-             if (ui.stCountModal) {
-                 ui.stCountModal.textContent = list.length;
-             }
+            // Optimization: Use DocumentFragment for batch insertion
+            const fragment = document.createDocumentFragment();
 
-             // 使用requestAnimationFrame进行批量DOM更新
-             requestAnimationFrame(() => {
-                 ui.stList.innerHTML = '';
+            list.forEach(st => {
+                const el = document.createElement('div');
+                el.className = 'station-item';
+                el.dataset.uid = st.uid;
+                if (st.uid == currentStationId) el.classList.add('active');
+                
+                // Security Fix: Use textContent instead of innerHTML to prevent XSS
+                const nameEl = document.createElement('div');
+                nameEl.className = 'st-name';
+                nameEl.textContent = st.name || 'Station ' + st.uid;
+                el.appendChild(nameEl);
 
-                 if (list.length === 0) {
-                     const emptyMsg = document.createElement('div');
-                     emptyMsg.className = 'station-item';
-                     emptyMsg.style.gridColumn = '1 / -1';
-                     emptyMsg.style.justifyContent = 'center';
-                     emptyMsg.style.alignItems = 'center';
-                     emptyMsg.style.color = '#666';
-                     emptyMsg.textContent = '暂无台站';
-                     ui.stList.appendChild(emptyMsg);
-                     return;
-                 }
+                el.onclick = () => {
+                    ctrl.setStation(st.uid);
+                    // 乐观更新 UI
+                    // Use ui.stList scope to avoid global query
+                    const allItems = ui.stList.querySelectorAll('.station-item');
+                    for (let i = 0; i < allItems.length; i++) {
+                        allItems[i].classList.remove('active');
+                    }
+                    el.classList.add('active');
+                    currentStationId = st.uid;
+                    
+                    // Update viz text immediately
+                    if (ui.currentStationText) {
+                        ui.currentStationText.textContent = st.name || 'Station ' + st.uid;
+                        ui.currentStationText.style.display = 'block';
+                    }
+                };
+                fragment.appendChild(el);
+            });
+            ui.stList.appendChild(fragment);
 
-                 // 性能优化：限制初始渲染数量（最多50个）
-                 const RENDER_LIMIT = 50;
-                 const renderList = list.slice(0, RENDER_LIMIT);
 
-                 // 使用DocumentFragment进行批量插入
-                 const fragment = document.createDocumentFragment();
-
-                 renderList.forEach(st => {
-                     const el = document.createElement('div');
-                     el.className = 'station-item';
-                     el.dataset.uid = st.uid;
-                     if (st.uid == currentStationId) el.classList.add('active');
-
-                     // Security Fix: Use textContent instead of innerHTML to prevent XSS
-                     const nameEl = document.createElement('div');
-                     nameEl.className = 'st-name';
-                     nameEl.textContent = st.name || 'Station ' + st.uid;
-                     el.appendChild(nameEl);
-
-                     // 优化点击处理 - 使用事件委托
-                     el.addEventListener('click', () => {
-                         ctrl.setStation(st.uid);
-                         // 乐观更新 UI
-                         const allItems = ui.stList.querySelectorAll('.station-item');
-                         for (let i = 0; i < allItems.length; i++) {
-                             allItems[i].classList.remove('active');
-                         }
-                         el.classList.add('active');
-                         currentStationId = st.uid;
-
-                         // Update viz text immediately
-                         if (ui.currentStationText) {
-                             ui.currentStationText.textContent = st.name || 'Station ' + st.uid;
-                             ui.currentStationText.style.display = 'block';
-                         }
-
-                         // 关闭弹出框（在 modal 中点击时）
-                         if (ui.stationModal && ui.stationModal.classList.contains('show')) {
-                             ui.stationModal.classList.remove('show');
-                         }
-                     });
-                     fragment.appendChild(el);
-                 });
-                 ui.stList.appendChild(fragment);
-
-                 // 如果有更多台站，显示加载更多提示（可选扩展）
-                 if (list.length > RENDER_LIMIT) {
-                     const loadMore = document.createElement('div');
-                     loadMore.className = 'station-item';
-                     loadMore.style.gridColumn = '1 / -1';
-                     loadMore.style.justifyContent = 'center';
-                     loadMore.style.alignItems = 'center';
-                     loadMore.style.color = 'var(--text-muted)';
-                     loadMore.style.fontSize = '0.8rem';
-                     loadMore.textContent = `已显示 ${RENDER_LIMIT} / ${list.length} 个台站`;
-                     ui.stList.appendChild(loadMore);
-                 }
-             });
-         });
+        });
 
         ctrl.on('stationCurrent', (data) => {
             currentStationId = data.uid;
-
+            
             // Update current station text in viz area
             if (ui.currentStationText) {
                 if (data && data.name) {
@@ -5265,41 +4727,18 @@
                 }
             }
 
-            // 高亮当前 - 使用局部查询优化性能
-            if (ui.stList) {
-                const items = ui.stList.querySelectorAll('.station-item');
-                items.forEach(el => {
-                    if (el.dataset.uid == currentStationId) el.classList.add('active');
-                    else el.classList.remove('active');
-                });
-            }
+            // 高亮当前
+            const items = document.querySelectorAll('.station-item');
+            items.forEach(el => {
+                if (el.dataset.uid == currentStationId) el.classList.add('active');
+                else el.classList.remove('active');
+            });
         });
 
         ui.btnPrev.addEventListener('click', () => ctrl.prevStation());
         ui.btnNext.addEventListener('click', () => ctrl.nextStation());
 
-        // 6. 台站弹出框逻辑
-        if (ui.btnOpenStations && ui.stationModal) {
-            // 打开弹出框
-            ui.btnOpenStations.addEventListener('click', () => {
-                ui.stationModal.classList.add('show');
-            });
-
-            // 点击遮罩层关闭弹出框
-            ui.stationModal.addEventListener('click', (e) => {
-                if (e.target === ui.stationModal) {
-                    ui.stationModal.classList.remove('show');
-                }
-            });
-
-            // 点击标题栏关闭弹出框
-            const modalHeader = ui.stationModal.querySelector('.station-modal-header');
-            modalHeader.addEventListener('click', (e) => {
-                ui.stationModal.classList.remove('show');
-            });
-        }
-
-        // 7. 全局点击唤醒音频上下文（解决自动连接时的 AudioContext 策略限制）
+        // 5. 全局点击唤醒音频上下文（解决自动连接时的 AudioContext 策略限制）
         const unlockAudio = () => {
             if (player) player.unlock();
         };
@@ -5440,9 +4879,9 @@
                         // console.log('Easter egg reset');
                     }, 10000); // 10秒内
                 }
-
+                
                 eggClicks++;
-
+                
                 if (eggClicks >= 10) {
                     // 触发彩蛋
                     if (eggTimer) clearTimeout(eggTimer);
@@ -5454,7 +4893,7 @@
             btnCreditsClose.addEventListener('click', () => {
                 creditsModal.classList.remove('show');
             });
-
+            
             // 点击遮罩关闭
             creditsModal.addEventListener('click', (e) => {
                 if (e.target === creditsModal) {
@@ -5463,51 +4902,13 @@
             });
         }
 
-        // 8. 资源清理 - 页面关闭时清理所有资源
-        const cleanupResources = () => {
-            // 清理WebSocket连接
-            if (ctrl) ctrl.disconnect();
-            if (player) player.disconnect();
-            if (events) events.disconnect();
-
-            // 清理可视化器
-            if (viz) viz.destroy();
-
-            // 清理音量滑块
-            if (volSlider) volSlider.destroy();
-
-            // 清理定时器
-            if (eggTimer) clearTimeout(eggTimer);
-
-            // 清理事件监听器
-            if (window.addEventListener) {
-                window.removeEventListener('resize', checkDevice);
-                window.removeEventListener('click', unlockAudio);
-                window.removeEventListener('touchstart', unlockAudio);
-                window.removeEventListener('keydown', unlockAudio);
-            }
-
-            console.log('[Cleanup] All resources cleaned up');
-        };
-
-        // 监听页面卸载事件
-        window.addEventListener('beforeunload', cleanupResources);
-        window.addEventListener('unload', cleanupResources);
-
-        // 暴露清理函数到全局（供调试使用）
-        window.cleanupResources = cleanupResources;
-
     </script>
 
-    <!-- Footer with GitHub and Call Sign -->
-    <footer style="position: fixed; bottom: 0; left: 0; right: 0; padding: 8px 15px; background: rgba(0,0,0,0.3); color: var(--text-muted); font-size: 0.75rem; display: flex; justify-content: flex-end; align-items: center; gap: 15px; backdrop-filter: blur(5px); z-index: 5;">
-        <a href="https://github.com/niufox/fmo-mobile-controller" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">GitHub</a>
-        <span style="color: #444;">|</span>
-        <span style="color: var(--text-main);">Designed by:</span>
-        <span style="color: var(--accent-magenta); font-weight: bold;">BG5EIT</span>
-        <span style="color: #444;">|</span>
-        <span style="opacity: 0.7;">v3.2</span>
-    </footer>
+</body>
+</html>
+
+
+    </script>
 
 </body>
 </html>

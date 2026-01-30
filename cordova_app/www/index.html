@@ -18,7 +18,7 @@
         <div class="brand"><span>FMO<br>CONTROLLER</span></div>
         <div class="header-right">
             <div class="qso-count-badge" id="qso-badge" title="已通联 QSO 数量">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                 <span id="qso-count-value">0</span>
             </div>
             <button id="btn-settings-toggle" class="theme-btn" title="设置">
@@ -49,13 +49,17 @@
 
         <div id="device-history" class="device-history"></div>
         <div id="discovered-list" class="device-history" style="margin-top: 10px; border-top: 1px dashed #333; padding-top: 10px; display: none;"></div>
+        
+        <!-- API Key 设置 -->
+        <div class="input-group" style="margin-top: 10px; border-top: 1px dashed #333; padding-top: 10px;">
+            <input type="password" id="inp-apikey" class="input-dark" placeholder="SiliconFlow API Key" value="">
+            <button id="btn-save-key" class="btn-small text-cyan">SAVE</button>
+        </div>
     </div>
 
     <!-- 可视化区域：频谱/字幕/模式标记 -->
     <div class="viz-container" id="viz-area">
         <canvas id="viz-canvas"></canvas>
-        <div class="viz-mode-badge" id="current-station-text" style="display: none;"></div>
-        
         <!-- 呼号队列显示 -->
         <div id="callsign-ticker" class="callsign-ticker-container">
             <!-- Items injected by JS -->
@@ -63,6 +67,17 @@
 
         <div class="viz-info-container">
             <div class="viz-mode-badge" id="viz-mode-text">SOLAR</div>
+        </div>
+        
+        <!-- 右下角信息组 -->
+        <div class="bottom-right-group">
+            <div class="viz-mode-badge" id="current-station-text" style="display: none;"></div>
+            <button class="viz-mode-badge viz-btn-ghost" id="btn-subtitle-toggle">字幕: OFF</button>
+        </div>
+        
+        <!-- 实时字幕叠加层 -->
+        <div id="subtitle-overlay" class="subtitle-overlay">
+            等待语音输入...
         </div>
     </div>
 
@@ -101,22 +116,27 @@
                 </div>
             </div>
             <div class="vol-value-text" id="vol-value-text">100%</div>
+            <!-- Local Audio Mute Toggle -->
+            <div class="local-mute-toggle inactive" id="local-mute-toggle" title="Toggle Local Audio Mute">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </div>
         </div>
 
-        <!-- 台站列表 -->
+        <!-- 台站列表 - 改为触发按钮 -->
         <div class="station-panel">
             <div class="station-header">
                 <span>STATIONS</span>
                 <span id="st-count">0/0</span>
             </div>
-            <div id="st-list" class="station-list">
-                <div class="station-item" style="grid-column: 1 / -1; justify-content: center; align-items: center; color: #666;">等待连接...点击顶部设置按钮设置IP</div>
-            </div>
-
+            <button id="btn-open-stations" class="btn-rect-lg" style="background: var(--panel-bg); border: 1px solid var(--border-color);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/></svg>
+            </button>
         </div>
 
 
     </div>
+
+
 
     <!-- QSO Log Modal -->
     <div id="qso-modal" class="modal-overlay">
@@ -142,6 +162,22 @@
         </div>
     </div>
 
+    <!-- Station List Modal - Bottom Sheet Style -->
+    <div id="station-modal" class="station-modal-overlay">
+        <div class="station-modal-content">
+            <div class="station-modal-header">
+                <div class="station-drag-handle"></div>
+                <div class="station-modal-title">
+                    <span>STATIONS</span>
+                    <span id="st-count-modal">0</span>
+                </div>
+            </div>
+            <div id="st-list" class="station-list-modal">
+                <div class="station-item" style="grid-column: 1 / -1; justify-content: center; align-items: center; color: #666;">等待连接...点击顶部设置按钮设置IP</div>
+            </div>
+        </div>
+    </div>
+
     <!-- Credits Modal -->
     <div id="credits-modal" class="modal-overlay">
         <div class="modal-content">
@@ -153,7 +189,7 @@
                 <div class="brand" style="justify-content: center; font-size: 1.5rem; margin-bottom: 20px; color: var(--accent-cyan);">
                     <span>FMO CONTROLLER</span>
                 </div>
-                <div id="credits-version" data-version="2.9" style="margin-bottom: 18px; color: var(--text-muted); font-size: 0.9rem;">v2.9</div>
+                <div id="credits-version" data-version="3.3" style="margin-bottom: 18px; color: var(--text-muted); font-size: 0.9rem;">v3.3</div>
                 
                 <div style="margin-bottom: 25px;">
                     <h4 style="color: var(--accent-magenta); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block;">特别鸣谢</h4>
@@ -176,15 +212,49 @@
                         <a href="https://github.com/niufox/fmo-mobile-controller/blob/main/release/fmo-controller-debug.apk" target="_blank" style="color: var(--accent-magenta); text-decoration: none; border-bottom: 1px dashed var(--accent-magenta);">Download APK</a>
                     </div>
                 </div>
-                
+
+                <!-- Debug Section -->
+                <div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                    <button id="btn-show-debug" class="theme-btn" style="width: 100%; margin-bottom: 10px; background: rgba(255,255,255,0.05);">Show Debug Info</button>
+                    <div id="debug-container" style="display:none;">
+                        <div style="display:flex; justify-content:flex-end; margin-bottom:5px;">
+                            <button id="btn-copy-debug" class="theme-btn" style="padding:4px 10px; font-size:0.8rem;">Copy</button>
+                        </div>
+                        <div id="debug-content" style="background:#111; color:#0f0; padding:10px; border-radius:4px; font-family:monospace; font-size:10px; text-align:left; max-height:200px; overflow:auto; white-space:pre-wrap; user-select:text;"></div>
+                    </div>
+                </div>
+
                 <div style="margin-top: 30px; font-size: 0.8rem; color: #666;">
                     天下Ham是一家 ham爱好者的分享，请勿用于商业用途。
+                </div>
+
+                <div style="margin-top: 20px; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                    <div style="margin-bottom: 8px;">
+                        <strong>GitHub:</strong>
+                        <a href="https://github.com/niufox/fmo-mobile-controller" target="_blank" style="color: var(--accent-cyan); text-decoration: none; margin-left: 8px;">
+                            github.com/niufox/fmo-mobile-controller
+                        </a>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-main);">Designed by:</span>
+                        <span style="color: var(--accent-magenta); margin-left: 8px; font-weight: bold;">BG5EIT</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     
+
+    <!-- Footer with GitHub and Call Sign -->
+    <footer style="position: fixed; bottom: 0; left: 0; right: 0; padding: 8px 15px; background: rgba(0,0,0,0.3); color: var(--text-muted); font-size: 0.75rem; display: flex; justify-content: flex-end; align-items: center; gap: 15px; backdrop-filter: blur(5px); z-index: 5;">
+        <a href="https://github.com/niufox/fmo-mobile-controller" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">GitHub</a>
+        <span style="color: #444;">|</span>
+        <span style="color: var(--text-main);">Designed by:</span>
+        <span style="color: var(--accent-magenta); font-weight: bold;">BG5EIT</span>
+        <span style="color: #444;">|</span>
+        <span style="opacity: 0.7;">v3.2</span>
+    </footer>
 
     <script src="js/api/audioPlayer.js"></script>
     <script src="js/api/config.js"></script>

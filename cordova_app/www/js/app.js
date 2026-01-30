@@ -7,7 +7,94 @@ window.APP_CONFIG = {
     "POST_SWITCH_DELAY": 3000,
     "WS_PATH": "/ws"
 };
-// --- 核心类定义区域 ---
+// --- 工具函数 ---
+        const Utils = {
+            // 防抖函数
+            debounce(fn, delay) {
+                let timer;
+                return (...args) => {
+                    clearTimeout(timer);
+                    timer = setTimeout(() => fn(...args), delay);
+                };
+            },
+
+            // 节流函数
+            throttle(fn, limit) {
+                let inThrottle;
+                return (...args) => {
+                    if (!inThrottle) {
+                        fn(...args);
+                        inThrottle = true;
+                        setTimeout(() => inThrottle = false, limit);
+                    }
+                };
+            },
+
+            // 显示用户友好的错误提示
+            showError(message, error = null) {
+                console.error('[Error]', message, error);
+                console.log('Alert suppressed:', `${message}${error ? `\n\n详细信息: ${error.message}` : ''}`);
+            },
+
+            // 安全的JSON解析
+            safeJSONParse(str, fallback = null) {
+                try {
+                    return JSON.parse(str);
+                } catch (e) {
+                    console.warn('JSON parse failed:', e);
+                    return fallback;
+                }
+            },
+
+            // 检查网络连接状态
+            isOnline() {
+                return navigator.onLine;
+            }
+        };
+
+        // --- 错误处理增强 ---
+        window.addEventListener('error', (e) => {
+            console.error('[Global Error]', e.message, e.filename, e.lineno, e.error);
+        });
+
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('[Unhandled Promise Rejection]', e.reason);
+            e.preventDefault();
+        });
+
+        // --- 网络状态监听 ---
+        window.addEventListener('online', () => {
+            console.log('[Network] Online');
+            if (ctrl && !ctrl.connected) {
+                ctrl.connect(ui.inpHost.value.trim());
+            }
+        });
+
+        window.addEventListener('offline', () => {
+            console.log('[Network] Offline');
+            Utils.showError('网络连接已断开，请检查网络设置');
+        });
+
+        // --- Debug Log Capture ---
+        window.__DEBUG_LOGS__ = [];
+        (function(){
+            const MAX_LOGS = 100;
+            const capture = (type, args) => {
+                try {
+                    const msg = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+                    window.__DEBUG_LOGS__.push(`[${new Date().toLocaleTimeString()}] [${type}] ${msg}`);
+                    if (window.__DEBUG_LOGS__.length > MAX_LOGS) window.__DEBUG_LOGS__.shift();
+                } catch(e) {}
+            };
+            const originalLog = console.log;
+            const originalWarn = console.warn;
+            const originalError = console.error;
+            console.log = (...args) => { capture('LOG', args); originalLog.apply(console, args); };
+            console.warn = (...args) => { capture('WARN', args); originalWarn.apply(console, args); };
+            console.error = (...args) => { capture('ERR', args); originalError.apply(console, args); };
+        })();
+
+        // --- 核心类定义区域 ---
         
         /** 音量条控制器 */
         class VolumeSlider {
@@ -18,68 +105,74 @@ window.APP_CONFIG = {
                 this.fill = container.querySelector('#vol-fill');
                 this.text = container.querySelector('#vol-value-text');
                 this.muteBtn = container.querySelector('#vol-mute-btn');
-                
+                this.localMuteBtn = container.querySelector('#local-mute-toggle');
+
                 this.isDragging = false;
                 this.value = 1.0; // 0.0 - 1.0
-                
+                this.lastValue = 1.0;
+
+                // 绑定方法到实例，确保可以正确移除事件监听器
+                this.onMove = this.onMove.bind(this);
+                this.onUp = this.onUp.bind(this);
+                this.onTouchMove = this.onTouchMove.bind(this);
+                this.onTouchEnd = this.onTouchEnd.bind(this);
+
                 this.initEvents();
                 this.updateUI(this.value);
+                if (this.player.localMuteEnabled !== undefined) {
+                    this.updateLocalMuteUI(this.player.localMuteEnabled);
+                }
+            }
+
+            updateFromEvent(e) {
+                const rect = this.trackWrapper.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                let percent = (clientX - rect.left) / rect.width;
+                percent = Math.max(0, Math.min(1, percent));
+
+                // 0-200% 音量映射 (0.0 - 2.0)
+                const volumeValue = percent * 2.0;
+                this.setVolume(volumeValue);
+            }
+
+            onMove(e) {
+                if (this.isDragging) {
+                    this.updateFromEvent(e);
+                    e.preventDefault();
+                }
+            }
+
+            onUp() {
+                this.isDragging = false;
+            }
+
+            onTouchMove(e) {
+                if (this.isDragging) {
+                    this.updateFromEvent(e);
+                    e.preventDefault();
+                }
+            }
+
+            onTouchEnd() {
+                this.isDragging = false;
             }
 
             initEvents() {
-                // 点击或拖动处理
-                const updateFromEvent = (e) => {
-                    const rect = this.trackWrapper.getBoundingClientRect();
-                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                    let percent = (clientX - rect.left) / rect.width;
-                    percent = Math.max(0, Math.min(1, percent));
-                    
-                    // 0-200% 音量映射 (0.0 - 2.0)
-                    const volumeValue = percent * 2.0;
-                    this.setVolume(volumeValue);
-                };
-
                 // 鼠标事件
                 this.trackWrapper.addEventListener('mousedown', (e) => {
                     this.isDragging = true;
-                    updateFromEvent(e);
-                    document.addEventListener('mousemove', onMove);
-                    document.addEventListener('mouseup', onUp);
+                    this.updateFromEvent(e);
+                    document.addEventListener('mousemove', this.onMove);
+                    document.addEventListener('mouseup', this.onUp);
                 });
-
-                const onMove = (e) => {
-                    if (this.isDragging) {
-                        updateFromEvent(e);
-                        e.preventDefault();
-                    }
-                };
-
-                const onUp = () => {
-                    this.isDragging = false;
-                    document.removeEventListener('mousemove', onMove);
-                    document.removeEventListener('mouseup', onUp);
-                };
 
                 // 触摸事件
                 this.trackWrapper.addEventListener('touchstart', (e) => {
                     this.isDragging = true;
-                    updateFromEvent(e);
-                    document.addEventListener('touchmove', onTouchMove, { passive: false });
-                    document.addEventListener('touchend', onTouchEnd);
+                    this.updateFromEvent(e);
+                    document.addEventListener('touchmove', this.onTouchMove, { passive: false });
+                    document.addEventListener('touchend', this.onTouchEnd);
                 });
-
-                const onTouchMove = (e) => {
-                    if (this.isDragging) {
-                        updateFromEvent(e);
-                        e.preventDefault();
-                    }
-                };
-
-                const onTouchEnd = () => {
-                    this.isDragging = false;
-                    document.removeEventListener('touchmove', onTouchMove);
-                    document.removeEventListener('touchend', onTouchEnd);
-                };
 
                 // 静音切换
                 this.muteBtn.addEventListener('click', () => {
@@ -92,6 +185,16 @@ window.APP_CONFIG = {
                     // 震动
                     if (navigator.vibrate) navigator.vibrate(10);
                 });
+
+                // 本地静音切换
+                if (this.localMuteBtn) {
+                    this.localMuteBtn.addEventListener('click', () => {
+                        const newState = !this.player.localMuteEnabled;
+                        this.player.setLocalMute(newState);
+                        this.updateLocalMuteUI(newState);
+                        if (navigator.vibrate) navigator.vibrate(10);
+                    });
+                }
             }
 
             setVolume(val) {
@@ -117,6 +220,35 @@ window.APP_CONFIG = {
                     this.muteBtn.style.opacity = '1';
                     this.muteBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>`;
                 }
+            }
+
+            updateLocalMuteUI(enabled) {
+                if (!this.localMuteBtn) return;
+                if (enabled) {
+                    this.localMuteBtn.className = 'local-mute-toggle active';
+                    // Muted icon (Red)
+                    this.localMuteBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73 4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>';
+                } else {
+                    this.localMuteBtn.className = 'local-mute-toggle inactive';
+                    // Play icon (Green)
+                    this.localMuteBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+                }
+            }
+
+            destroy() {
+                // 清理所有事件监听器，防止内存泄漏
+                document.removeEventListener('mousemove', this.onMove);
+                document.removeEventListener('mouseup', this.onUp);
+                document.removeEventListener('touchmove', this.onTouchMove);
+                document.removeEventListener('touchend', this.onTouchEnd);
+
+                // 清理组件引用
+                this.container = null;
+                this.trackWrapper = null;
+                this.fill = null;
+                this.text = null;
+                this.muteBtn = null;
+                this.localMuteBtn = null;
             }
         }
 
@@ -383,6 +515,11 @@ window.APP_CONFIG = {
                 // 录音相关
                 this.recording = false;
                 this.recordedChunks = [];
+                
+                // 本地静音相关
+                this.localMuteEnabled = localStorage.getItem('fmo_local_mute') === 'true';
+                this.isLocalTransmitting = false;
+                this.audioQueueBuffer = []; // FIFO buffer for delay
             }
 
             async ensureAudioContext() {
@@ -510,6 +647,9 @@ window.APP_CONFIG = {
             }
 
             handlePCM(buffer) {
+                // 触发PCM事件供转录器使用
+                this.emit('pcm', buffer);
+
                 // 录音收集
                 if (this.recording) {
                     this.recordedChunks.push(buffer.slice(0));
@@ -523,8 +663,55 @@ window.APP_CONFIG = {
                     float32[i] = int16[i] * scale;
                 }
                 
-                this.chunkQueue.push(float32);
-                this.schedule();
+                // 本地静音逻辑 (500ms 延迟)
+                if (this.localMuteEnabled) {
+                    this.audioQueueBuffer.push({
+                        data: float32,
+                        ts: Date.now()
+                    });
+                    this.processAudioQueueBuffer();
+                } else {
+                    this.chunkQueue.push(float32);
+                    this.schedule();
+                }
+            }
+            
+            processAudioQueueBuffer() {
+                const now = Date.now();
+                // 处理缓冲区
+                while(this.audioQueueBuffer.length > 0) {
+                    // 检查最早的包
+                    if (now - this.audioQueueBuffer[0].ts >= 500) {
+                        const item = this.audioQueueBuffer.shift();
+                        // 判定是否为本地发射 (根据延迟后的时刻判定)
+                        // 若当前状态为本地发射，则丢弃该包
+                        if (this.isLocalTransmitting) {
+                            // Mute (discard)
+                        } else {
+                            this.chunkQueue.push(item.data);
+                            this.schedule();
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                
+                // Continue checking if buffer is not empty
+                if (this.audioQueueBuffer.length > 0) {
+                    setTimeout(() => this.processAudioQueueBuffer(), 50);
+                }
+            }
+
+            setLocalMute(enabled) {
+                this.localMuteEnabled = enabled;
+                localStorage.setItem('fmo_local_mute', enabled);
+                if (!enabled) {
+                    this.audioQueueBuffer = []; // Clear buffer to be responsive
+                }
+            }
+            
+            setLocalTransmission(isLocal) {
+                this.isLocalTransmitting = isLocal;
             }
 
             startRecording() {
@@ -598,9 +785,9 @@ window.APP_CONFIG = {
 
                 // 简单的缓冲策略
                 if (this.buffering) {
-                    // 积攒约 0.1s 数据再开始 (原为 0.5s，降低延迟)
+                    // 积攒约 0.5s 数据再开始
                     const totalSamples = this.chunkQueue.reduce((acc, c) => acc + c.length, 0);
-                    if (totalSamples / this.sampleRate > 0.1) {
+                    if (totalSamples / this.sampleRate > 0.5) {
                         this.buffering = false;
                         this.started = true;
                     } else {
@@ -616,7 +803,7 @@ window.APP_CONFIG = {
                 
                 // 如果计划时间超前当前时间太多（积压），进行丢包处理以减少延迟
                 const latency = this.scheduledEndTime - now;
-                if (latency > 0.3) { // 允许最大 300ms 延迟
+                if (latency > 1.0) { // 允许最大 800ms 延迟
                     // 丢弃队列头部的包，直到延迟在此范围内
                     // 注意：这会导致音频跳跃，但在实时通信中低延迟优先
                     console.log(`Latency too high (${latency.toFixed(3)}s), skipping packets...`);
@@ -668,8 +855,12 @@ window.APP_CONFIG = {
                 const displayW = this.ctx.canvas.clientWidth || (w / window.devicePixelRatio);
                 const barCount = Math.max(24, Math.min(36, Math.floor(displayW / 12)));
                 const step = Math.max(1, Math.floor(bufferLength / barCount));
-                const colWidth = w / barCount;
-                const groundY = h * 0.85;
+                
+                // Visualization Shift: Start from 20% width to avoid left-side callsign overlap
+                const startX = w * 0.2;
+                const availableW = w * 0.8;
+                const colWidth = availableW / barCount;
+                const groundY = h * 0.85; // Reverted to original height
                 
                 if (this.peaks.length !== barCount) this.peaks = new Array(barCount).fill(0);
 
@@ -679,7 +870,7 @@ window.APP_CONFIG = {
                 for(let i = 0; i < barCount; i++) {
                     const value = dataArray[i * step] || 0;
                     const barHeight = (value / 255) * groundY * 0.95; 
-                    const x = i * colWidth + colWidth/2;
+                    const x = startX + i * colWidth + colWidth/2;
                     
                     // 1. 主体粒子柱
                     const particleCount = Math.floor(barHeight / 14); 
@@ -1183,6 +1374,7 @@ window.APP_CONFIG = {
                 this.currentSpeed = this.baseSpeed;
                 this.angleOffset = 0;
                 this.tilt = 0.6; // 视角倾斜 (0.6 约等于 37度，增加垂直空间)
+                this.orbitSpeedScale = 0.5;
                 
                 // 行星云数据 (右上角)
                 this.cloudAngle = 0;
@@ -1197,13 +1389,22 @@ window.APP_CONFIG = {
                 this.activeTarget = null;
                 this.lastCallsign = '';
 
+                // 中继台星星系统
+                this.repeaterStars = []; // 存储中继台星星数据
+                this.repeaterStations = []; // 中继台列表
+                this.repeaterSpawnTimer = 0; // 中继台浮现计时器
+                this.repeaterSpawnInterval = 5000; // 每5秒尝试浮现1-3个中继台
+                this.repeaterFadeTimer = 0; // 中继台消失计时器
+                this.repeaterFadeInterval = 8000; // 8秒后开始消失
+                this.repeaterFadeDuration = 2000; // 2秒完全消失
+
                 // 太阳喷发系统配置
                 this.eruptions = [];
                 this.eruptionConfig = {
                     sensitivity: 1.0,   // 音调敏感度
                     randomness: 0.5,    // 随机性程度
                     intensity: 1.0,     // 光芒强度缩放
-                    speed: 1.0          // 喷发速度缩放
+                    speed: 0.5          // 喷发速度缩放
                 };
             }
 
@@ -1244,12 +1445,12 @@ window.APP_CONFIG = {
                 // 加速逻辑: 通联时(有能量)显著加速
                 const targetSpeed = this.baseSpeed + energy * 6.0;
                 this.currentSpeed += (targetSpeed - this.currentSpeed) * 0.05;
-                this.angleOffset += this.currentSpeed * 0.02;
+                this.angleOffset += this.currentSpeed * 0.01;
 
                 // 2. 呼号分配逻辑
                 const callsign = (extra && extra.callsign && extra.opacity > 0) ? extra.callsign : null;
                 const input = extra.input || { x: 0, y: 0, active: false };
-                
+
                 if (callsign && callsign !== this.lastCallsign) {
                     this.lastCallsign = callsign;
                     let hash = 0;
@@ -1258,39 +1459,151 @@ window.APP_CONFIG = {
                 }
 
                 // 3. 绘制背景星空
-                this.starRotation += 0.0002; 
+                this.starRotation += 0.0001;
                 const maxDim = Math.max(w, h);
                 const nowTime = Date.now();
 
+                // 处理中继台浮现/消失逻辑
+                this.repeaterSpawnTimer += 16; // 假设60fps，每次约16ms
+                this.repeaterFadeTimer += 16;
+
+                // 定期浮现新的中继台星星
+                if (this.repeaterSpawnTimer >= this.repeaterSpawnInterval && this.repeaterStations.length > 0) {
+                    this.repeaterSpawnTimer = 0;
+                    // 随机选择5-9个中继台
+                    const count = Math.floor(Math.random() * 5) + 5;
+                    const shuffled = [...this.repeaterStations].sort(() => Math.random() - 0.5);
+                    const selectedRepeater = shuffled.slice(0, count);
+
+                    selectedRepeater.forEach(station => {
+                        // 检查是否已存在
+                        const exists = this.repeaterStars.find(rs => rs.uid === station.uid);
+                        if (!exists) {
+                            // 创建新的中继台星星
+                            const starIndex = Math.floor(Math.random() * this.stars.length);
+                            const baseStar = this.stars[starIndex];
+                            this.repeaterStars.push({
+                                ...station,
+                                starIndex: starIndex,
+                                spawnTime: nowTime,
+                                alpha: 0,
+                                targetAlpha: 1,
+                                phase: 'spawning', // spawning -> visible -> fading
+                                blinkOffset: Math.random() * Math.PI * 2
+                            });
+                        }
+                    });
+                }
+
+                // 绘制中继台星星
+                this.repeaterStars.forEach((rs, idx) => {
+                    const baseStar = this.stars[rs.starIndex];
+                    if (!baseStar) return;
+
+                    // 计算透明度（浮现/消失动画）
+                    if (rs.phase === 'spawning') {
+                        rs.alpha += 0.05;
+                        if (rs.alpha >= 1) {
+                            rs.alpha = 1;
+                            rs.phase = 'visible';
+                            rs.visibleStartTime = nowTime;
+                        }
+                    } else if (rs.phase === 'visible') {
+                        // 8秒后开始消失
+                        if (nowTime - rs.visibleStartTime > this.repeaterFadeInterval) {
+                            rs.phase = 'fading';
+                        }
+                    } else if (rs.phase === 'fading') {
+                        rs.alpha -= 0.02;
+                        if (rs.alpha <= 0) {
+                            this.repeaterStars.splice(idx, 1);
+                            return;
+                        }
+                    }
+
+                    const blink = Math.sin(nowTime * baseStar.blinkSpeed + baseStar.blinkPhase + rs.blinkOffset);
+                    const starAlpha = Math.max(0.1, Math.min(1, baseStar.baseAlpha + blink * 0.3 + energy * 0.5));
+                    const finalAlpha = starAlpha * rs.alpha;
+
+                    const currentAngle = baseStar.angle + this.starRotation;
+                    const x = cx + Math.cos(currentAngle) * baseStar.r * maxDim * 0.8;
+                    const y = cy + Math.sin(currentAngle) * baseStar.r * maxDim * 0.8;
+
+                    // 绘制发光效果
+                    ctx.save();
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = theme.primary || '#ff9800';
+                    ctx.fillStyle = `rgba(255, 200, 100, ${finalAlpha * 0.6})`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, baseStar.size * 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+
+                    // 绘制星星本体
+                    ctx.fillStyle = `rgba(255, 220, 150, ${finalAlpha})`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, baseStar.size, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 绘制台站名称
+                    if (rs.alpha > 0.5 && rs.name) {
+                        ctx.save();
+                        ctx.font = 'bold 10px "Roboto Mono"';
+                        const text = rs.name;
+                        const textMetrics = ctx.measureText(text);
+                        const textW = textMetrics.width;
+                        const textH = 14;
+
+                        // 背景
+                        ctx.fillStyle = `rgba(255, 152, 0, ${finalAlpha * 0.7})`;
+                        ctx.globalAlpha = finalAlpha;
+                        ctx.beginPath();
+                        ctx.roundRect(x - textW / 2 - 4, y - textH - 8, textW + 8, textH, 4);
+                        ctx.fill();
+
+                        // 文字
+                        ctx.fillStyle = `rgba(255, 255, 255, ${finalAlpha})`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(text, x, y - 14);
+                        ctx.restore();
+                    }
+                });
+
                 this.stars.forEach(star => {
+                    // 跳过已被中继台占用的星星
+                    const isRepeaterStar = this.repeaterStars.some(rs => rs.starIndex === this.stars.indexOf(star));
+                    if (isRepeaterStar) return;
+
                     const blink = Math.sin(nowTime * star.blinkSpeed + star.blinkPhase);
                     const alpha = Math.max(0.1, Math.min(1, star.baseAlpha + blink * 0.3 + energy * 0.5));
-                    
+
                     const currentAngle = star.angle + this.starRotation;
                     const x = cx + Math.cos(currentAngle) * star.r * maxDim * 0.8;
                     const y = cy + Math.sin(currentAngle) * star.r * maxDim * 0.8;
 
-                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                    ctx.fillStyle = `rgba(255,255, 255, ${alpha})`;
                     ctx.beginPath();
                     ctx.arc(x, y, star.size, 0, Math.PI*2);
                     ctx.fill();
                 });
 
-                // 4. 绘制轨道 (动态计算缩放以铺满屏幕)
+                // 4. 绘制轨道 (动态计算缩放以铺满屏幕) - 已隐藏
                 // 目标：让最外层行星(冥王星 dist=11.0)贴近屏幕边缘
                 // 计算 X 轴和 Y 轴方向的最大允许缩放比例，取较小值以确保完整显示
-                const maxDist = 11.0; 
+                const maxDist = 11.0;
                 const scaleX = w / 2 / maxDist;
                 const scaleY = h / 2 / (maxDist * this.tilt);
                 const scale = Math.min(scaleX, scaleY) * 0.95; // 0.95 留一点点边距
 
                 ctx.lineWidth = 1;
-                this.planets.forEach(p => {
-                    ctx.beginPath();
-                    ctx.ellipse(cx, cy, p.dist * scale, p.dist * scale * this.tilt, 0, 0, Math.PI*2);
-                    ctx.strokeStyle = `rgba(255, 255, 255, ${0.05 + bass * 0.1})`;
-                    ctx.stroke();
-                });
+                // 注释掉行星轨道绘制 - 隐藏所有轨道
+                // this.planets.forEach(p => {
+                //     ctx.beginPath();
+                //     ctx.ellipse(cx, cy, p.dist * scale, p.dist * scale * this.tilt, 0, 0, Math.PI*2);
+                //     ctx.strokeStyle = `rgba(255, 255, 255, ${0.05 + bass * 0.1})`;
+                //     ctx.stroke();
+                // });
 
                 // 5. 准备渲染列表
                 const renderList = [];
@@ -1362,7 +1675,7 @@ window.APP_CONFIG = {
 
                 // 行星与卫星
                 this.planets.forEach((p, i) => {
-                    const angle = this.angleOffset * p.speed + i * 137.5; 
+                    const angle = this.angleOffset * p.speed * this.orbitSpeedScale + i * 137.5; 
                     const x = cx + Math.cos(angle) * p.dist * scale;
                     const y = cy + Math.sin(angle) * p.dist * scale * this.tilt;
                     
@@ -1377,7 +1690,7 @@ window.APP_CONFIG = {
                             if (p.moons && p.moons.length > 0) {
                                 p.moons.forEach((m, idx) => {
                                     // 卫星速度更快
-                                    const mAngle = this.angleOffset * m.speed * 4 + idx; 
+                                    const mAngle = this.angleOffset * m.speed * 4 * this.orbitSpeedScale + idx; 
                                     // 卫星轨道半径需适当放大以可见
                                     const mDist = (size + m.dist * scale * 2); 
                                     const mx = x + Math.cos(mAngle) * mDist;
@@ -1385,11 +1698,11 @@ window.APP_CONFIG = {
                                     // 增大卫星尺寸以提升可见度
                                     const mSize = Math.max(2.0, m.r * scale * 0.15);
 
-                                    // 卫星轨道线
-                                    ctx.beginPath();
-                                    ctx.ellipse(x, y, mDist, mDist * this.tilt, 0, 0, Math.PI*2);
-                                    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-                                    ctx.stroke();
+                                     // 卫星轨道线 - 已隐藏
+                                    // ctx.beginPath();
+                                    // ctx.ellipse(x, y, mDist, mDist * this.tilt, 0, 0, Math.PI*2);
+                                    // ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                                    // ctx.stroke();
 
                                     // 卫星本体
                                     ctx.fillStyle = m.color;
@@ -1541,7 +1854,7 @@ window.APP_CONFIG = {
                 renderList.forEach(item => item.draw());
 
                 // 6. 右上角行星云 (不变)
-                this.cloudAngle += 0.002;
+                this.cloudAngle += 0.001;
                 const cloudCx = w - 60; const cloudCy = 60;
                 ctx.save(); ctx.translate(cloudCx, cloudCy); ctx.rotate(this.cloudAngle);
                 this.cloudParticles.forEach(p => {
@@ -1637,6 +1950,11 @@ window.APP_CONFIG = {
                     ctx.fillText(hoveredItem.info, 0, -12);
                     ctx.restore();
                 }
+            }
+
+            // 更新中继台列表
+            updateRepeaterStations(stations) {
+                this.repeaterStations = stations.filter(s => s.name && s.name.length > 0);
             }
         }
 
@@ -1779,13 +2097,454 @@ window.APP_CONFIG = {
                 for(let i = 0; i < count; i++) sum += this.freqData[i];
                 return (sum / count) / 255.0;
             }
+
+            destroy() {
+                this.running = false;
+                if (this.resizeObserver) {
+                    this.resizeObserver.disconnect();
+                    this.resizeObserver = null;
+                }
+                // 清理渲染器
+                this.renderers = null;
+                // 清理引用
+                this.canvas = null;
+                this.ctx = null;
+                this.analyser = null;
+                this.freqData = null;
+            }
+        }
+
+        /** 语音转录器 - 实时语音识别 */
+        class SpeechTranscriber extends EventEmitter {
+            constructor() {
+                super();
+                
+                // API配置 - 从localStorage或使用默认值
+                this.apiKey = localStorage.getItem('transcriber_apiKey') || 'sk-lickpcbkftopqzyemjqdtgggkcdcsafwpjeameotbtuqklao';
+                this.apiUrl = 'https://api.siliconflow.cn/v1/audio/transcriptions';
+                this.modelName = 'TeleAI/TeleSpeechASR';
+                
+                // 音频参数（与AudioPlayer一致）
+                this.sampleRate = 8000;
+                this.bitsPerSample = 16;
+                this.numChannels = 1;
+                
+                // 动态分段配置 - 基于VAD（语音活动检测）或Callsign事件
+                // Callsign驱动模式参数（唯一支持的分段方式）
+                this.CALLSIGN_END_DELAY_MS = 2000;   // callsign后2秒无新呼号则结束分段
+                this.MAX_CALLSIGN_DURATION_MS = 5000; // 单个callsign最长说话时间（5秒）
+                this.lastCallsignTime = null;        // 最后一个callsign的时间
+                this.callsignStartTime = null;       // 当前callsign的开始时间
+                this.currentCallsign = null;         // 当前callsign
+                this.callsignSegmentEndTimer = null; // callsign分段结束计时器
+                this.callsignMaxDurationTimer = null;// callsign最大时长计时器
+                
+                // 状态管理
+                this.enabled = false;
+                this.pcmBuffer = new Uint8Array(0);
+                this.transcriptionQueue = [];
+                this.isProcessing = false;
+                this.currentRetry = 0;
+                this.maxRetries = 3;
+                
+                // UI元素
+                this.statusDot = null;
+                this.statusText = null;
+                this.transcriptArea = null;
+                this.btnStart = null;
+                this.btnStop = null;
+                this.btnClear = null;
+                
+                this.typeWriterTimer = null; // 打字机效果定时器
+                
+                this.initUI();
+            }
+            
+            initUI() {
+                // 获取UI元素
+                this.transcriptArea = document.getElementById('subtitle-overlay');
+                this.btnStart = document.getElementById('btn-subtitle-toggle');
+                
+                if (!this.btnStart) return;
+                
+                // 验证API KEY
+                if (!this.apiKey || this.apiKey.length < 10) {
+                    this.btnStart.textContent = '字幕: Key无效';
+                    this.btnStart.disabled = true;
+                    return;
+                }
+                
+                // 恢复上次状态
+                const savedState = localStorage.getItem('transcriber_enabled');
+                if (savedState === 'true') {
+                    // 延迟一点启动，确保其他组件已就绪
+                    setTimeout(() => this.start(), 1000);
+                }
+                
+                // 事件监听
+                this.btnStart.addEventListener('click', () => {
+                    if (this.enabled) {
+                        this.stop();
+                        localStorage.setItem('transcriber_enabled', 'false');
+                    } else {
+                        this.start();
+                        localStorage.setItem('transcriber_enabled', 'true');
+                    }
+                });
+            }
+            
+            // 处理新的callsign事件（来自EventsClient）
+            onCallsignDetected(callsign) {
+                if (!this.enabled) return;
+                
+                const now = Date.now();
+                
+                // 如果有前一个callsign的PCM数据，立即提交（不等待2s超时）
+                if (this.currentCallsign !== null && this.currentCallsign !== callsign && this.pcmBuffer.length > 0) {
+                    this.queueTranscription(this.pcmBuffer.slice(0), this.currentCallsign);
+                    this.pcmBuffer = new Uint8Array(0);
+                }
+                
+                // 更新当前callsign
+                this.lastCallsignTime = now;
+                this.callsignStartTime = now; // 记录新callsign的开始时间
+                this.currentCallsign = callsign;
+                
+                // 清除之前的延时计时器
+                if (this.callsignSegmentEndTimer) {
+                    clearTimeout(this.callsignSegmentEndTimer);
+                }
+                
+                // 清除之前的最大时长计时器
+                if (this.callsignMaxDurationTimer) {
+                    clearTimeout(this.callsignMaxDurationTimer);
+                }
+                
+                // 设置新的延时计时器：2秒后无新callsign则结束分段
+                this.callsignSegmentEndTimer = setTimeout(() => {
+                    if (this.pcmBuffer.length > 0) {
+                        this.queueTranscription(this.pcmBuffer.slice(0), this.currentCallsign);
+                        this.pcmBuffer = new Uint8Array(0);
+                        // 不要设为 null，保持当前 callsign 以便新 callsign 到达时正确识别变化
+                    }
+                    
+                    this.callsignSegmentEndTimer = null;
+                }, this.CALLSIGN_END_DELAY_MS);
+                
+                // 设置最大说话时长限制：防止单个callsign无限积累
+                this.callsignMaxDurationTimer = setTimeout(() => {
+                    if (this.pcmBuffer.length > 0) {
+                        this.queueTranscription(this.pcmBuffer.slice(0), this.currentCallsign);
+                        this.pcmBuffer = new Uint8Array(0);
+                    }
+                    
+                    // 清除2秒延时计时器，因为已经强制提交了
+                    if (this.callsignSegmentEndTimer) {
+                        clearTimeout(this.callsignSegmentEndTimer);
+                        this.callsignSegmentEndTimer = null;
+                    }
+                    
+                    this.callsignMaxDurationTimer = null;
+                }, this.MAX_CALLSIGN_DURATION_MS);
+            }
+            
+            // 添加PCM数据块到缓冲区（Callsign 驱动分段）
+            addPCMChunk(buffer) {
+                if (!this.enabled) return;
+                
+                // 追加PCM数据
+                const newBuffer = new Uint8Array(this.pcmBuffer.length + buffer.byteLength);
+                newBuffer.set(this.pcmBuffer);
+                newBuffer.set(new Uint8Array(buffer), this.pcmBuffer.length);
+                this.pcmBuffer = newBuffer;
+                
+                // Callsign驱动分段：由onCallsignDetected驱动，这里只负责累积PCM数据
+                
+                // 防止内存溢出（60秒音频约为960KB）
+                const MAX_BUFFER_BYTES = this.sampleRate * 120 * (this.bitsPerSample / 8); // 最多120秒
+                if (this.pcmBuffer.length > MAX_BUFFER_BYTES) {
+                    this.pcmBuffer = new Uint8Array(0);
+                }
+            }
+            
+            // 处理对讲停止事件：当isSpeaking变为false时立即提交待定的PCM数据
+            onSpeakingEnd() {
+                if (!this.enabled) return;
+                if (!this.currentCallsign || this.pcmBuffer.length === 0) return;
+                
+                // 立即提交缓冲区内容
+                this.queueTranscription(this.pcmBuffer.slice(0), this.currentCallsign);
+                this.pcmBuffer = new Uint8Array(0);
+                
+                // 清除待定的定时器
+                if (this.callsignSegmentEndTimer) {
+                    clearTimeout(this.callsignSegmentEndTimer);
+                    this.callsignSegmentEndTimer = null;
+                }
+                if (this.callsignMaxDurationTimer) {
+                    clearTimeout(this.callsignMaxDurationTimer);
+                    this.callsignMaxDurationTimer = null;
+                }
+            }
+            
+            // 将PCM数据转为WAV Blob并加入队列
+            queueTranscription(pcmData, callsign) {
+                const wavBlob = this.pcmToWav(pcmData);
+                this.transcriptionQueue.push({ wavBlob, callsign });
+                
+                // 如果没有正在处理，开始处理队列
+                if (!this.isProcessing) {
+                    this.processQueue();
+                }
+            }
+            
+            // 处理转录队列
+            processQueue() {
+                if (this.transcriptionQueue.length === 0 || this.isProcessing) {
+                    return;
+                }
+                
+                this.isProcessing = true;
+                const queueItem = this.transcriptionQueue.shift();
+                const wavBlob = queueItem.wavBlob || queueItem; // 兼容旧格式
+                const callsign = queueItem.callsign;
+                this.currentRetry = 0;
+                
+                // 直接传递 callsign，而不是保存到全局变量（避免并发覆盖）
+                this.sendToAPI(wavBlob, callsign);
+            }
+            
+            // 打字机效果输出
+            typeWriter(text) {
+                if (!this.transcriptArea) return;
+                
+                // 清除之前的打字机定时器
+                if (this.typeWriterTimer) {
+                    clearTimeout(this.typeWriterTimer);
+                    this.typeWriterTimer = null;
+                }
+                
+                let i = 0;
+                this.transcriptArea.textContent = ''; // 先清空
+                
+                // 如果文本太长，加速
+                const speed = text.length > 20 ? 30 : 50;
+                
+                const type = () => {
+                    if (i < text.length) {
+                        this.transcriptArea.textContent += text.charAt(i);
+                        i++;
+                        this.typeWriterTimer = setTimeout(type, speed);
+                    } else {
+                        this.typeWriterTimer = null;
+                        // 3秒后如果没有新内容，可以考虑清空或者变淡（可选，暂时保留显示）
+                    }
+                };
+                
+                type();
+            }
+            
+            // 发送到SiliconFlow API
+            sendToAPI(wavBlob, callsign) {
+                this.setStatus('processing', '识别中...');
+                
+                const formData = new FormData();
+                formData.append('file', wavBlob, 'audio.wav');
+                formData.append('model', this.modelName);
+                
+                fetch(this.apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${this.apiKey}`
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        // 读取错误响应体以获取更多信息
+                        return response.text().then(text => {
+                            throw new Error(`API Error: ${response.status} - ${text}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    this.currentRetry = 0;
+                    
+                    if (data.text && data.text.trim()) {
+                        // 更新字幕显示（打字机流式效果）
+                        const callsignPrefix = callsign ? `[${callsign}] ` : '';
+                        const result = `${callsignPrefix}${data.text}`;
+                        
+                        // 使用打字机效果
+                        this.typeWriter(result);
+                        
+                        this.setStatus('idle', '就绪');
+                    }
+                    
+                    // 继续处理队列
+                    this.isProcessing = false;
+                    setTimeout(() => this.processQueue(), 200);
+                })
+                .catch(error => {
+                    // 重试逻辑
+                    if (this.currentRetry < this.maxRetries) {
+                        this.currentRetry++;
+                        this.setStatus('error', `错误，重试 ${this.currentRetry}/${this.maxRetries}...`);
+                        setTimeout(() => this.sendToAPI(wavBlob, callsign), 1000 * this.currentRetry);
+                    } else {
+                        this.setStatus('error', '识别失败');
+                        this.isProcessing = false;
+                        
+                        // 继续处理队列中的其他段
+                        setTimeout(() => this.processQueue(), 1000);
+                    }
+                });
+            }
+            
+            // PCM数据转WAV格式
+            pcmToWav(pcmData) {
+                const wavHeader = this.createWavHeader(pcmData.length, this.numChannels, this.sampleRate, this.bitsPerSample);
+                return new Blob([wavHeader, pcmData], { type: 'audio/wav' });
+            }
+            
+            // 创建WAV文件头
+            createWavHeader(dataLength, numChannels, sampleRate, bitsPerSample) {
+                const header = new ArrayBuffer(44);
+                const view = new DataView(header);
+                
+                // RIFF chunk descriptor
+                const writeString = (offset, string) => {
+                    for (let i = 0; i < string.length; i++) {
+                        view.setUint8(offset + i, string.charCodeAt(i));
+                    }
+                };
+                
+                writeString(0, 'RIFF');
+                view.setUint32(4, 36 + dataLength, true);
+                writeString(8, 'WAVE');
+                
+                // fmt sub-chunk
+                writeString(12, 'fmt ');
+                view.setUint32(16, 16, true); // Subchunk1Size
+                view.setUint16(20, 1, true); // AudioFormat (PCM)
+                view.setUint16(22, numChannels, true);
+                view.setUint32(24, sampleRate, true);
+                view.setUint32(28, sampleRate * numChannels * bitsPerSample / 8, true); // ByteRate
+                view.setUint16(32, numChannels * bitsPerSample / 8, true); // BlockAlign
+                view.setUint16(34, bitsPerSample, true);
+                
+                // data sub-chunk
+                writeString(36, 'data');
+                view.setUint32(40, dataLength, true);
+                
+                return header;
+            }
+            
+            // 更新状态显示
+            setStatus(state, text) {
+                if (!this.btnStart) return;
+                
+                if (state === 'processing') {
+                    this.btnStart.textContent = '字幕: 识别中...';
+                    this.btnStart.style.color = 'var(--accent-magenta)';
+                } else if (state === 'error') {
+                    this.btnStart.textContent = '字幕: 错误';
+                    this.btnStart.style.color = '#ff3333';
+                } else if (this.enabled) {
+                    this.btnStart.textContent = '字幕: ON';
+                    this.btnStart.style.color = 'var(--accent-green)';
+                } else {
+                    this.btnStart.textContent = '字幕: OFF';
+                    this.btnStart.style.color = '';
+                }
+            }
+            
+            // 启动转录
+            start() {
+                this.enabled = true;
+                // this.btnStart.disabled = true; // 不需要禁用，用于切换
+                this.setStatus('idle', '就绪');
+                
+                // 显示字幕面板
+                if (this.transcriptArea) {
+                    this.transcriptArea.classList.add('active');
+                    this.transcriptArea.textContent = 'Ready ...';
+                }
+            }
+            
+            // 停止转录
+            stop() {
+                this.enabled = false;
+                
+                // 清除所有计时器
+                if (this.callsignSegmentEndTimer) {
+                    clearTimeout(this.callsignSegmentEndTimer);
+                    this.callsignSegmentEndTimer = null;
+                }
+                if (this.callsignMaxDurationTimer) {
+                    clearTimeout(this.callsignMaxDurationTimer);
+                    this.callsignMaxDurationTimer = null;
+                }
+                
+                this.setStatus('idle', '已停止');
+                
+                // 隐藏字幕面板
+                if (this.transcriptArea) {
+                    this.transcriptArea.classList.remove('active');
+                }
+            }
+            
+            // 清空字幕
+            clear() {
+                this.transcriptArea.textContent = '';
+                this.pcmBuffer = new Uint8Array(0);
+                this.transcriptionQueue = [];
+                this.isProcessing = false;
+                this.setStatus('idle', '已清空');
+            }
+            
+            // 设置API KEY
+            setAPIKey(key) {
+                if (!key || key.length < 10) {
+                    this.setStatus('error', 'API KEY格式无效');
+                    return false;
+                }
+                this.apiKey = key;
+                localStorage.setItem('transcriber_apiKey', key);
+                this.setStatus('idle', '就绪');
+                return true;
+            }
+            
+            // 获取API KEY（用于测试）
+            getAPIKeyStatus() {
+                const keyLength = this.apiKey ? this.apiKey.length : 0;
+                return {
+                    valid: keyLength >= 10,
+                    keyPrefix: this.apiKey ? this.apiKey.substring(0, 10) + '...' : 'Not set',
+                    message: keyLength >= 10 ? '✓ API Key已设置' : '✗ API Key无效或未设置'
+                };
+            }
+            
+            // 获取当前配置
+            getConfig() {
+                return {
+                    mode: 'callsign',
+                    apiModel: this.modelName,
+                    callsign: {
+                        endDelayMs: this.CALLSIGN_END_DELAY_MS,
+                        maxDurationMs: this.MAX_CALLSIGN_DURATION_MS
+                    }
+                };
+            }
         }
 
         /** 呼号队列显示管理器 (新增) */
         class CallsignTicker {
-            constructor(containerId, visualizer) {
+            constructor(containerId, visualizer, qsoManager) {
                 this.container = document.getElementById(containerId);
                 this.visualizer = visualizer;
+                this.qsoManager = qsoManager;
                 this.maxItems = 8; // Default
                 this.items = []; // 存储 DOM 元素
                 
@@ -1824,13 +2583,32 @@ window.APP_CONFIG = {
                 const timeStr = now.toLocaleTimeString('en-GB', { hour12: false });
                 timeEl.textContent = timeStr;
 
+                // 检查是否在日志中
+                const isLogged = this.qsoManager && this.qsoManager.hasCallsign(callsign);
+                
+                // 创建星星元素
+                const starEl = document.createElement('div');
+                starEl.className = isLogged ? 'star-icon solid' : 'star-icon hollow';
+                starEl.innerHTML = isLogged ? '★' : '☆';
+                // 样式移至CSS类中处理
+
+                // 创建内容容器 (Row)
+                const rowEl = document.createElement('div');
+                rowEl.className = 'callsign-row';
+                rowEl.style.display = 'flex';
+                rowEl.style.alignItems = 'center';
+                rowEl.style.justifyContent = 'center';
+
                 // 创建呼号文本元素
                 const textEl = document.createElement('div');
                 textEl.className = 'callsign-text';
                 textEl.textContent = callsign;
 
+                rowEl.appendChild(starEl);
+                rowEl.appendChild(textEl);
+
                 el.appendChild(timeEl);
-                el.appendChild(textEl);
+                el.appendChild(rowEl);
                 
                 // 2. 添加到容器开头 (最新的在最上面)
                 if (this.container.firstChild) {
@@ -2109,6 +2887,7 @@ window.APP_CONFIG = {
                 this.pageSize = 20; // Default page size
                 this.isLoading = false;
                 this.refreshTimer = null; // Auto refresh timer
+                this.qsos = new Set(); // 缓存 QSO 列表用于快速查找
 
                 if (this.modal) {
                     this.initEvents();
@@ -2249,9 +3028,16 @@ window.APP_CONFIG = {
 
             formatDate(ts) {
                 if (!ts) return '-';
-                const d = new Date(ts * 1000);
+                // Detect if timestamp is in seconds (e.g. < 10 billion) or milliseconds
+                // 10 billion seconds is year 2286, so it's a safe threshold
+                const isSeconds = ts < 10000000000;
+                const d = new Date(isSeconds ? ts * 1000 : ts);
                 const pad = (n) => String(n).padStart(2, '0');
-                return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+                return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+            }
+
+            hasCallsign(callsign) {
+                return this.qsos.has(callsign);
             }
 
             renderList(list) {
@@ -2260,12 +3046,14 @@ window.APP_CONFIG = {
                     return;
                 }
 
+                // 更新缓存
+                this.qsos = new Set(list.map(item => item.toCallsign));
+
                 this.listEl.innerHTML = list.map((item, index) => {
                     const call = item.toCallsign || 'UNKNOWN';
                     const grid = item.grid || '-';
-                    // Use item.ts if available, otherwise current time
-                    const ts = this.formatDate(item.ts || Date.now()/1000);
-                    
+                    const ts = this.formatDate(item.ts);
+
                     return `
                 <div class="qso-item" data-grid="${grid}" tabindex="0" role="button" aria-label="QSO Record: ${call}, Grid: ${grid}">
                     <div class="qso-main">
@@ -2354,7 +3142,7 @@ window.APP_CONFIG = {
             handleMessage(msg) {
                 // 处理 QSO 发言人事件
                 if (msg.type === 'qso' && msg.subType === 'callsign' && msg.data) {
-                    const { callsign, isSpeaking } = msg.data;
+                    const { callsign, isSpeaking, isHost } = msg.data;
                     // 只处理开始发言事件，或者根据需要处理
                     // 这里假设每次 isSpeaking=true 都是一次新的发言或持续发言
                     // 为了避免重复，我们可以简单去重，或者每次都添加（作为新的事件）
@@ -2364,9 +3152,9 @@ window.APP_CONFIG = {
                         // 简单的去重逻辑：如果最后一个呼号相同且时间很近，则不添加？
                         // 暂时直接添加，让Ticker处理队列
                         if (this.onCallsign) this.onCallsign(callsign);
-                        if (this.onSpeakingState) this.onSpeakingState(callsign, true);
+                        if (this.onSpeakingState) this.onSpeakingState(callsign, true, isHost);
                     } else {
-                        if (this.onSpeakingState) this.onSpeakingState(callsign, false);
+                        if (this.onSpeakingState) this.onSpeakingState(callsign, false, isHost);
                     }
                 }
             }
@@ -2386,31 +3174,45 @@ window.APP_CONFIG = {
         const player = new AudioPlayer();
         const events = new EventsClient(); // 实例化
         const viz = new Visualizer(document.getElementById('viz-canvas'), null);
+        const transcriber = new SpeechTranscriber(); // 实例化语音转录器
+        const qsoMgr = new QsoManager(ctrl); // 初始化 QSO 管理器 (供 Ticker 使用)
         
         // 实例化呼号显示组件
-        const ticker = new CallsignTicker('callsign-ticker', viz);
+        const ticker = new CallsignTicker('callsign-ticker', viz, qsoMgr);
         // Expose to window for Python injection
         window.ticker = ticker;
+        window.transcriber = transcriber; // 暴露给全局以便调试
+        
+        // 连接音频流到转录器
+        player.on('pcm', (buffer) => {
+            transcriber.addPCMChunk(buffer);
+        });
         
         // 连接事件
         events.onCallsignReceived((callsign) => {
             ticker.addCallsign(callsign);
+            transcriber.onCallsignDetected(callsign);
         });
 
-        events.onSpeakingStateChanged((callsign, isSpeaking) => {
+        events.onSpeakingStateChanged((callsign, isSpeaking, isHost) => {
             if (isSpeaking) {
                 viz.setCallsign(callsign);
+                player.setLocalTransmission(isHost);
             } else {
+                player.setLocalTransmission(false);
                 // 如果当前显示的正是停止说话的人，则清除
                 if (viz.currentCallsign === callsign) {
                     viz.setCallsign('');
                 }
+                
+                // 通知转录器发言结束
+                transcriber.onSpeakingEnd();
             }
         });
 
         const deviceMgr = new DeviceManager();
         const discoveryMgr = new DiscoveryManager();
-        const qsoMgr = new QsoManager(ctrl);
+        // qsoMgr 已提前初始化
         
         const ui = {
             ledWs: document.getElementById('led-ws'),
@@ -2429,10 +3231,44 @@ window.APP_CONFIG = {
             btnNext: document.getElementById('btn-next'),
             inpHost: document.getElementById('inp-host'),
             btnConnect: document.getElementById('btn-connect'),
+            btnOpenStations: document.getElementById('btn-open-stations'),
+            stationModal: document.getElementById('station-modal'),
+            stCountModal: document.getElementById('st-count-modal'),
         };
 
+        // API Key 设置逻辑
+        const inpApiKey = document.getElementById('inp-apikey');
+        const btnSaveKey = document.getElementById('btn-save-key');
+
+        // 加载已保存的 Key
+        if (transcriber.apiKey) {
+            inpApiKey.value = transcriber.apiKey;
+        } else {
+            inpApiKey.value = '';
+            inpApiKey.placeholder = '请输入 SiliconFlow API Key';
+        }
+
+        btnSaveKey.addEventListener('click', () => {
+            const key = inpApiKey.value.trim();
+            if (key === '') {
+                localStorage.removeItem('transcriber_apiKey');
+                transcriber.apiKey = null;
+                console.log('Alert suppressed:', 'API Key 已清除');
+                if (ui.settingsArea.classList.contains('active')) {
+                    ui.settingsArea.classList.remove('active');
+                }
+            } else if (transcriber.setAPIKey(key)) {
+                console.log('Alert suppressed:', 'API Key 已保存');
+                if (ui.settingsArea.classList.contains('active')) {
+                    ui.settingsArea.classList.remove('active');
+                }
+            } else {
+                console.log('Alert suppressed:', 'API Key 格式无效，请检查');
+            }
+        });
+
         let currentStationId = null;
-        
+
         // 设备检测与适配
         const checkDevice = () => {
             // 简单判断：屏幕宽度大于 768px 视为桌面端/平板
@@ -2444,22 +3280,39 @@ window.APP_CONFIG = {
         };
         // 初始化检测
         checkDevice();
-        // 监听窗口大小变化
-        window.addEventListener('resize', checkDevice);
+        // 监听窗口大小变化 - 使用防抖优化性能
+        window.addEventListener('resize', Utils.debounce(checkDevice, 200));
 
         // 0. 主题切换
         // 扩展主题列表：包含新增的4款主题
-        const themes = ['', 'theme-matrix', 'theme-ocean', 'theme-sunset', 'theme-light', 'theme-pink', 'theme-purple', 'theme-red', 'theme-black'];
+        const themes = ['', 'matrix', 'ocean', 'sunset', 'light', 'pink', 'purple', 'red', 'black'];
         let currentThemeIndex = 0;
-        
+
+        // 初始化主题 - 从localStorage加载
+        const savedTheme = localStorage.getItem('fmo_theme');
+        if (savedTheme !== null && themes.includes(savedTheme)) {
+            currentThemeIndex = themes.indexOf(savedTheme);
+            if (savedTheme) {
+                document.body.dataset.theme = savedTheme;
+            } else {
+                document.body.removeAttribute('data-theme');
+            }
+        }
+
         ui.btnTheme.addEventListener('click', () => {
-            if (themes[currentThemeIndex]) {
-                document.body.classList.remove(themes[currentThemeIndex]);
+            const currentTheme = themes[currentThemeIndex];
+            if (currentTheme) {
+                document.body.removeAttribute('data-theme');
             }
             currentThemeIndex = (currentThemeIndex + 1) % themes.length;
-            if (themes[currentThemeIndex]) {
-                document.body.classList.add(themes[currentThemeIndex]);
+            const newTheme = themes[currentThemeIndex];
+            if (newTheme) {
+                document.body.dataset.theme = newTheme;
+            } else {
+                document.body.removeAttribute('data-theme');
             }
+            // 保存主题设置
+            localStorage.setItem('fmo_theme', newTheme);
             // Update visualizer colors
             viz.updateThemeColors();
         });
@@ -2594,58 +3447,100 @@ window.APP_CONFIG = {
             }
         });
 
-        // 4. 台站列表逻辑
-        ctrl.on('stationList', (list) => {
-            ui.stCount.textContent = `${list.length} STATIONS`;
-            ui.stList.innerHTML = '';
-            
-            if (list.length === 0) {
-                ui.stList.innerHTML = '<div class="station-item" style="grid-column: 1 / -1; justify-content: center; align-items: center; color: #666;">暂无台站</div>';
-                return;
-            }
+         // 4. 台站列表逻辑 - 性能优化版本
+         ctrl.on('stationList', (list) => {
+             ui.stCount.textContent = `${list.length} STATIONS`;
 
-            // Optimization: Use DocumentFragment for batch insertion
-            const fragment = document.createDocumentFragment();
+             // 将台站列表传递给太阳系可视化器的中继台系统
+             if (viz && viz.renderers && viz.renderers[0]) {
+                 const solarRenderer = viz.renderers[0]; // SolarSystemRenderer是第一个
+                 if (solarRenderer && solarRenderer.updateRepeaterStations) {
+                     solarRenderer.updateRepeaterStations(list);
+                 }
+             }
+             if (ui.stCountModal) {
+                 ui.stCountModal.textContent = list.length;
+             }
 
-            list.forEach(st => {
-                const el = document.createElement('div');
-                el.className = 'station-item';
-                el.dataset.uid = st.uid;
-                if (st.uid == currentStationId) el.classList.add('active');
-                
-                // Security Fix: Use textContent instead of innerHTML to prevent XSS
-                const nameEl = document.createElement('div');
-                nameEl.className = 'st-name';
-                nameEl.textContent = st.name || 'Station ' + st.uid;
-                el.appendChild(nameEl);
+             // 使用requestAnimationFrame进行批量DOM更新
+             requestAnimationFrame(() => {
+                 ui.stList.innerHTML = '';
 
-                el.onclick = () => {
-                    ctrl.setStation(st.uid);
-                    // 乐观更新 UI
-                    // Use ui.stList scope to avoid global query
-                    const allItems = ui.stList.querySelectorAll('.station-item');
-                    for (let i = 0; i < allItems.length; i++) {
-                        allItems[i].classList.remove('active');
-                    }
-                    el.classList.add('active');
-                    currentStationId = st.uid;
-                    
-                    // Update viz text immediately
-                    if (ui.currentStationText) {
-                        ui.currentStationText.textContent = st.name || 'Station ' + st.uid;
-                        ui.currentStationText.style.display = 'block';
-                    }
-                };
-                fragment.appendChild(el);
-            });
-            ui.stList.appendChild(fragment);
+                 if (list.length === 0) {
+                     const emptyMsg = document.createElement('div');
+                     emptyMsg.className = 'station-item';
+                     emptyMsg.style.gridColumn = '1 / -1';
+                     emptyMsg.style.justifyContent = 'center';
+                     emptyMsg.style.alignItems = 'center';
+                     emptyMsg.style.color = '#666';
+                     emptyMsg.textContent = '暂无台站';
+                     ui.stList.appendChild(emptyMsg);
+                     return;
+                 }
 
+                 // 性能优化：限制初始渲染数量（最多50个）
+                 const RENDER_LIMIT = 50;
+                 const renderList = list.slice(0, RENDER_LIMIT);
 
-        });
+                 // 使用DocumentFragment进行批量插入
+                 const fragment = document.createDocumentFragment();
+
+                 renderList.forEach(st => {
+                     const el = document.createElement('div');
+                     el.className = 'station-item';
+                     el.dataset.uid = st.uid;
+                     if (st.uid == currentStationId) el.classList.add('active');
+
+                     // Security Fix: Use textContent instead of innerHTML to prevent XSS
+                     const nameEl = document.createElement('div');
+                     nameEl.className = 'st-name';
+                     nameEl.textContent = st.name || 'Station ' + st.uid;
+                     el.appendChild(nameEl);
+
+                     // 优化点击处理 - 使用事件委托
+                     el.addEventListener('click', () => {
+                         ctrl.setStation(st.uid);
+                         // 乐观更新 UI
+                         const allItems = ui.stList.querySelectorAll('.station-item');
+                         for (let i = 0; i < allItems.length; i++) {
+                             allItems[i].classList.remove('active');
+                         }
+                         el.classList.add('active');
+                         currentStationId = st.uid;
+
+                         // Update viz text immediately
+                         if (ui.currentStationText) {
+                             ui.currentStationText.textContent = st.name || 'Station ' + st.uid;
+                             ui.currentStationText.style.display = 'block';
+                         }
+
+                         // 关闭弹出框（在 modal 中点击时）
+                         if (ui.stationModal && ui.stationModal.classList.contains('show')) {
+                             ui.stationModal.classList.remove('show');
+                         }
+                     });
+                     fragment.appendChild(el);
+                 });
+                 ui.stList.appendChild(fragment);
+
+                 // 如果有更多台站，显示加载更多提示（可选扩展）
+                 if (list.length > RENDER_LIMIT) {
+                     const loadMore = document.createElement('div');
+                     loadMore.className = 'station-item';
+                     loadMore.style.gridColumn = '1 / -1';
+                     loadMore.style.justifyContent = 'center';
+                     loadMore.style.alignItems = 'center';
+                     loadMore.style.color = 'var(--text-muted)';
+                     loadMore.style.fontSize = '0.8rem';
+                     loadMore.textContent = `已显示 ${RENDER_LIMIT} / ${list.length} 个台站`;
+                     ui.stList.appendChild(loadMore);
+                 }
+             });
+         });
 
         ctrl.on('stationCurrent', (data) => {
             currentStationId = data.uid;
-            
+
             // Update current station text in viz area
             if (ui.currentStationText) {
                 if (data && data.name) {
@@ -2656,18 +3551,41 @@ window.APP_CONFIG = {
                 }
             }
 
-            // 高亮当前
-            const items = document.querySelectorAll('.station-item');
-            items.forEach(el => {
-                if (el.dataset.uid == currentStationId) el.classList.add('active');
-                else el.classList.remove('active');
-            });
+            // 高亮当前 - 使用局部查询优化性能
+            if (ui.stList) {
+                const items = ui.stList.querySelectorAll('.station-item');
+                items.forEach(el => {
+                    if (el.dataset.uid == currentStationId) el.classList.add('active');
+                    else el.classList.remove('active');
+                });
+            }
         });
 
         ui.btnPrev.addEventListener('click', () => ctrl.prevStation());
         ui.btnNext.addEventListener('click', () => ctrl.nextStation());
 
-        // 5. 全局点击唤醒音频上下文（解决自动连接时的 AudioContext 策略限制）
+        // 6. 台站弹出框逻辑
+        if (ui.btnOpenStations && ui.stationModal) {
+            // 打开弹出框
+            ui.btnOpenStations.addEventListener('click', () => {
+                ui.stationModal.classList.add('show');
+            });
+
+            // 点击遮罩层关闭弹出框
+            ui.stationModal.addEventListener('click', (e) => {
+                if (e.target === ui.stationModal) {
+                    ui.stationModal.classList.remove('show');
+                }
+            });
+
+            // 点击标题栏关闭弹出框
+            const modalHeader = ui.stationModal.querySelector('.station-modal-header');
+            modalHeader.addEventListener('click', (e) => {
+                ui.stationModal.classList.remove('show');
+            });
+        }
+
+        // 7. 全局点击唤醒音频上下文（解决自动连接时的 AudioContext 策略限制）
         const unlockAudio = () => {
             if (player) player.unlock();
         };
@@ -2692,6 +3610,107 @@ window.APP_CONFIG = {
             }
         }, 1000); */
 
+        // 6.5 Debug Info Logic
+        const btnShowDebug = document.getElementById('btn-show-debug');
+        const debugContainer = document.getElementById('debug-container');
+        const debugContent = document.getElementById('debug-content');
+        const btnCopyDebug = document.getElementById('btn-copy-debug');
+
+        // Periodic Status Logger (10s)
+        setInterval(() => {
+            try {
+                const status = [
+                    `Ctrl:${ctrl.connected?'ON':'OFF'}`,
+                    `Audio:${player.connected?'ON':'OFF'}`,
+                    `WS:${events.connected?'ON':'OFF'}`,
+                    `St:${currentStationId||'-'}`,
+                    `Viz:${viz.modes[viz.mode]}`
+                ].join('|');
+                console.log('[STATUS] ' + status);
+            } catch(e) {}
+        }, 10000);
+
+        if (btnShowDebug && debugContainer && debugContent) {
+            btnShowDebug.addEventListener('click', () => {
+                if (debugContainer.style.display === 'none') {
+                    // Gather Info
+                    const info = {
+                        fmo: {
+                            control: {
+                                connected: ctrl.connected,
+                                host: ctrl.host,
+                                stationCount: ctrl.stationList.length,
+                                currentStationId: currentStationId
+                            },
+                            audio: {
+                                connected: player.connected,
+                                state: player.audioCtx ? player.audioCtx.state : 'no-ctx',
+                                recording: player.recording,
+                                sampleRate: player.audioCtx ? player.audioCtx.sampleRate : 0
+                            },
+                            events: {
+                                connected: events.connected
+                            },
+                            visualizer: {
+                                mode: viz.modes[viz.mode],
+                                running: viz.running,
+                                resolution: `${viz.canvas.width}x${viz.canvas.height}`
+                            },
+                            device: {
+                                isDesktop: document.documentElement.classList.contains('device-desktop'),
+                                historyCount: deviceMgr.devices.length
+                            },
+                            version: document.getElementById('credits-version')?.dataset?.version || 'unknown'
+                        },
+                        browser: {
+                            userAgent: navigator.userAgent,
+                            platform: navigator.platform,
+                            screen: `${window.innerWidth}x${window.innerHeight} (dpr:${window.devicePixelRatio})`,
+                            location: window.location.href,
+                            secure: window.isSecureContext,
+                            webSocket: 'WebSocket' in window,
+                            webAudio: 'AudioContext' in window || 'webkitAudioContext' in window,
+                            cordova: !!window.cordova
+                        }
+                    };
+
+                    const logs = window.__DEBUG_LOGS__ ? window.__DEBUG_LOGS__.join('\n') : 'No logs captured';
+                    
+                    const report = `=== FMO SYSTEM INFO ===\n${JSON.stringify(info.fmo, null, 2)}\n\n=== BROWSER RUNTIME INFO ===\n${JSON.stringify(info.browser, null, 2)}\n\n=== RECENT LOGS (Last 100) ===\n${logs}`;
+                    
+                    debugContent.textContent = report;
+                    debugContainer.style.display = 'block';
+                    btnShowDebug.textContent = 'Hide Debug Info';
+                } else {
+                    debugContainer.style.display = 'none';
+                    btnShowDebug.textContent = 'Show Debug Info';
+                }
+            });
+
+            if (btnCopyDebug) {
+                btnCopyDebug.addEventListener('click', () => {
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(debugContent.textContent)
+                            .then(() => {
+                                const originalText = btnCopyDebug.textContent;
+                                btnCopyDebug.textContent = 'Copied!';
+                                setTimeout(() => btnCopyDebug.textContent = originalText, 2000);
+                            })
+                            .catch(err => console.log('Alert suppressed:', 'Copy failed: ' + err));
+                    } else {
+                        // Fallback for older WebViews
+                        const range = document.createRange();
+                        range.selectNode(debugContent);
+                        window.getSelection().removeAllRanges();
+                        window.getSelection().addRange(range);
+                        document.execCommand('copy');
+                        window.getSelection().removeAllRanges();
+                        console.log('Alert suppressed:', 'Copied to clipboard');
+                    }
+                });
+            }
+        }
+
         // 7. 彩蛋逻辑
         let eggClicks = 0;
         let eggTimer = null;
@@ -2708,9 +3727,9 @@ window.APP_CONFIG = {
                         // console.log('Easter egg reset');
                     }, 10000); // 10秒内
                 }
-                
+
                 eggClicks++;
-                
+
                 if (eggClicks >= 10) {
                     // 触发彩蛋
                     if (eggTimer) clearTimeout(eggTimer);
@@ -2722,7 +3741,7 @@ window.APP_CONFIG = {
             btnCreditsClose.addEventListener('click', () => {
                 creditsModal.classList.remove('show');
             });
-            
+
             // 点击遮罩关闭
             creditsModal.addEventListener('click', (e) => {
                 if (e.target === creditsModal) {
@@ -2730,6 +3749,40 @@ window.APP_CONFIG = {
                 }
             });
         }
+
+        // 8. 资源清理 - 页面关闭时清理所有资源
+        const cleanupResources = () => {
+            // 清理WebSocket连接
+            if (ctrl) ctrl.disconnect();
+            if (player) player.disconnect();
+            if (events) events.disconnect();
+
+            // 清理可视化器
+            if (viz) viz.destroy();
+
+            // 清理音量滑块
+            if (volSlider) volSlider.destroy();
+
+            // 清理定时器
+            if (eggTimer) clearTimeout(eggTimer);
+
+            // 清理事件监听器
+            if (window.addEventListener) {
+                window.removeEventListener('resize', checkDevice);
+                window.removeEventListener('click', unlockAudio);
+                window.removeEventListener('touchstart', unlockAudio);
+                window.removeEventListener('keydown', unlockAudio);
+            }
+
+            console.log('[Cleanup] All resources cleaned up');
+        };
+
+        // 监听页面卸载事件
+        window.addEventListener('beforeunload', cleanupResources);
+        window.addEventListener('unload', cleanupResources);
+
+        // 暴露清理函数到全局（供调试使用）
+        window.cleanupResources = cleanupResources;
 // --- INJECTED DEBUG CONSOLE START ---
 (function() {
     console.log("Initializing Debug Console...");

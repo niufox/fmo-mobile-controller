@@ -19,16 +19,118 @@
         }
 
         /* 主题定义 - 保留其他作为可选项 */
-        body.theme-cyberpunk {
-            --bg-color: #050505;
-            --panel-bg: rgba(20, 20, 20, 0.85);
-            --text-main: #e0e0e0;
-            --text-muted: #888;
-            --accent-cyan: #00f3ff;
-            --accent-magenta: #ff00ff;
-            --accent-green: #00ff66;
-            --border-color: rgba(255, 255, 255, 0.15);
-            --viz-bg: radial-gradient(circle at center, #111 0%, #000 100%);
+         body[data-theme="cyberpunk"] {
+             --bg-color: #050505;
+             --panel-bg: rgba(20, 20, 20, 0.85);
+             --text-main: #e0e0e0;
+             --text-muted: #888;
+             --accent-cyan: #00f3ff;
+             --accent-magenta: #ff00ff;
+             --accent-green: #00ff66;
+             --border-color: rgba(255,255,255, 0.15);
+             --viz-bg: radial-gradient(circle at center, #111 0%, #000 100%);
+         }
+
+
+        /* 主题定义 */
+        body[data-theme="matrix"] {
+            --bg-color: #000000;
+            --panel-bg: rgba(0, 20, 0, 0.9);
+            --text-main: #00ff00;
+            --text-muted: #008800;
+            --accent-cyan: #00ff00; /* 主色调 */
+            --accent-magenta: #008f11; /* 辅色调 */
+            --accent-green: #00ff00;
+            --border-color: rgba(0, 255, 0, 0.2);
+            --viz-bg: #000;
+        }
+
+        body[data-theme="ocean"] {
+            --bg-color: #001f3f;
+            --panel-bg: rgba(0, 31, 63, 0.85);
+            --text-main: #b3e5fc;
+            --text-muted: #568ea3;
+            --accent-cyan: #7FDBFF;
+            --accent-magenta: #0074D9;
+            --accent-green: #39CCCC;
+            --border-color: rgba(127, 219, 255, 0.2);
+            --viz-bg: linear-gradient(to bottom, #001f3f, #001020);
+        }
+
+        body[data-theme="sunset"] {
+            --bg-color: #2d1b2e;
+            --panel-bg: rgba(45, 27, 46, 0.85);
+            --text-main: #ffd1dc;
+            --text-muted: #b07289;
+            --accent-cyan: #ff9e64;
+            --accent-magenta: #ff0055;
+            --accent-green: #ffca28;
+            --border-color: rgba(255, 158, 100, 0.2);
+            --viz-bg: linear-gradient(to bottom, #2d1b2e, #1a0f1a);
+        }
+
+        body[data-theme="light"] {
+            --bg-color: #f0f2f5;
+            --panel-bg: rgba(255,255,255, 0.9);
+            --text-main: #333333;
+            --text-muted: #666666;
+            --accent-cyan: #2196F3;
+            --accent-magenta: #673AB7;
+            --accent-green: #4CAF50;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --viz-bg: #e0e0e0;
+        }
+
+        /* 新增主题：猛男粉 */
+        body[data-theme="pink"] {
+            --bg-color: #2e001f;
+            --panel-bg: rgba(60, 0, 40, 0.85);
+            --text-main: #ffc2d1;
+            --text-muted: #d88fa5;
+            --accent-cyan: #ff4081;
+            --accent-magenta: #f50057;
+            --accent-green: #ff80ab;
+            --border-color: rgba(255, 64, 129, 0.2);
+            --viz-bg: linear-gradient(to bottom, #2e001f, #1a0010);
+        }
+
+        /* 新增主题：基佬紫 */
+        body[data-theme="purple"] {
+            --bg-color: #1a002e;
+            --panel-bg: rgba(40, 0, 60, 0.85);
+            --text-main: #e1bee7;
+            --text-muted: #ba68c8;
+            --accent-cyan: #d500f9;
+            --accent-magenta: #aa00ff;
+            --accent-green: #e040fb;
+            --border-color: rgba(213, 0, 249, 0.2);
+            --viz-bg: linear-gradient(to bottom, #1a002e, #0d0017);
+        }
+
+        /* 新增主题：蕾丝红 */
+        body[data-theme="red"] {
+            --bg-color: #2b0000;
+            --panel-bg: rgba(50, 0, 0, 0.85);
+            --text-main: #ffcdd2;
+            --text-muted: #e57373;
+            --accent-cyan: #ff1744;
+            --accent-magenta: #d50000;
+            --accent-green: #ff5252;
+            --border-color: rgba(255, 23, 68, 0.2);
+            --viz-bg: linear-gradient(to bottom, #2b0000, #150000);
+        }
+
+        /* 新增主题：流氓黑 */
+        body[data-theme="black"] {
+            --bg-color: #000000;
+            --panel-bg: #111111;
+            --text-main: #ffffff;
+            --text-muted: #666666;
+            --accent-cyan: #ffffff;
+            --accent-magenta: #333333;
+            --accent-green: #999999;
+            --border-color: #333333;
+            --viz-bg: #000000;
         }
 
 
@@ -137,8 +239,18 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+        }
+
+        /* 只在特定元素上禁用用户选择，避免影响输入框 */
+        button, .btn-rect-lg, .theme-btn, .station-item, .station-drag-handle, .qso-item {
             user-select: none;
             -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 允许输入框和文本区域选择 */
+        input, textarea, .debug-content {
+            user-select: auto;
+            -webkit-user-select: text;
         }
 
         body {
@@ -148,25 +260,33 @@
             height: 100dvh; /* 适配移动端视口 */
             display: grid;
             grid-template-rows: auto auto 1fr auto; /* Header, Settings, Viz, Controls */
-            grid-template-areas: 
+            grid-template-areas:
                 "header"
                 "settings"
                 "viz"
                 "controls";
             overflow: hidden;
             transition: background-color 0.5s, color 0.5s;
-            
+
             /* Safe Area Adaptation */
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
             padding-left: env(safe-area-inset-left);
             padding-right: env(safe-area-inset-right);
-            
+
+            /* iOS 滚动兼容：在 iOS 设备上保留部分 overscroll 行为 */
             overscroll-behavior: none; /* 防止页面整体回弹 */
         }
 
-        /* 按钮触摸优化 */
-        button, .btn-rect-lg, .vol-track-wrapper, .station-item {
+        /* iOS 特定调整：确保可滚动容器能够正常工作 */
+        @supports (-webkit-touch-callout: none) {
+            body {
+                overscroll-behavior: auto; /* iOS 上允许原生滚动行为 */
+            }
+        }
+
+        /* 按钮触摸优化 - 移除 .station-item 以允许滚动 */
+        button, .btn-rect-lg, .vol-track-wrapper {
             touch-action: manipulation;
         }
 
@@ -303,11 +423,18 @@
         }
 
         #current-station-text {
+            /* Remove absolute positioning, handled by container */
+            position: static;
+        }
+
+        .bottom-right-group {
             position: absolute;
             bottom: 15px;
             left: 15px;
+            display: flex;
+            gap: 8px;
             z-index: 10;
-            /* Override any defaults if needed, but viz-mode-badge class handles most */
+            align-items: center;
         }
 
         .viz-mode-badge {
@@ -322,6 +449,19 @@
             cursor: pointer; /* Show pointer */
             opacity: 1;
             white-space: nowrap;
+        }
+
+        /* 幽灵按钮样式（用于字幕开关） */
+        .viz-btn-ghost {
+            background: transparent !important;
+            border: 1px solid var(--accent-cyan) !important;
+            color: var(--accent-cyan) !important;
+            opacity: 0.8;
+            transition: all 0.2s;
+        }
+        .viz-btn-ghost:active {
+            background: rgba(0, 243, 255, 0.2) !important;
+            opacity: 1;
         }
 
         /* 字幕/呼号显示组件 */
@@ -414,22 +554,85 @@
             background-color: rgba(0, 0, 0, calc(0.4 + 0.2 * var(--level)));
         }
 
-        /* 控制面板区域 */
-        .controls-area {
-            grid-area: controls;
-            background: var(--panel-bg);
-            border-top: 1px solid var(--border-color);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            height: auto;
-            max-height: 50vh; /* 限制最大高度，给波形留空间 */
-            overflow-y: auto;
-            transition: background 0.5s, border-color 0.5s;
-            margin: 0 10px 10px 10px;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
+        /* 星星图标样式 */
+        .star-icon {
+            font-size: 14px;
+            margin-right: 4px;
+            margin-bottom: 0;
+            display: inline-block;
+            vertical-align: middle;
+            color: #FFD700; /* 金色 */
+        }
+        
+        .star-icon.solid {
+            color: #FFD700;
+        }
+        
+        .star-icon.hollow {
+            color: #FFD700;
+            animation: blink-star 1s infinite;
+        }
+        
+        @keyframes blink-star {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        /* 实时字幕全屏叠加层 */
+        .subtitle-overlay {
+            position: absolute;
+            bottom: 30px; /* 降低高度，位于底部 */
+            left: 2%;
+            width: 96%;
+            text-align: center;
+            padding: 0;
+            pointer-events: none; /* 点击穿透 */
+            z-index: 15;
+            display: none; /* 默认隐藏 */
+            
+            /* 样式优化 */
+            color: var(--text-main);
+            font-size: 0.6rem;
+            font-weight: 500;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            background: transparent;
+            
+            /* 确保文字清晰 */
+            letter-spacing: 0.5px;
+            line-height: 1.3;
+            
+            /* 最多两行显示 */
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .subtitle-overlay.active {
+            display: -webkit-box;
+        }
+
+        /* 按钮触摸优化 */
+        button, .btn-rect-lg, .vol-track-wrapper {
+            touch-action: manipulation;
+        }
+
+        .controls-area { 
+            grid-area: controls; 
+            background: var(--panel-bg); 
+            border-top: 1px solid var(--border-color); 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+            height: auto; 
+            max-height: 50vh; 
+            overflow-y: hidden; /* 关键：禁用父容器纵向滚动 */ 
+            transition: background 0.5s, border-color 0.5s; 
+            margin: 0 10px 10px 10px; 
+            border-radius: var(--radius-md); 
+            border: 1px solid var(--border-color); 
         }
 
         /* 播放控制 */
@@ -663,44 +866,33 @@
             margin-left: 15px;
         }
 
-        /* 台站列表 */
-        .station-panel {
-            background: rgba(0,0,0,0.2);
-            border-radius: var(--radius-md);
-            padding: 15px;
-            border: 1px solid var(--border-color);
+        /* 本地静音开关 */
+        .local-mute-toggle {
+            width: 40px;
+            height: 20px;
+            margin-left: 10px;
+            cursor: pointer;
             display: flex;
-            flex-direction: column;
-            flex: 1; /* 填充剩余空间 */
-            min-height: 150px; /* 保证最小高度 */
-            overflow: hidden;
-            margin: 0 0px 0px 0px; /* 与 Controls 对齐 */
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
         }
-        
-        .station-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 0.85rem; /* 稍微调小 */
-            color: var(--text-muted);
+        .local-mute-toggle.active { /* 静音开启 (红色) */
+            background-color: rgba(255, 69, 58, 0.2);
+            color: #ff453a;
+            border-color: #ff453a;
         }
-
-        .station-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-            gap: 8px;
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden; /* 防止横向滚动 */
-            padding-right: 2px; /* 给滚动条留点位置 */
-            padding-bottom: 50px; /* 底部留白给按钮 */
-            position: relative;
+        .local-mute-toggle.inactive { /* 静音关闭 (绿色) */
+            background-color: rgba(48, 209, 88, 0.2);
+            color: #30d158;
+            border-color: #30d158;
         }
 
-
-
-
+        /* 旧样式保留用于非modal的station-item */
         .station-item {
+            touch-action: manipulation;
             padding: 10px;
             background: rgba(255,255,255,0.05);
             border-radius: 8px;
@@ -710,21 +902,23 @@
             align-items: flex-start;
             transition: all 0.2s;
             border-left: 3px solid transparent;
-            font-size: 0.9rem; /* 调小列表字体 */
+            font-size: 0.9rem;
+            cursor: pointer;
         }
         .station-item.active {
             background: rgba(0, 243, 255, 0.1);
             border-left-color: var(--accent-cyan);
         }
         .station-item:active { background: rgba(255,255,255,0.1); }
-        
-        .st-name { 
+
+        .st-name {
             font-weight: 500;
             width: 100%;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
+        
 
         /* QSO Modal 左右分栏布局 */
         .qso-modal-content {
@@ -1141,7 +1335,146 @@
         .qso-count-badge svg {
             width: 14px;
             height: 14px;
-            fill: none; /* 空心 */
+            fill: currentColor; /* 实心 */
             stroke: currentColor; /* 跟随文字颜色 */
             stroke-width: 2;
+        }
+
+        /* Station Modal - Bottom Sheet Style for iOS */
+        .station-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 300;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .station-modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .station-modal-content {
+            width: 100%;
+            max-width: 600px;
+            max-height: 80vh;
+            background: var(--panel-bg);
+            border-radius: 20px 20px 0 0;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.5);
+        }
+        .station-modal-content .station-modal-header {
+            flex-shrink: 0;
+        }
+        .station-modal-content .station-list-modal {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .station-modal-overlay.show .station-modal-content {
+            transform: translateY(0);
+        }
+        .station-modal-header {
+            flex-shrink: 0;
+            padding: 8px 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+        .station-modal-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+        .station-modal-title span:last-child {
+            color: var(--accent-cyan);
+            background: rgba(255, 152, 0, 0.1);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+        }
+        .station-drag-handle {
+            width: 40px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            margin: 8px auto 10px;
+        }
+        .station-modal-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1rem;
+            color: var(--text-main);
+        }
+        .station-modal-title span:last-child {
+            color: var(--accent-cyan);
+            background: rgba(255, 152, 0, 0.1);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+        }
+        .station-list-modal {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 15px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .station-list-modal .station-item {
+            touch-action: manipulation;
+            padding: 8px;
+            font-size: 0.75rem;
+            min-height: 45px;
+        }
+        .station-list-modal .st-name {
+            font-size: 0.75rem;
+        }
+
+        /* 小屏幕适配：改为2列 */
+        @media (max-width: 480px) {
+            .station-list-modal {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 6px;
+                padding: 10px;
+            }
+            .station-list-modal .station-item {
+                padding: 6px;
+                font-size: 0.7rem;
+                min-height: 40px;
+            }
+            .station-list-modal .st-name {
+                font-size: 0.7rem;
+            }
+        }
+
+        /* Station Panel - Simplified to just show button */
+        .station-panel {
+            background: rgba(0,0,0,0.2);
+            border-radius: var(--radius-md);
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .station-panel .station-header {
+            font-size: 0.75rem;
+            margin-bottom: 4px;
         }

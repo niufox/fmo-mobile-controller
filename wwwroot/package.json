@@ -1,0 +1,33 @@
+{
+  "name": "fmo-mobile-controller",
+  "version": "4.0.0",
+  "description": "FMO Mobile Controller - HAM Radio Control Interface",
+  "main": "index.html",
+  "type": "module",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "start": "python3 -m http.server 8000",
+    "serve": "npx serve .",
+    "lint": "eslint js/**/*.js",
+    "format": "prettier --write \"js/**/*.js\" \"css/**/*.css\""
+  },
+  "keywords": [
+    "ham",
+    "radio",
+    "amateur",
+    "websocket",
+    "audio",
+    "controller"
+  ],
+  "author": "BG5EIT",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/niufox/fmo-mobile-controller"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "serve": "^14.0.0"
+  }
+}

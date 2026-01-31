@@ -1269,21 +1269,25 @@
         }
 
         /* 1. Typography Hierarchy */
+        .qso-main {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
         .qso-call {
             font-size: 18px;
             font-weight: bold;
             color: #e0e0e0; /* Deep Gray/White */
             line-height: 1.5;
             margin-bottom: 2px;
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
         }
-        
+
         .qso-data-highlight {
             color: #FF6B35; /* Orange Highlight */
         }
-        
+
         .qso-time {
             font-family: monospace;
             font-size: 12px;
@@ -1708,17 +1712,7 @@
                     天下Ham是一家 ham爱好者的分享，请勿用于商业用途。
                 </div>
 
-                <div style="margin-top: 20px; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
-                    <div style="margin-bottom: 8px;">
-                        <strong>GitHub:</strong>
-                        <a href="https://github.com/niufox/fmo-mobile-controller" target="_blank" style="color: var(--accent-cyan); text-decoration: none; margin-left: 8px;">
-                            github.com/niufox/fmo-mobile-controller
-                        </a>
-                    </div>
-                    <div>
-                        <span style="color: var(--text-main);">Designed by:</span>
-                        <span style="color: var(--accent-magenta); margin-left: 8px; font-weight: bold;">BG5EIT</span>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -4634,9 +4628,11 @@
                             this.shrinkBadge();
 
                             const grid = item.dataset.grid;
+                            const call = item.querySelector('.qso-call')?.textContent;
                             if (grid && grid !== '-') {
-                                this.locateGrid(grid);
-                                
+                                // 定位到特定的QSO标记并打开弹窗
+                                this.highlightQsoOnMap(grid, call);
+
                                 // 高亮选中项
                                 const prev = this.listEl.querySelector('.qso-item.active');
                                 if (prev) prev.classList.remove('active');
@@ -4664,7 +4660,21 @@
                         } else if (msg.data.list) {
                             this.updateCount(msg.data.list.length);
                         }
-                        this.renderList(msg.data.list || []);
+                        const list = msg.data.list || [];
+                        this.renderList(list);
+
+                        // 发送所有QSO网格到地图显示
+                        if (list.length > 0) {
+                            const grids = list.filter(item => item.grid && item.grid !== '-')
+                                           .map(item => ({
+                                               grid: item.grid,
+                                               callsign: item.toCallsign || 'UNKNOWN',
+                                               timestamp: item.timestamp
+                                           }));
+                            setTimeout(() => {
+                                this.displayAllQsosOnMap(grids);
+                            }, 300);
+                        }
                     }
                 });
 
@@ -4720,9 +4730,34 @@
             locateGrid(grid) {
                 if (this.mapFrame && this.mapFrame.contentWindow) {
                     console.log('Locating grid:', grid);
+
+                    // 延迟发送消息，确保 iframe 已完全加载
+                    setTimeout(() => {
+                        this.mapFrame.contentWindow.postMessage({
+                            type: 'LOCATE_GRID',
+                            grid: grid
+                        }, '*');
+                    }, 100);
+                }
+            }
+
+            displayAllQsosOnMap(grids) {
+                if (this.mapFrame && this.mapFrame.contentWindow) {
+                    console.log('Displaying all QSOs on map:', grids);
                     this.mapFrame.contentWindow.postMessage({
-                        type: 'LOCATE_GRID',
-                        grid: grid
+                        type: 'DISPLAY_ALL_QSOS',
+                        grids: grids
+                    }, '*');
+                }
+            }
+
+            highlightQsoOnMap(grid, callsign) {
+                if (this.mapFrame && this.mapFrame.contentWindow) {
+                    console.log('Highlighting QSO on map:', grid, callsign);
+                    this.mapFrame.contentWindow.postMessage({
+                        type: 'HIGHLIGHT_QSO',
+                        grid: grid,
+                        callsign: callsign
                     }, '*');
                 }
             }
@@ -4766,7 +4801,7 @@
                 this.listEl.innerHTML = list.map((item, index) => {
                     const call = item.toCallsign || 'UNKNOWN';
                     const grid = item.grid || '-';
-                    const ts = this.formatDate(item.ts);
+                    const ts = this.formatDate(item.timestamp);
 
                     return `
                 <div class="qso-item" data-grid="${grid}" tabindex="0" role="button" aria-label="QSO Record: ${call}, Grid: ${grid}">

@@ -382,24 +382,10 @@
             <div id="map"></div>
             
             <div class="info-overlay">
-                <strong>当前网格</strong>
+                <strong>当日通联人数</strong>
                 <div id="currentGrid" style="font-size: 20px; color: #d32f2f; margin: 10px 0;">-</div>
-                <div class="legend">
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: rgba(255,0,0,0.3); border: 2px solid red;"></div>
-                        <span>网格边界</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #d32f2f; border-radius: 50%;"></div>
-                        <span>中心点</span>
-                    </div>
-                </div>
             </div>
 
-            <div class="status-bar">
-                <span id="statusText">就绪 | 点击地图获取网格坐标</span>
-                <span id="mouseCoords">经度: - | 纬度: -</span>
-            </div>
         </div>
     </div>
 
@@ -734,48 +720,6 @@
             zoomToGrid();
         }
 
-        // 地图点击事件
-        map.on('click', function(e) {
-            const lat = e.latlng.lat;
-            const lon = e.latlng.lng;
-            
-            // 清除旧标记
-            if (clickMarker) map.removeLayer(clickMarker);
-            
-            // 添加点击标记
-            clickMarker = L.marker([lat, lon]).addTo(map);
-            
-            // 计算网格
-            const grid = maidenheadEncode(lat, lon);
-            if (grid) {
-                const uniqueId = `click-loc-${Date.now()}`;
-                const popupContent = `
-                    <div style="min-width:120px">
-                        <div style="font-size:16px; font-weight:bold; color:#4dabf7; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:3px;">
-                            ${grid}
-                        </div>
-                        <div id="${uniqueId}" style="font-size:12px; color:#e0e0e0; display:flex; align-items:start; line-height: 1.3;">
-                            <span style="margin-right:4px; flex-shrink:0; font-size:11px;">📍</span>
-                            <span class="loc-text">正在定位...</span>
-                        </div>
-                    </div>
-                `;
-
-                clickMarker.bindPopup(popupContent).openPopup();
-                
-                resolveLocationName(lat, lon).then(loc => {
-                    const el = document.getElementById(uniqueId);
-                    if (el) el.querySelector('.loc-text').textContent = loc;
-                    clickMarker.setPopupContent(popupContent.replace('正在定位...', loc));
-                });
-                
-                document.getElementById('displayGrid').textContent = grid;
-                document.getElementById('centerLon').textContent = lon.toFixed(4) + '°';
-                document.getElementById('centerLat').textContent = lat.toFixed(4) + '°';
-                document.getElementById('decodeResult').classList.add('active');
-            }
-        });
-
         // 监听外部消息 (postMessage)
         window.addEventListener('message', function(event) {
             const msg = event.data;
@@ -798,16 +742,6 @@
                 // 更新输入框
                 document.getElementById('gridInput').value = grid;
             }
-        });
-
-        // 鼠标移动显示坐标
-        map.on('mousemove', function(e) {
-            const lat = e.latlng.lat;
-            const lon = e.latlng.lng;
-            const grid = maidenheadEncode(lat, lon);
-            
-            document.getElementById('mouseCoords').textContent = 
-                `经度: ${lon.toFixed(4)}° | 纬度: ${lat.toFixed(4)}° | 网格: ${grid}`;
         });
 
         // 更新状态栏

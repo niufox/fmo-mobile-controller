@@ -1,220 +1,209 @@
-# FMO Mobile Controller
 
-> **当前版本**: <!-- VERSION_START -->v1.3<!-- VERSION_END --> | **最后更新**: <!-- DATE_START -->2025-01-28<!-- DATE_END -->
+# FMO Mobile Controller 🎙️
 
-FMO Mobile Controller 是一个专为移动端深度优化的单文件 HTML5 控制器，用于远程控制 FMO 系统并实现低延迟音频流的实时收听与可视化。本项目采用“一次编写，多端运行”的架构，既可作为单文件网页直接运行，也可通过 Cordova 构建为原生 Android 应用。
+一款专为业余无线电爱好者设计的移动端控制界面，支持实时音频流处理、可视化效果、语音识别和QSO日志管理。
 
----
+## ✨ 主要特性
 
-## 📚 目录
+### � 音频处理
+- **实时音频流**: 支持8kHz PCM音频流的实时接收和播放
+- **音频可视化**: 7种可视化模式（频谱、波形、示波器、粒子效果等）
+- **本地静音**: 500ms延迟缓冲，避免本地发射时的回音干扰
+- **录音功能**: 支持录制音频并导出为WAV格式
 
-- [✨ 核心功能](#-核心功能)
-- [🛠 技术栈](#-技术栈)
-- [🚀 快速开始](#-快速开始)
-- [📦 安装与部署](#-安装与部署)
-- [⚙️ 配置说明](#-配置说明)
-- [📱 使用指南](#-使用指南)
-- [🔧 开发与构建](#-开发与构建)
-- [🤝 贡献指南](#-贡献指南)
-- [📝 版本历史](#-版本历史)
+### 🎤 语音识别
+- **实时转录**: 基于SiliconFlow API的实时语音识别
+- **呼号检测**: 自动识别和显示接收到的呼号
+- **字幕显示**: 实时字幕叠加，支持流式输出效果
+- **多语言支持**: 支持中文语音识别
 
----
+### 📻 台站管理
+- **WebSocket连接**: 实时连接FMO服务器
+- **台站列表**: 网格布局显示可用台站
+- **快速切换**: 支持上下台切换和直接选择
+- **设备发现**: 自动发现网络中的FMO设备（android不支持）
 
-## ✨ 核心功能
+### 📊 QSO日志
+- **日志管理**: 完整的QSO记录和查询功能
+- **地图集成**: 内置Maidenhead网格定位系统
+- **呼号标记**: 实时显示呼号是否在日志中
+- **数据持久化**: 本地存储QSO记录
 
-### 1. 极致轻量与响应式
-*   **零依赖单文件**：所有逻辑（HTML/CSS/JS）集成在一个 `.html` 文件中，部署极其便捷。
-*   **智能设备适配**：
-    *   **移动端**：垂直堆叠布局，大触控区域，优化单手操作。
-    *   **平板/桌面**：自动检测屏幕宽度（>768px），启用网格分栏布局，字体自动放大 20% 以适应大屏阅读。
-    *   **iOS 适配**：完美支持刘海屏安全区域 (`safe-area-inset`)。
+### 🎨 界面特性
+- **响应式设计**: 完美适配移动端和桌面端
+- **主题系统**: 8种预设主题，支持深色模式
+- **触摸优化**: 专为触摸操作优化的界面
+- **性能优化**: 60fps流畅动画，iOS滚动优化
 
-### 2. 专业级音频处理
-*   **低延迟流媒体**：基于 Web Audio API 和 WebSocket 接收 PCM 音频流。
-*   **增强型音量控制**：支持 **0% - 200%** 的超宽音量调节范围，采用线性增益映射，确保弱信号也能清晰可辨。
-*   **高保真录音**：支持一键录制当前音频并导出为 WAV 格式。
-
-### 3. 炫酷可视化引擎
-内置高性能 Canvas 渲染引擎，支持 6 种可视化模式（点击画面循环切换）：
-*   **Spectrum**: 增强型频谱图（动态粒子大小/密度，光效渲染）。
-*   **Mirror**: 镜像频谱，对称美学。
-*   **Waveform**: 实时波形示波。
-*   **Oscilloscope**: XY 模式示波器。
-*   **Radial**: 径向环绕频谱。
-*   **Particles**: 动态粒子流效果。
-
-### 4. 丰富的主题系统
-内置 **9 套** 精美主题，覆盖从硬核科技到柔和护眼的多种风格：
-*   经典系列：Matrix (黑客帝国), Ocean (深海), Sunset (日落), Light (明亮)
-*   **新增系列**：Pink (猛男粉), Purple (基佬紫), Red (蕾丝红), Black (流氓黑)
-*   支持平滑色彩过渡动画。
-
-### 5. 强大的远程控制
-*   **连接管理**：WebSocket 信令控制，支持断线自动重连、心跳保活。
-*   **多设备管理**：记录历史连接设备，支持一键回连。
-*   **QSO 日志**：实时推送通联日志，支持点击状态栏星星图标快速查看。
-*   **服务发现**：集成 mDNS (Cordova 插件) 自动发现局域网内的 FMO 设备（apk不支持）。
-
-## 🛠 技术栈
-
-| 领域 | 技术/库 | 说明 |
-| :--- | :--- | :--- |
-| **Frontend** | HTML5, CSS3 | 使用 CSS Variables 实现主题，Grid/Flex 实现布局 |
-| **Scripting** | Vanilla JS (ES6+) | 无框架设计，使用 Class 模块化 (`ControlClient`, `Visualizer` 等) |
-| **Audio** | Web Audio API | `AudioContext`, `ScriptProcessorNode` 处理 PCM 流 |
-| **Graphics** | HTML5 Canvas | `requestAnimationFrame` 实现 60fps 高性能绘图 |
-| **Mobile** | Apache Cordova | 将 Web 应用封装为 Android APK |
-| **Build** | Node.js | 自研 `build.js` 实现资源提取、版本自增、APK 构建 |
-
----
-
-## 🚀 快速开始
-
-### 方式一：Web 浏览器直接运行
-1.  下载 `fmo-mobile-controller.html` 文件。
-2.  在任意现代浏览器（Chrome, Safari, Edge）中打开该文件。
-3.  点击右上角 ⚙️ 设置，输入 FMO 服务器 IP 即可连接。
-
-### 方式二：安装 Android 应用
-1.  在 `release/` 目录下找到最新构建的 APK 文件（如 `fmo-controller-debug.apk`）。
-2.  安装到 Android 手机/平板。
-3.  打开应用，即可体验原生级性能。
-
----
-
-## � 安装与部署
-
-本项目包含自动构建脚本，可将单文件源码转换为 Cordova 项目并打包 APK。
+## � 快速开始
 
 ### 环境要求
-*   **Node.js**: v14+
-*   **Cordova**: 全局安装 (`npm install -g cordova`)
-*   **Java JDK**: v11 (Android 构建推荐)
-*   **Android SDK**: API Level 35 (构建脚本自动配置)
+- 现代浏览器（Chrome, Firefox, Safari, Edge）
+- WebSocket支持
+- Web Audio API支持
+- 移动设备推荐iOS 12+ 或 Android 8+
 
-### 构建步骤
-在项目根目录下运行：
+### 本地运行
+
+直接访问 http://180.76.54.163 使用最新版本
+
+android 下载 release/fmo-controller-debug.apk 安装（手机端暂时不支持录音）
+
+
 
 ```bash
-node build.js
+# 克隆项目
+git clone https://github.com/niufox/fmo-mobile-controller.git
+
+# 进入项目目录
+cd fmo-mobile-controller
+
+# 启动开发服务器
+pnpm run dev
+# 或
+python3 -m http.server 8080
+
+# 访问应用
+打开浏览器访问 http://localhost:8080
 ```
 
-**脚本将自动执行以下流程：**
-1.  **版本管理**：读取 HTML 中的 `data-version`，自动递增版本号（如 1.2 -> 1.3）。
-2.  **资源分离**：解析 HTML，将 CSS 和 JS 提取到 `www/css` 和 `www/js`。
-3.  **环境检查**：自动创建 Cordova 项目（如果不存在），安装必要插件 (`cordova-plugin-zeroconf`)。
-4.  **配置注入**：自动修改 `config.xml` 适配 Android SDK 35，生成自适应图标。
-5.  **编译打包**：执行 `cordova build android` 生成 APK。
-6.  **产物输出**：APK 将复制到 `release/` 目录。
+### 连接FMO设备
+1. 确保FMO设备已启动并连接到同一网络
+2. 在设置中输入FMO设备的IP地址
+3. 点击"CONNECT"按钮建立连接
+4. 开始享受实时音频和控制功能
 
----
+## 📱 移动端使用
 
-## ⚙️ 配置说明
+### iOS Safari
+- 添加到主屏幕以获得最佳体验
+- 支持离线运行和全屏模式
+- 优化的触摸滚动和手势操作
 
-### 1. 客户端配置 (Runtime)
-用户可通过界面右上角的设置面板进行动态配置，配置项将持久化存储于 `localStorage`。
+### Android Chrome
+- 支持添加到主屏幕
+- 完整的PWA功能支持
+- 优化的性能和电池使用
 
-| 配置项 | 说明 | 默认值 |
-| :--- | :--- | :--- |
-| **Host IP** | FMO 服务器地址 | 空 |
-| **Theme** | 界面主题 | theme-matrix |
-| **Device History** | 历史连接设备列表 | [] |
+## 🔧 技术架构
 
-### 2. 构建配置 (Build Time)
-构建相关的常量定义在 `build.js` 头部，如需修改输出目录或包名请编辑此处。
+### 前端技术
+- **纯原生JavaScript**: 无框架依赖，极致性能
+- **ES6 Modules**: 现代模块化架构
+- **Canvas API**: 高性能音频可视化
+- **Web Audio API**: 专业音频处理
+- **WebSocket**: 实时双向通信
 
-```javascript
-// build.js
-const SOURCE_FILE = 'fmo-mobile-controller.html';
-const CORDOVA_PROJECT_DIR = path.join(__dirname, 'cordova_app');
-// ...
-```
+### 音频处理
+- **采样率**: 8kHz，16位，单声道
+- **缓冲策略**: 500ms前向缓冲，防止音频中断
+- **音频链**: HPF → EQ → Compressor → Gain → Output
+- **可视化**: 实时频谱分析和波形显示
 
-<!-- MAINTENANCE_CHECK_START -->
-> ⚠️ **维护注意**：
-> 若 Cordova 插件或 Android SDK 版本发生重大变更，请检查 `build.js` 中的 `preferences` 数组和插件列表。
-<!-- MAINTENANCE_CHECK_END -->
+### 语音识别
+- **API服务**: SiliconFlow Cloud API
+- **模型**: TeleAI/TeleSpeechASR
+- **分段策略**: 基于呼号事件的智能分段
+- **延迟优化**: 本地缓存和批量处理
 
----
+## 🎨 可视化模式
 
-## 📱 使用指南
+1. **SOLAR SYSTEM**: 太阳系动画，呼号显示在行星上
+2. **SPECTRUM**: 经典频谱分析仪
+3. **MIRROR**: 镜像频谱效果
+4. **WAVEFORM**: 实时波形显示
+5. **OSCILLOSCOPE**: 示波器风格
+6. **RADIAL**: 圆形频谱显示
+7. **PARTICLES**: 粒子效果可视化
 
-### 界面交互
-*   **连接/断开**：点击设置图标 -> 输入 IP -> Connect。连接成功后指示灯变绿。
-*   **切换主题**：点击顶栏调色板图标 🎨，在 9 种主题间循环切换。
-*   **查看 QSO**：点击顶栏星星图标 ⭐ 或 QSO 按钮，弹出通联日志列表。
-*   **音量调节**：拖动滑块，支持 0-200% 增益。
-*   **录音**：点击红点按钮开始录音，再次点击停止并下载 WAV。
+## � 配置选项
 
-### 故障排查
-*   **连接失败**：请检查手机是否与服务器在同一局域网；检查 IP 输入是否正确（无需输入 `ws://` 前缀）。
-*   **无声音**：检查系统音量；确认浏览器是否允许自动播放音频（部分浏览器需交互后才允许播放）。
-*   **卡顿**：在低端设备上，尝试切换到较简单的可视化模式（如 Waveform）。
+### 音频设置
+- 音量控制（0-100%）
+- 本地静音开关
+- 录音功能
+- 音频质量设置
 
----
+### 显示设置
+- 主题切换（8种主题）
+- 可视化模式选择
+- 字幕开关和位置
+- 全屏模式
 
-## � 开发与构建
+### 网络设置
+- 设备IP配置
+- 历史设备管理
+- 自动发现功能
+- 连接状态监控
 
-### 目录结构
+## 🔌 API集成
 
-```
-fmoaudio/
-├── fmo-mobile-controller.html  # [核心] 单文件源码 (开发主入口)
-├── build.js                    # [核心] 自动化构建脚本
-├── release/                    # 构建产物 (APK)
-├── www/                        # 构建过程生成的 Web 资源 (勿直接编辑)
-├── cordova_app/                # 自动生成的 Cordova 项目 (勿直接编辑)
-└── README.md                   # 项目文档
-```
+### WebSocket协议
+- 控制连接: `ws://[ip]/ws`
+- 音频流: `ws://[ip]/audio`
+- 事件流: `ws://[ip]/events`
 
-### 开发流程
-1.  **修改代码**：直接编辑 `fmo-mobile-controller.html`。
-2.  **Web 测试**：在浏览器打开 HTML 文件进行调试。
-3.  **构建 APK**：运行 `node build.js`。
-4.  **真机测试**：安装生成的 APK 进行验证。
+### 语音识别API
+- 提供商: SiliconFlow
+- 模型: TeleAI/TeleSpeechASR
+- 支持语言: 中文、英文
 
----
+## 🐛 常见问题
 
-## 📚 API 文档
+### 连接问题
+- **无法连接**: 检查设备IP和网络设置
+- **音频中断**: 检查网络质量和缓冲设置
+- **识别失败**: 验证API密钥和网络连接
 
-本控制器通过 WebSocket 与 FMO 服务端通信。虽然控制器本身是单文件应用，但其通信协议与 FMO 核心 API 保持一致。
+### 性能问题
+- **卡顿**: 关闭不必要的可视化效果
+- **电池消耗**: 降低屏幕亮度，关闭复杂可视化
+- **内存使用**: 定期清理浏览器缓存
 
-*   **后端通信协议**：请参考 [API_DOCUMENTATION.md](API_DOCUMENTATION.md) 了解详细的 WebSocket 消息格式与信令流程。
-*   **内部类接口**：
-    *   `ControlClient`: 封装了 WebSocket 连接与心跳逻辑。
-    *   `AudioPlayer`: 封装了 Web Audio API 的流处理逻辑。
-
----
+### 兼容性问题
+- **iOS滚动**: 已优化触摸滚动性能
+- **Android音频**: 支持最新Chrome版本
+- **桌面端**: 支持所有现代浏览器
 
 ## 🤝 贡献指南
 
-欢迎提交 Issue 和 PR！在贡献代码时请遵循以下规范：
+欢迎提交Issue和Pull Request来改进这个项目！
 
-1.  **单文件原则**：请保持所有 Web 逻辑在 `fmo-mobile-controller.html` 中，不要手动拆分文件。
-2.  **代码风格**：
-    *   JS 使用 ES6+ 语法。
-    *   CSS 使用 BEM 命名规范（推荐）。
-    *   重要逻辑块请添加中文注释。
-3.  **文档更新**：若新增功能，请同步更新本 README 的“核心功能”章节。
+### 开发设置
+```bash
+# 安装开发依赖
+pnpm install
+
+# 运行lint检查
+pnpm run lint
+
+# 格式化代码
+pnpm run format
+```
+
+### 提交规范
+- 使用清晰的提交信息
+- 添加适当的测试
+- 更新文档和README
+- 遵循项目代码风格
+
+## � 许可证
+
+MIT License - 详见 [LICENSE](LICENSE) 文件
+
+## 🙏 致谢
+
+- FMO老板娘、老板和FMO深度搜索1群全体FMOER
+- 开源社区的支持和贡献
+
+## 📞 联系方式
+
+bg5eit 73
+
+- GitHub Issues: [项目Issues](https://github.com/niufox/fmo-mobile-controller/issues)
+- 项目主页: [GitHub Repository](https://github.com/niufox/fmo-mobile-controller)
+- APK下载: [Release页面](https://github.com/niufox/fmo-mobile-controller/releases)
 
 ---
 
-## 📝 版本历史
-
-<!-- CHANGELOG_START -->
-### v1.3 (Current)
-*   **New**: 新增 4 款主题 (Pink, Purple, Red, Black)。
-*   **Enhancement**: 音量控制范围扩展至 200%。
-*   **Enhancement**: 优化可视化粒子效果与性能。
-*   **Enhancement**: 平板/桌面端字体自动适配放大。
-*   **UX**: 点击星星图标可直接打开 QSO 日志。
-
-### v1.2
-*   集成自动构建脚本 `build.js`。
-*   实现版本号自动递增。
-*   优化 Android APK 图标生成逻辑。
-
-### v1.0
-*   项目初始化。
-*   实现基础 WebSocket 控制与 Web Audio 播放。
-<!-- CHANGELOG_END -->
+**⚠️ 重要提醒**: 本项目仅供业余无线电爱好者学习和交流使用，请勿用于商业用途。请遵守当地无线电管理法规。

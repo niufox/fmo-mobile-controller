@@ -222,24 +222,7 @@
             --viz-bg: linear-gradient(to bottom, #2b0000, #150000);
         }
 
-        /* 新增主题：流氓黑 */
-        body.theme-black {
-            --bg-color: #000000;
-            --panel-bg: #111111;
-            --text-main: #ffffff;
-            --text-muted: #666666;
-            --accent-cyan: #ffffff;
-            --accent-magenta: #333333;
-            --accent-green: #999999;
-            --border-color: #333333;
-            --viz-bg: #000000;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        *
 
         /* 只在特定元素上禁用用户选择，避免影响输入框 */
         button, .btn-rect-lg, .theme-btn, .station-item, .station-drag-handle, .qso-item {
@@ -451,20 +434,7 @@
             white-space: nowrap;
         }
 
-        /* 幽灵按钮样式（用于字幕开关） */
-        .viz-btn-ghost {
-            background: transparent !important;
-            border: 1px solid var(--accent-cyan) !important;
-            color: var(--accent-cyan) !important;
-            opacity: 0.8;
-            transition: all 0.2s;
-        }
-        .viz-btn-ghost:active {
-            background: rgba(0, 243, 255, 0.2) !important;
-            opacity: 1;
-        }
-
-        /* 字幕/呼号显示组件 */
+        /* 呼号显示组件 */
         .callsign-ticker-container {
             position: absolute;
             top: 20px;
@@ -579,40 +549,6 @@
             100% { opacity: 1; }
         }
 
-        /* 实时字幕全屏叠加层 */
-        .subtitle-overlay {
-            position: absolute;
-            bottom: 30px; /* 降低高度，位于底部 */
-            left: 2%;
-            width: 96%;
-            text-align: center;
-            padding: 0;
-            pointer-events: none; /* 点击穿透 */
-            z-index: 15;
-            display: none; /* 默认隐藏 */
-            
-            /* 样式优化 */
-            color: var(--text-main);
-            font-size: 0.6rem;
-            font-weight: 500;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-            background: transparent;
-            
-            /* 确保文字清晰 */
-            letter-spacing: 0.5px;
-            line-height: 1.3;
-            
-            /* 最多两行显示 */
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .subtitle-overlay.active {
-            display: -webkit-box;
-        }
-
         /* 按钮触摸优化 */
         button, .btn-rect-lg, .vol-track-wrapper {
             touch-action: manipulation;
@@ -673,19 +609,6 @@
             flex: 2; /* 更宽 */
         }
         #btn-play:active { transform: scale(0.98); opacity: 0.9; }
-
-        /* 录音按钮 */
-        .btn-record {
-            border-color: #d32f2f;
-            color: #d32f2f;
-            background: rgba(211, 47, 47, 0.1);
-        }
-        .btn-record.recording {
-            background: #d32f2f;
-            color: #fff;
-            box-shadow: 0 0 10px #d32f2f;
-            animation: none;
-        }
 
         /* 顶部设置区域 */
         #settings-area {
@@ -918,138 +841,20 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        
 
-        /* QSO Modal 左右分栏布局 */
-        .qso-modal-content {
-            width: 95%;
-            height: 90vh;
-            max-width: 1400px;
-            display: flex;
-            flex-direction: column;
-            padding: 0; /* 重置 padding，由内部元素控制 */
-            overflow: hidden;
-        }
-        
-        .qso-modal-content .modal-header {
-            padding: 15px 20px;
-            flex-shrink: 0;
-        }
-
-        .modal-body-split {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-            border-top: 1px solid var(--border-color);
-            position: relative;
-        }
-
-        .qso-list-panel {
-            width: 20%;
-            overflow-y: auto;
-            border-right: 1px solid var(--border-color);
+        /* Station Panel */
+        .station-panel {
             background: rgba(0,0,0,0.2);
-            padding: 0;
+            border-radius: var(--radius-md);
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
+            gap: 6px;
         }
-        
-        /* 列表容器内的 padding 移到 item 或 wrapper */
-        .qso-list-panel .qso-item {
-            margin: 0;
-            border-radius: 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            padding: 8px 4px; /* 减小内边距 */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            font-size: 0.75rem; /* 减小字号 (原0.85rem) */
-            cursor: pointer; /* 鼠标手势 */
-            transition: background 0.2s;
-        }
-        
-        .qso-list-panel .qso-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .qso-list-panel .qso-item:active {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .qso-list-panel .qso-item.active {
-            background: rgba(0, 243, 255, 0.15);
-            border-left: 3px solid var(--accent-cyan);
-        }
-        
-        .qso-list-panel .qso-call {
-            font-weight: bold;
-            color: #fff;
-            width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            margin-bottom: 2px;
-            font-size: 0.85rem; /* 标题稍大 */
-        }
-
-        .qso-list-panel .qso-mode {
-            font-size: 0.7rem; /* 减小字号 (原0.75rem) */
-            color: var(--text-muted);
-            background: transparent; /* 移除背景色，保持极简 */
-            padding: 0;
-        }
-
-        .qso-map-panel {
-            width: 80%;
-            background: #121212;
-            position: relative;
-        }
-
-        #qso-map-frame {
-            width: 100%;
-            height: 100%;
-            border: none;
-            display: block;
-        }
-
-        /* 响应式调整 - 保持20:80比例 */
-        @media (max-width: 768px) {
-            .modal-body-split {
-                flex-direction: row; /* 强制保持左右分栏 */
-            }
-            .qso-list-panel {
-                width: 30%; /* 手机上给多一点空间 */
-            }
-            .qso-map-panel {
-                width: 70%;
-            }
-        }
-        
-        /* 超小屏幕下隐藏列表或特殊处理，但这里先尽量保持分栏 */
-        @media (max-width: 480px) {
-             .qso-list-panel {
-                width: 35%; /* 小屏给更多空间给列表 */
-            }
-            .qso-map-panel {
-                width: 65%;
-            }
-        }
-
-        /* Grid 可点击样式 */
-        .qso-mode.clickable {
-            cursor: pointer;
-            text-decoration: underline;
-            color: var(--accent-cyan);
-            transition: all 0.2s;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: rgba(0, 243, 255, 0.1);
-        }
-        .qso-mode.clickable:hover {
-            color: #fff;
-            background: var(--accent-cyan);
-            text-decoration: none;
+        .station-panel .station-header {
+            font-size: 0.75rem;
+            margin-bottom: 4px;
         }
 
         /* 设置面板 */
@@ -1259,21 +1064,25 @@
         }
 
         /* 1. Typography Hierarchy */
+        .qso-main {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
         .qso-call {
             font-size: 18px;
             font-weight: bold;
             color: #e0e0e0; /* Deep Gray/White */
             line-height: 1.5;
             margin-bottom: 2px;
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
         }
-        
+
         .qso-data-highlight {
             color: #FF6B35; /* Orange Highlight */
         }
-        
+
         .qso-time {
             font-family: monospace;
             font-size: 12px;
@@ -1285,6 +1094,13 @@
             width: 65%;
             background: #121212;
             position: relative;
+        }
+
+        #qso-map-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
         }
 
         /* Responsive */
@@ -1391,21 +1207,6 @@
             border-bottom: 1px solid var(--border-color);
             cursor: pointer;
         }
-        .station-modal-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            font-size: 0.9rem;
-            color: var(--text-main);
-        }
-        .station-modal-title span:last-child {
-            color: var(--accent-cyan);
-            background: rgba(255, 152, 0, 0.1);
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.75rem;
-        }
         .station-drag-handle {
             width: 40px;
             height: 4px;
@@ -1439,9 +1240,9 @@
         }
         .station-list-modal .station-item {
             touch-action: manipulation;
-            padding: 8px;
+            padding: 6px;
             font-size: 0.75rem;
-            min-height: 45px;
+            min-height: 32px;
         }
         .station-list-modal .st-name {
             font-size: 0.75rem;
@@ -1455,9 +1256,9 @@
                 padding: 10px;
             }
             .station-list-modal .station-item {
-                padding: 6px;
+                padding: 5px;
                 font-size: 0.7rem;
-                min-height: 40px;
+                min-height: 30px;
             }
             .station-list-modal .st-name {
                 font-size: 0.7rem;
@@ -1477,4 +1278,9 @@
         .station-panel .station-header {
             font-size: 0.75rem;
             margin-bottom: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
         }

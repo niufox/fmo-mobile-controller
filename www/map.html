@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>业余无线电梅登黑德网格定位系统 | Maidenhead Locator GIS</title>
-    <!-- 替换为国内 CDN (BootCDN) -->
+    <title>业余无线电QSO定位系统 | QSO Locator (World Map)</title>
     <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.css" />
-    <script src="https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
     <style>
         * {
             margin: 0;
@@ -27,12 +25,10 @@
             height: 100vh;
         }
 
-        /* 左侧控制面板 - 隐藏以实现纯地图模式 */
         .control-panel {
             display: none;
         }
 
-        /* 右侧地图 - 全屏 */
         .map-container {
             flex: 1;
             position: relative;
@@ -41,167 +37,9 @@
             height: 100vh;
         }
 
-        h1 {
-            color: #4dabf7;
-            font-size: 24px;
-            margin-bottom: 10px;
-            border-bottom: 3px solid #1c7ed6;
-            padding-bottom: 10px;
-        }
-
-        .subtitle {
-            color: #aaa;
-            font-size: 14px;
-            margin-bottom: 30px;
-        }
-
-        .section {
-            margin-bottom: 25px;
-            padding: 20px;
-            background: #252525;
-            border-radius: 10px;
-            border-left: 4px solid #1c7ed6;
-        }
-
-        .section h3 {
-            color: #a5d8ff;
-            margin-bottom: 15px;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .input-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #ccc;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        input[type="text"],
-        input[type="number"] {
-            width: 100%;
-            padding: 10px;
-            background: #333;
-            color: #fff;
-            border: 2px solid #444;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-
-        input[type="text"]:focus,
-        input[type="number"]:focus {
-            outline: none;
-            border-color: #1c7ed6;
-            background: #404040;
-        }
-
-        .coord-inputs {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background: #1c7ed6;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        button:hover {
-            background: #1864ab;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
-        }
-
-        button.secondary {
-            background: #2b8a3e;
-            margin-top: 10px;
-        }
-
-        button.secondary:hover {
-            background: #216f30;
-        }
-
-        .result-box {
-            margin-top: 15px;
-            padding: 15px;
-            background: #1a2530;
-            border-radius: 8px;
-            border: 2px solid #1864ab;
-            display: none;
-        }
-
-        .result-box.active {
-            display: block;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .result-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-
-        .result-label {
-            font-weight: 600;
-            color: #aaa;
-        }
-
-        .result-value {
-            color: #4dabf7;
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-        }
-
-        .grid-display {
-            font-size: 24px;
-            color: #ff6b6b;
-            text-align: center;
-            margin: 10px 0;
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-            letter-spacing: 2px;
-        }
-
-        /* 右侧地图 - 全屏 */
-        .map-container {
-            flex: 1;
-            position: relative;
-            background: #000;
-            /* width: 100%; height already handled by flex parent, but let's be safe */
-        }
-
         #map {
             width: 100%;
             height: 100%;
-        }
-
-        /* 深色模式地图滤镜 - 默认应用于普通地图 */
-        .map-dark-filter .leaflet-tile-pane {
-            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
         }
 
         .info-overlay {
@@ -217,86 +55,43 @@
             max-width: 250px;
             font-size: 13px;
             border: 1px solid #444;
-            transform: scale(0.8);
-            transform-origin: top right;
         }
 
-        .legend {
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #444;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-
-        .legend-color {
-            width: 20px;
-            height: 20px;
-            margin-right: 8px;
-            border-radius: 3px;
-        }
-
-        .status-bar {
+        .loading-overlay {
             position: absolute;
-            bottom: 20px;
-            left: 420px;
-            right: 20px;
-            background: rgba(0,0,0,0.8);
-            color: #eee;
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-family: monospace;
-            font-size: 13px;
-            z-index: 1000;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border: 1px solid #444;
-        }
-
-        .error {
-            color: #ff6b6b;
-            font-size: 13px;
-            margin-top: 5px;
-            display: none;
-        }
-
-        .error.active {
-            display: block;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #4dabf7;
+            font-size: 18px;
+            z-index: 999;
         }
 
         @media (max-width: 768px) {
-            .container {
-                flex-direction: column;
-            }
-            .control-panel {
-                width: 100%;
-                height: 40vh; /* 减小控制面板高度 */
-                order: 2; /* 地图在上，控制在下 */
-            }
-            .map-container {
-                height: 60vh;
-                order: 1;
-            }
-            .status-bar {
-                left: 20px;
-                bottom: 20px; /* 调整位置 */
-                display: none; /* 移动端隐藏状态栏以节省空间 */
+            .info-overlay {
+                max-width: 200px;
+                padding: 12px;
+                font-size: 12px;
             }
         }
 
-        /* 弹窗美化 - 半透明毛玻璃效果 */
+        .leaflet-container {
+            background: #121212;
+        }
+
+        /* 深色模式地图滤镜 */
+        .map-dark-mode .leaflet-tile-pane {
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        }
+
         .leaflet-popup-content-wrapper, .leaflet-popup-tip {
-            background: rgba(30, 30, 30, 0.85) !important;
+            background: rgba(30, 30, 30, 0.95) !important;
             backdrop-filter: blur(8px);
             color: #e0e0e0 !important;
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
+
         .leaflet-popup-content {
             margin: 8px 10px !important;
             line-height: 1.4 !important;
@@ -305,188 +100,73 @@
 </head>
 <body>
     <div class="container">
-        <!-- 左侧控制面板 -->
         <div class="control-panel">
-            <h1>📡 梅登黑德网格定位系统</h1>
-            <div class="subtitle">Maidenhead Locator System GIS Tool</div>
-
-            <!-- 网格解码 -->
-            <div class="section">
-                <h3>🔍 网格解码 (Grid to Coordinates)</h3>
-                <div class="input-group">
-                    <label>输入网格坐标 (如: OM16uc)</label>
-                    <input type="text" id="gridInput" placeholder="OM16uc" maxlength="6">
-                    <div class="error" id="gridError">请输入有效的6字符网格坐标 (如: OM16uc)</div>
-                </div>
-                <button onclick="decodeGrid()">解码位置</button>
-                
-                <div class="result-box" id="decodeResult">
-                    <div class="grid-display" id="displayGrid"></div>
-                    <div class="result-item">
-                        <span class="result-label">中心经度:</span>
-                        <span class="result-value" id="centerLon"></span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">中心纬度:</span>
-                        <span class="result-value" id="centerLat"></span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">精度范围:</span>
-                        <span class="result-value">~10×5 km</span>
-                    </div>
-                    <button class="secondary" onclick="zoomToGrid()">定位到地图</button>
-                </div>
-            </div>
-
-            <!-- 坐标编码 -->
-            <div class="section">
-                <h3>📝 坐标编码 (Coordinates to Grid)</h3>
-                <div class="coord-inputs">
-                    <div class="input-group">
-                        <label>经度 (Longitude)</label>
-                        <input type="number" id="lonInput" placeholder="-180 ~ 180" step="0.0001">
-                    </div>
-                    <div class="input-group">
-                        <label>纬度 (Latitude)</label>
-                        <input type="number" id="latIta2a0 placeholder="-90 ~ 90" tc4e9"0.0001">
-                    </div>
-                </div>ffd3b
-                <div class="error" id="coordError">请输入有效的经纬度值</div>
-                <button onclick="encodeCoordinates()">生成网格</button>
-                
-                <div class="result-box" id="encodeResult">
-                    <div class="result-item">
-                        <span class="result-label">网格坐标:</span>
-                        <span class="result-value" id="generatedGrid" style="font-size: 18px; color: #d32f2f;"></span>
-                    </div>
-                    <button class="secondary" onclick="zoomToCoords()">在地图显示</button>
-                </div>
-            </div>
-
-            <!-- 说明 -->
-            <div class="section" style="background: #fff3cd; border-left-color: #ffc107;">
-                <h3>💡 使用说明</h3>
-                <p style="font-size: 13px; line-height: 1.6; color: #856404;">
-                    1. <b>网格解码</b>: 输入6字符网格坐标 (如 OM16uc)，查看对应地理位置<br>6b6b
-                    2. <b>坐标编码</b>: 输入经纬度，生成网格坐标<br>
-                    3. <b>地图交互</b>: 点击地图任意位置获取网格坐标<br>
-                    <br>#ff6b6b
-                    格式说明: AA00aa (场+方+块)<br>
-                    • 精度: 经度5′ × 纬度2.5′ (约10×5公里)
-                </p>
-            </div>6b6b
+            <h1>业余无线电QSO定位系统 (世界地图)</h1>
         </div>
 
-        <!-- 右侧地图 -->
         <div class="map-container">
             <div id="map"></div>
-            
+            <div id="loading" class="loading-overlay">加载地图中...</div>
+
             <div class="info-overlay">
                 <strong>当日通联人数</strong>
                 <div id="currentGrid" style="font-size: 20px; color: #d32f2f; margin: 10px 0;">-</div>
             </div>
-
         </div>
     </div>
 
+    <script src="https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
     <script>
-        // 初始化地图
-        const map = L.map('map', {
-            zoomControl: false // 移动端优化：默认隐藏缩放控件，可按需开启
-        }).setView([36.08, 103.67], 4); // 默认视图调整为中国全境
-        
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-        // 国内友好地图源
-        const baseLayers = {
-            "高德地图 (暗黑)": L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
-                subdomains: ["1", "2", "3", "4"],
-                attribution: '© 高德地图',
-                className: 'dark-mode-layer' // 标识需要滤镜
-            }),
-            "GeoQ 灰色 (原生)": L.tileLayer('https://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineCommunity/MapServer/tile/{z}/{y}/{x}', {
-                attribution: '© GeoQ 智图'
-            }),
-            "GeoQ 深蓝 (原生深色)": L.tileLayer('https://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineStreetPurplishBlue/MapServer/tile/{z}/{y}/{x}', {
-                attribution: '© GeoQ 智图'
-            }),
-            "高德卫星": L.tileLayer('https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}', {
-                subdomains: ["1", "2", "3", "4"],
-                attribution: '© 高德地图'
-            })
-        };
-
-        // 默认添加高德地图
-        const defaultLayer = baseLayers["高德地图 (暗黑)"];
-        defaultLayer.addTo(map);
-        
-        // 初始应用滤镜
-        document.getElementById('map').classList.add('map-dark-filter');
-
-        L.control.layers(baseLayers).addTo(map);
-
-        // 监听图层切换，动态应用滤镜
-        map.on('baselayerchange', function(e) {
-            const mapContainer = document.getElementById('map');
-            if (e.name === "高德地图 (暗黑)") {
-                mapContainer.classList.add('map-dark-filter');
-            } else {
-                mapContainer.classList.remove('map-dark-filter');
-            }
-        });
-
-        // 图层组管理
+        let map = null;
+        let currentQsos = [];
         let currentGridLayer = null;
-        let currentMarker = null;
-        let clickMarker = null;
-
-        // 状态变量
-        let currentGrid = null;
-        let currentBounds = null;
+        let qsoMarkersLayer = null;
+        let qsoRectanglesLayer = null;
+        let highlightedMarker = null;
 
         // 网格解码算法 (6字符标准)
         function maidenheadDecode(grid) {
             if (!grid || grid.length < 4 || grid.length > 6) return null;
-            
+
             grid = grid.toUpperCase();
-            
+
             // 第一级: 场 (Field) - 20°×10°
             const lonIdx = grid.charCodeAt(0) - 'A'.charCodeAt(0);
             const latIdx = grid.charCodeAt(1) - 'A'.charCodeAt(0);
-            
+
             if (lonIdx < 0 || lonIdx > 17 || latIdx < 0 || latIdx > 17) return null;
-            
+
             let lon = -180 + lonIdx * 20;
             let lat = -90 + latIdx * 10;
             let lonSize = 20;
             let latSize = 10;
-            
+
             // 第二级: 方 (Square) - 2°×1°
             if (grid.length >= 4) {
                 const lonNum = parseInt(grid[2]);
                 const latNum = parseInt(grid[3]);
-                
+
                 if (isNaN(lonNum) || isNaN(latNum)) return null;
-                
+
                 lon += lonNum * 2;
                 lat += latNum * 1;
                 lonSize = 2;
                 latSize = 1;
             }
-            
+
             // 第三级: 块 (Subsquare) - 5'×2.5'
             if (grid.length >= 6) {
                 const lonSub = grid.charCodeAt(4) - 'A'.charCodeAt(0);
                 const latSub = grid.charCodeAt(5) - 'A'.charCodeAt(0);
-                
+
                 if (lonSub < 0 || lonSub > 23 || latSub < 0 || latSub > 23) return null;
-                
+
                 lon += lonSub * (2/24);
                 lat += latSub * (1/24);
                 lonSize = 2/24;
                 latSize = 1/24;
             }
-            
+
             return {
                 grid: grid,
                 bounds: [[lat, lon], [lat + latSize, lon + lonSize]],
@@ -495,279 +175,277 @@
             };
         }
 
-        // 坐标编码算法 (6字符标准)
-        function maidenheadEncode(lat, lon) {
-            if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
-            
-            // 调整坐标到正数范围
-            let adjLon = lon + 180;
-            let adjLat = lat + 90;
-            
-            // 第一级: 场
-            const fieldLon = Math.floor(adjLon / 20);
-            const fieldLat = Math.floor(adjLat / 10);
-            let grid = String.fromCharCode('A'.charCodeAt(0) + fieldLon) +
-                      String.fromCharCode('A'.charCodeAt(0) + fieldLat);
-            
-            adjLon %= 20;
-            adjLat %= 10;
-            
-            // 第二级: 方
-            const squareLon = Math.floor(adjLon / 2);
-            const squareLat = Math.floor(adjLat / 1);
-            grid += squareLon.toString() + squareLat.toString();
-            
-            adjLon %= 2;
-            adjLat %= 1;
-            
-            // 第三级: 块 (转换为分钟计算更准确)
-            const subLon = Math.floor(adjLon / (2/24));
-            const subLat = Math.floor(adjLat / (1/24));
-            grid += String.fromCharCode('a'.charCodeAt(0) + subLon) +
-                   String.fromCharCode('a'.charCodeAt(0) + subLat);
-            
-            return grid;
+        // 获取地理位置名称 (反向地理编码) - 已禁用以避免API错误
+        async function resolveLocationName(lat, lon) {
+            return null;
         }
 
-        // 获取地理位置名称 (反向地理编码)
-        async function resolveLocationName(lat, lon) {
-            // 定义地理编码服务列表 (优先级从高到低)
-            const services = [
-                // BigDataCloud (国内访问较稳定，无需Key)
-                {
-                    name: 'BigDataCloud',
-                    url: `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=zh-CN`,
-                    parser: (data) => {
-                        let parts = [];
-                        if (data.city) parts.push(data.city);
-                        if (data.locality && !parts.includes(data.locality)) parts.push(data.locality);
-                        if (data.principalSubdivision && !parts.includes(data.principalSubdivision)) parts.push(data.principalSubdivision);
-                        return parts.join(' ') || data.locality || '未知位置';
-                    }
-                },
-                // Nominatim OSM (备用，可能被墙)
-                {
-                    name: 'Nominatim',
-                    url: `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1&accept-language=zh-CN`,
-                    parser: (data) => {
-                        const addr = data.address;
-                        if (!addr) return null;
-                        let parts = [];
-                        if (addr.city) parts.push(addr.city);
-                        else if (addr.county) parts.push(addr.county);
-                        if (addr.district && !parts.includes(addr.district)) parts.push(addr.district);
-                        if (addr.town) parts.push(addr.town);
-                        else if (addr.suburb) parts.push(addr.suburb);
-                        else if (addr.street) parts.push(addr.street);
-                        if (addr.village) parts.push(addr.village);
-                        else if (addr.neighbourhood) parts.push(addr.neighbourhood);
-                        else if (addr.hamlet) parts.push(addr.hamlet);
-                        return [...new Set(parts)].join(' ') || data.display_name.split(',')[0];
-                    }
-                }
-            ];
+        // 初始化地图
+        function initMap() {
+            try {
+                console.log('Initializing Leaflet map...');
 
-            for (const service of services) {
-                try {
-                    console.log(`Trying geocoding service: ${service.name}...`);
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3秒超时
+                map = L.map('map', {
+                    center: [36.08, 103.67],
+                    zoom: 4,
+                    zoomControl: false
+                });
 
-                    const response = await fetch(service.url, {
-                        signal: controller.signal,
-                        headers: service.name === 'Nominatim' ? { 'User-Agent': 'FMO-Audio-Controller/1.0' } : {}
-                    });
-                    clearTimeout(timeoutId);
+                L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        const result = service.parser(data);
-                        if (result && result !== '未知位置') {
-                            return result;
-                        }
+                const baseLayers = {
+                    "高德地图 (暗黑)": L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+                        subdomains: ["1", "2", "3", "4"],
+                        attribution: '© 高德地图'
+                    }),
+                    "GeoQ 灰色": L.tileLayer('https://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineCommunity/MapServer/tile/{z}/{y}/{x}', {
+                        attribution: '© GeoQ 智图'
+                    }),
+                    "GeoQ 深蓝": L.tileLayer('https://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineStreetPurplishBlue/MapServer/tile/{z}/{y}/{x}', {
+                        attribution: '© GeoQ 智图'
+                    })
+                };
+
+                const defaultLayer = baseLayers["高德地图 (暗黑)"];
+                defaultLayer.addTo(map);
+
+                // 应用深色滤镜
+                document.getElementById('map').classList.add('map-dark-mode');
+
+                L.control.layers(baseLayers).addTo(map);
+
+                qsoMarkersLayer = L.layerGroup().addTo(map);
+                qsoRectanglesLayer = L.layerGroup().addTo(map);
+
+                document.getElementById('loading').style.display = 'none';
+
+                console.log('Leaflet map initialized');
+
+                window.addEventListener('message', function(event) {
+                    const msg = event.data;
+                    console.log('Received message:', msg);
+                    if (msg && msg.type === 'LOCATE_GRID' && msg.grid) {
+                        console.log('Received LOCATE_GRID:', msg.grid);
+                        locateGrid(msg.grid);
+                    } else if (msg && msg.type === 'DISPLAY_ALL_QSOS' && msg.grids) {
+                        console.log('Received DISPLAY_ALL_QSOS:', msg.grids);
+                        displayAllQsos(msg.grids);
+                    } else if (msg && msg.type === 'HIGHLIGHT_QSO' && msg.grid) {
+                        console.log('Received HIGHLIGHT_QSO:', msg.grid, msg.callsign);
+                        highlightQso(msg.grid, msg.callsign);
                     }
-                } catch (e) {
-                    console.warn(`${service.name} failed:`, e);
-                    // 继续尝试下一个服务
-                }
+                });
+
+            } catch (error) {
+                console.error('Failed to initialize Leaflet:', error);
+                console.error('Error stack:', error.stack);
+                document.getElementById('loading').textContent = '初始化失败: ' + error.message;
+                document.getElementById('loading').style.color = '#ff6b6b';
+            }
+        }
+
+        // 定位到网格
+        function locateGrid(grid) {
+            const data = maidenheadDecode(grid);
+            if (!data) {
+                console.warn('Failed to decode grid:', grid);
+                return;
             }
 
-            return '位置服务不可用';
-        }
+            console.log('Locating grid:', data);
 
-        // 在地图上绘制网格
-        function drawGridOnMap(gridData, color = '#d32f2f') {
-            // 清除旧图层
+            // 清除之前的标记
             if (currentGridLayer) map.removeLayer(currentGridLayer);
-            if (currentMarker) map.removeLayer(currentMarker);
-            
+            qsoMarkersLayer.clearLayers();
+            qsoRectanglesLayer.clearLayers();
+            highlightedMarker = null;
+
+            const popupContent = `
+                <div style="min-width:120px">
+                    <div style="font-size:16px; font-weight:bold; color:#4dabf7; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:3px;">
+                        ${data.grid}
+                    </div>
+                </div>
+            `;
+
             // 绘制网格边界
-            currentGridLayer = L.rectangle(gridData.bounds, {
-                color: color,
+            currentGridLayer = L.rectangle(data.bounds, {
+                color: '#d32f2f',
                 weight: 3,
-                fillColor: color,
-                fillOpacity: 0.2,
+                fillColor: '#d32f2f',
+                fillOpacity: 0.15,
                 dashArray: '5, 5'
             }).addTo(map);
-            
+
             // 标记中心点
-            currentMarker = L.circleMarker(gridData.center, {
-                radius: 8,
-                fillColor: color,
+            const marker = L.circleMarker(data.center, {
+                radius: 10,
+                fillColor: '#d32f2f',
                 color: '#fff',
                 weight: 2,
                 opacity: 1,
                 fillOpacity: 1
             }).addTo(map);
 
-            const uniqueId = `loc-${gridData.grid}-${Date.now()}`;
-            const popupContent = `
-                <div style="min-width:120px">
-                    <div style="font-size:16px; font-weight:bold; color:#4dabf7; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:3px;">
-                        ${gridData.grid}
-                    </div>
-                    <div id="${uniqueId}" style="font-size:12px; color:#e0e0e0; display:flex; align-items:start; line-height: 1.3;">
-                        <span style="margin-right:4px; flex-shrink:0; font-size:11px;">📍</span>
-                        <span class="loc-text">正在定位...</span>
-                    </div>
-                </div>
-            `;
+            marker.bindPopup(popupContent);
 
-            currentMarker.bindPopup(popupContent).openPopup();
-            
-            resolveLocationName(gridData.center[0], gridData.center[1]).then(loc => {
-                const el = document.getElementById(uniqueId);
-                if (el) {
-                    el.querySelector('.loc-text').textContent = loc;
-                }
-                // 更新 popup 内容以便下次打开时显示
-                const newContent = popupContent.replace('正在定位...', loc);
-                currentMarker.setPopupContent(newContent);
+            // 设置视图中心并缩放
+            map.fitBounds(data.bounds, { padding: [50, 50], maxZoom: 12 });
+
+            // 自动打开弹出窗口
+            setTimeout(() => {
+                marker.openPopup();
+            }, 500);
+        }
+
+        // 显示所有QSO
+        function displayAllQsos(qsos) {
+            console.log('Displaying QSOs on map:', qsos);
+            currentQsos = qsos;
+
+            // 清除之前的标记
+            if (currentGridLayer) map.removeLayer(currentGridLayer);
+            qsoMarkersLayer.clearLayers();
+            qsoRectanglesLayer.clearLayers();
+            highlightedMarker = null;
+
+            if (!qsos || qsos.length === 0) {
+                document.getElementById('currentGrid').textContent = '0';
+                return;
+            }
+
+            console.log('Processing QSOs:', qsos.length);
+
+            // 计算当日通联统计
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const todayQsos = qsos.filter(qso => {
+                const ts = qso.timestamp;
+                if (!ts) return false;
+                const isSeconds = ts < 10000000000;
+                const qsoDate = new Date(isSeconds ? ts * 1000 : ts);
+                return qsoDate >= today;
             });
-            
-            // 保存当前状态
-            currentGrid = gridData.grid;
-            currentBounds = gridData.bounds;
-            
-            // 更新显示
-            document.getElementById('currentGrid').textContent = gridData.grid;
-            
-            // 适应视图
-            map.fitBounds(gridData.bounds, { padding: [50, 50], maxZoom: 12 });
-        }
 
-        // 解码网格按钮
-        function decodeGrid() {
-            const input = document.getElementById('gridInput').value.trim();
-            const errorEl = document.getElementById('gridError');
-            const resultEl = document.getElementById('decodeResult');
-            
-            if (!/^[A-Ra-r]{2}[0-9]{2}[A-Za-z]{2}$/.test(input)) {
-                errorEl.classList.add('active');
-                resultEl.classList.remove('active');
-                return;
-            }
-            
-            errorEl.classList.remove('active');
-            const data = maidenheadDecode(input);
-            
-            if (data) {
-                document.getElementById('displayGrid').textContent = data.grid;
-                document.getElementById('centerLon').textContent = data.center[1].toFixed(4) + '°';
-                document.getElementById('centerLat').textContent = data.center[0].toFixed(4) + '°';
-                resultEl.classList.add('active');
-                
-                drawGridOnMap(data);
-                updateStatus(`已解码网格: ${data.grid}`);
-            }
-        }
+            const todayCallsigns = new Set(todayQsos.map(qso => qso.callsign));
+            const todayCount = todayCallsigns.size;
+            const todayQsoCount = todayQsos.length;
 
-        // 编码坐标按钮
-        function encodeCoordinates() {
-            const lon = parseFloat(document.getElementById('lonInput').value);
-            const lat = parseFloat(document.getElementById('latInput').value);
-            const errorEl = document.getElementById('coordError');
-            const resultEl = document.getElementById('encodeResult');
-            
-            if (isNaN(lon) || isNaN(lat) || lon < -180 || lon > 180 || lat < -90 || lat > 90) {
-                errorEl.classList.add('active');
-                resultEl.classList.remove('active');
-                return;
-            }
-            
-            errorEl.classList.remove('active');
-            const grid = maidenheadEncode(lat, lon);
-            
-            if (grid) {
-                document.getElementById('generatedGrid').textContent = grid;
-                resultEl.classList.add('active');
-                
-                const data = maidenheadDecode(grid);
-                drawGridOnMap(data, '#28a745');
-                updateStatus(`已编码坐标: ${grid}`);
-            }
-        }
+            document.getElementById('currentGrid').textContent = `${todayCount}人 (${todayQsoCount}次)`;
 
-        // 缩放到网格
-        function zoomToGrid() {
-            if (currentBounds) {
-                map.fitBounds(currentBounds, { padding: [100, 100], maxZoom: 11 });
+            const bounds = [];
+
+            qsos.forEach(qso => {
+                const data = maidenheadDecode(qso.grid);
+                if (!data) {
+                    console.warn('Failed to decode grid:', qso.grid);
+                    return;
+                }
+
+                const popupContent = `
+                    <div style="min-width:120px">
+                        <div style="font-size:16px; font-weight:bold; color:#4dabf7; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:3px;">
+                            ${qso.callsign}
+                        </div>
+                        <div style="font-size:12px; color:#e0e0e0; margin-bottom:3px;">
+                            <strong>Grid:</strong> ${qso.grid}
+                        </div>
+                    </div>
+                `;
+
+                const marker = L.circleMarker(data.center, {
+                    radius: 6,
+                    fillColor: '#4dabf7',
+                    color: '#fff',
+                    weight: 2,
+                    opacity: 0.9,
+                    fillOpacity: 0.8
+                });
+
+                marker.bindPopup(popupContent);
+
+                // 创建网格矩形
+                const rectangle = L.rectangle(data.bounds, {
+                    color: '#4dabf7',
+                    weight: 1,
+                    fillColor: '#4dabf7',
+                    fillOpacity: 0.05
+                });
+
+                rectangle.qsoData = { grid: qso.grid, callsign: qso.callsign };
+                marker.qsoData = { grid: qso.grid, callsign: qso.callsign };
+
+                qsoRectanglesLayer.addLayer(rectangle);
+                qsoMarkersLayer.addLayer(marker);
+                bounds.push(data.center);
+            });
+
+            console.log(`Total markers: ${bounds.length}`);
+
+            if (bounds.length > 0) {
+                map.fitBounds(L.latLngBounds(bounds), {
+                    padding: [50, 50],
+                    maxZoom: 8
+                });
             }
         }
 
-        // 缩放到坐标
-        function zoomToCoords() {
-            zoomToGrid();
+        // 高亮特定QSO
+        function highlightQso(grid, callsign) {
+            console.log('Highlighting QSO:', grid, callsign);
+
+            qsoMarkersLayer.eachLayer(layer => {
+                if (layer.qsoData && layer.qsoData.grid === grid && layer.qsoData.callsign === callsign) {
+                    layer.setStyle({
+                        radius: 10,
+                        fillColor: '#ff6b6b',
+                        color: '#fff',
+                        weight: 3,
+                        opacity: 1,
+                        fillOpacity: 1
+                    });
+
+                    layer.openPopup();
+
+                    const center = layer.getLatLng();
+                    map.setView(center, 10);
+                    highlightedMarker = layer;
+                } else {
+                    layer.setStyle({
+                        radius: 6,
+                        fillColor: '#4dabf7',
+                        color: '#fff',
+                        weight: 2,
+                        opacity: 0.9,
+                        fillOpacity: 0.8
+                    });
+                }
+            });
+
+            qsoRectanglesLayer.eachLayer(rectangle => {
+                if (rectangle.qsoData && rectangle.qsoData.grid === grid && rectangle.qsoData.callsign === callsign) {
+                    rectangle.setStyle({
+                        color: '#ff6b6b',
+                        weight: 2,
+                        fillColor: '#ff6b6b',
+                        fillOpacity: 0.15
+                    });
+                } else {
+                    rectangle.setStyle({
+                        color: '#4dabf7',
+                        weight: 1,
+                        fillColor: '#4dabf7',
+                        fillOpacity: 0.05
+                    });
+                }
+            });
         }
 
-        // 监听外部消息 (postMessage)
-        window.addEventListener('message', function(event) {
-            const msg = event.data;
-            if (msg && msg.type === 'LOCATE_GRID' && msg.grid) {
-                console.log('Received LOCATE_GRID:', msg.grid);
-                document.getElementById('gridInput').value = msg.grid;
-                decodeGrid(); // 触发解码和定位
-            }
-        });
-    </script>
-</body>
-</html>
-                    经度: ${lon.toFixed(4)}°<br>
-                    <b>所在网格:</b> ${grid}
-                `).openPopup();
-                
-                drawGridOnMap(data, '#2196f3');
-                updateStatus(`点击位置网格: ${grid}`);
-                
-                // 更新输入框
-                document.getElementById('gridInput').value = grid;
-            }
-        });
-
-        // 更新状态栏
-        function updateStatus(text) {
-            const now = new Date().toLocaleTimeString();
-            document.getElementById('statusText').textContent = `[${now}] ${text}`;
-        }
-
-        // 示例：默认显示OM16uc
         window.onload = function() {
-            document.getElementById('gridInput').value = 'OM16uc';
-            decodeGrid();
+            console.log('Window loaded, initializing map...');
+            initMap();
         };
-
-        // 回车键支持
-        document.getElementById('gridInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') decodeGrid();
-        });
-        
-        document.getElementById('lonInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') encodeCoordinates();
-        });
-        
-        document.getElementById('latInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') encodeCoordinates();
-        });
     </script>
 </body>
 </html>

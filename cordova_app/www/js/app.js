@@ -485,117 +485,138 @@ window.APP_CONFIG = {
             }
         }
 
-        /** 音频播放器 (PCM 流处理) */
+        /** 音频播放器 (基于 api3.0/audioPlayer.js 改进) */
         class AudioPlayer extends EventEmitter {
-            constructor() {
+            constructor({ url = `ws://${window.location.host}/audio`, inputSampleRate = 8000 } = {}) {
                 super();
+                this.url = url;
+                this.inputSampleRate = inputSampleRate;
+
+                // WebAudio
                 this.audioCtx = null;
+                this.gainNode = null;
+                this.analyser = null;
+
+                // WS
                 this.ws = null;
                 this.connected = false;
-                this.analyser = null;
-                this.gainNode = null;
-                // 音频处理链节点
+
+                // Buffering & scheduling (来自 api3.0)
+                this.chunkQueue = [];
+                this.queuedSamples = 0;
+                this.scheduledEndTime = 0;
+                this.buffering = true;
+                this.started = false;
+
+                // Tunables (来自 api3.0 优化参数)
+                this.minStartBufferSec = 0.1;
+                this.lowBufferSec = 0.3;
+                this.targetLeadSec = 0.5;
+                this.maxBufferSec = 1.0;
+
+                // State callbacks
+                this.onStatus = null;
+
+                // 音频处理链节点 (优化后的处理链)
+                this._chainInput = null;
                 this.hpfNode = null;
                 this.lpfNode = null;
                 this.eqLow = null;
                 this.eqMid = null;
                 this.eqHigh = null;
                 this.compressor = null;
-                
-                // 缓冲调度相关
-                this.chunkQueue = [];
-                this.scheduledEndTime = 0;
-                this.started = false;
-                this.buffering = true;
-                
-                // 音频参数
-                this.sampleRate = 8000;
-                this.targetLead = 0.5; // 目标领先时间(s)
 
                 // 录音相关
                 this.recording = false;
                 this.recordedChunks = [];
-                
-                // 本地静音相关
+
+                // 本地静音相关 (保持原有功能)
                 this.localMuteEnabled = localStorage.getItem('fmo_local_mute') === 'true';
                 this.isLocalTransmitting = false;
                 this.audioQueueBuffer = []; // FIFO buffer for delay
             }
 
-            async ensureAudioContext() {
-                if (!this.audioCtx) {
-                    try {
-                        const AudioContext = window.AudioContext || window.webkitAudioContext;
-                        this.audioCtx = new AudioContext();
-                        
-                        this.analyser = this.audioCtx.createAnalyser();
-                        this.analyser.fftSize = 1024; // 降低分辨率以提高性能 (原 2048)
-                        this.analyser.smoothingTimeConstant = 0.8;
-                        
-                        this.gainNode = this.audioCtx.createGain();
-                        this.gainNode.gain.value = 1.0;
+            setStatus(text) {
+                if (this.onStatus) this.onStatus(text);
+            }
 
-                        // 音频处理链优化 (参考 API 文档)
-                        // 1. 300Hz HPF: 去除亚音频 (CTCSS/DCS) 和低频噪声
-                        this.hpfNode = this.audioCtx.createBiquadFilter();
-                        this.hpfNode.type = 'highpass';
-                        this.hpfNode.frequency.value = 300;
+            async ensureAudio() {
+                if (this.audioCtx) return;
+                // Create context on user gesture
+                this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                this.gainNode = this.audioCtx.createGain();
+                this.gainNode.gain.value = 1;
 
-                        // 2. 3000Hz LPF: 模拟电台带宽，去除高频刺耳噪声
-                        this.lpfNode = this.audioCtx.createBiquadFilter();
-                        this.lpfNode.type = 'lowpass';
-                        this.lpfNode.frequency.value = 3000;
-                        this.lpfNode.Q.value = 0.5;
+                // Create analyser for FFT visualization
+                this.analyser = this.audioCtx.createAnalyser();
+                this.analyser.fftSize = 1024; // 1024-point FFT; freqBinCount = 512
+                this.analyser.smoothingTimeConstant = 0.8;
+                // Destination chain (tail): analyser -> gain -> destination
+                // We'll feed analyser from our processing chain
+                this.analyser.connect(this.gainNode);
+                this.gainNode.connect(this.audioCtx.destination);
 
-                        // 3. EQ 低频 (LowShelf 180Hz +0.5dB)
-                        this.eqLow = this.audioCtx.createBiquadFilter();
-                        this.eqLow.type = 'lowshelf';
-                        this.eqLow.frequency.value = 180;
-                        this.eqLow.gain.value = 0.5;
+                // Build processing chain (head): source -> _chainInput -> HPF -> LPF -> EQ(Low,Mid,High) -> Compressor -> analyser
+                // Create once and reuse for all scheduled chunks
+                if (!this._chainInput) {
+                    // Unified entry for all sources
+                    this._chainInput = this.audioCtx.createGain();
+                    this._chainInput.gain.value = 1.0;
 
-                        // 4. EQ 中频 (Peaking 1400Hz +1.0dB Q=0.8) - 增强人声清晰度
-                        this.eqMid = this.audioCtx.createBiquadFilter();
-                        this.eqMid.type = 'peaking';
-                        this.eqMid.frequency.value = 1400;
-                        this.eqMid.Q.value = 0.8;
-                        this.eqMid.gain.value = 1.0;
+                    // High-pass to remove DC/rumble (walkie‑talkie voice) - 优化参数
+                    this.hpf = this.audioCtx.createBiquadFilter();
+                    this.hpf.type = 'highpass';
+                    this.hpf.frequency.value = 220; // slightly lower for more body/warmth
+                    this.hpf.Q.value = 0.5; // gentler slope to avoid plastic/boxy feel
 
-                        // 5. EQ 高频 (HighShelf 2600Hz 0dB)
-                        this.eqHigh = this.audioCtx.createBiquadFilter();
-                        this.eqHigh.type = 'highshelf';
-                        this.eqHigh.frequency.value = 2600;
-                        this.eqHigh.gain.value = 0;
+                    // Low-pass to tame hiss/sibilance given 8 kHz sampling (Nyquist 4 kHz) - 优化参数
+                    this.lpf = this.audioCtx.createBiquadFilter();
+                    this.lpf.type = 'lowpass';
+                    this.lpf.frequency.value = 3000; // a touch lower to soften edge
+                    this.lpf.Q.value = 0.5; // reduce resonance/phasey artifacts
 
-                        // 6. 动态压缩器: 平衡音量，防止爆音
-                        this.compressor = this.audioCtx.createDynamicsCompressor();
-                        this.compressor.threshold.value = -22;
-                        this.compressor.knee.value = 24;
-                        this.compressor.ratio.value = 2;
+                    // EQ: subtle voice shaping
+                    this.eqLow = this.audioCtx.createBiquadFilter();
+                    this.eqLow.type = 'lowshelf';
+                    this.eqLow.frequency.value = 180; // slight warmth
+                    this.eqLow.gain.value = 0.5; // dB, tiny lift
 
-                        // 连线: Source -> Gain -> HPF -> LPF -> EQ(L/M/H) -> Comp -> Analyser -> Dest
-                        this.gainNode.connect(this.hpfNode);
-                        this.hpfNode.connect(this.lpfNode);
-                        this.lpfNode.connect(this.eqLow);
-                        this.eqLow.connect(this.eqMid);
-                        this.eqMid.connect(this.eqHigh);
-                        this.eqHigh.connect(this.compressor);
-                        this.compressor.connect(this.analyser);
-                        this.analyser.connect(this.audioCtx.destination);
-                    } catch (e) {
-                        console.warn('AudioContext creation failed (waiting for user gesture):', e);
-                        return;
-                    }
+                    this.eqMid = this.audioCtx.createBiquadFilter();
+                    this.eqMid.type = 'peaking';
+                    this.eqMid.frequency.value = 1400; // reduce nasality
+                    this.eqMid.Q.value = 0.8; // broader, more natural
+                    this.eqMid.gain.value = 1.0; // dB, milder boost
+
+                    this.eqHigh = this.audioCtx.createBiquadFilter();
+                    this.eqHigh.type = 'highshelf';
+                    this.eqHigh.frequency.value = 2600; // keep brightness conservative
+                    this.eqHigh.gain.value = 0.0; // dB, remove added sheen to avoid plasticky top
+
+                    // Gentle compression to increase loudness consistency - 优化参数
+                    this.compressor = this.audioCtx.createDynamicsCompressor();
+                    this.compressor.threshold.value = -22; // dB, a bit lighter
+                    this.compressor.knee.value = 24; // dB, softer knee
+                    this.compressor.ratio.value = 2.0; // :1, reduce flattening
+                    this.compressor.attack.value = 0.006; // s, let transients breathe
+                    this.compressor.release.value = 0.30; // s, smoother recovery
+
+                    // Wire: input -> HPF -> LPF -> EQ(Low -> Mid -> High) -> Compressor -> Analyser (-> Gain -> Dest)
+                    this._chainInput.connect(this.hpf);
+                    this.hpf.connect(this.lpf);
+                    this.lpf.connect(this.eqLow);
+                    this.eqLow.connect(this.eqMid);
+                    this.eqMid.connect(this.eqHigh);
+                    this.eqHigh.connect(this.compressor);
+                    this.compressor.connect(this.analyser);
                 }
-                
-                // Do NOT auto-resume here. Rely on unlock() called by user gesture.
             }
 
             unlock() {
                 // Try to create if missing (e.g. failed during auto-connect)
                 if (!this.audioCtx) {
-                    this.ensureAudioContext();
+                    this.ensureAudio();
                 }
-                
+
                 if (this.audioCtx && this.audioCtx.state === 'suspended') {
                     this.audioCtx.resume().then(() => {
                         console.log('AudioContext resumed via user interaction');
@@ -604,78 +625,177 @@ window.APP_CONFIG = {
             }
 
             connect(host) {
-                if (this.connected) return;
-                this.ensureAudioContext();
-                
-                // 重置状态
-                this.chunkQueue = [];
-                this.scheduledEndTime = this.audioCtx.currentTime;
-                this.started = false;
-                this.buffering = true;
+                if (this.ws && (this.connected || this.ws.readyState === WebSocket.CONNECTING)) return;
+                this.ensureAudio();
+                this.url = `${(window.location && window.location.protocol === 'https:' ? 'wss' : 'ws')}://${host}/audio`;
+                this.resetBuffers();
 
-                try {
-                    this.ws = new WebSocket(`${(window.location && window.location.protocol === 'https:' ? 'wss' : 'ws')}://${host}/audio`);
-                    this.ws.binaryType = 'arraybuffer';
+                this.ws = new WebSocket(this.url);
+                this.ws.binaryType = 'arraybuffer';
 
-                    this.ws.onopen = () => {
-                        this.connected = true;
-                        this.emit('status', true);
-                    };
+                this.ws.onopen = () => {
+                    this.connected = true;
+                    this.emit('status', true);
+                    this.setStatus('音频已连接');
+                    // Resume audio if it was suspended
+                    if (this.audioCtx?.state === 'suspended') this.audioCtx.resume();
+                };
 
-                    this.ws.onclose = () => {
-                        this.connected = false;
-                        this.emit('status', false);
-                    };
+                this.ws.onclose = () => {
+                    this.connected = false;
+                    this.emit('status', false);
+                    this.setStatus('音频未连接');
+                };
 
-                    this.ws.onmessage = (e) => {
-                        if (e.data instanceof ArrayBuffer) {
-                            this.handlePCM(e.data);
-                        }
-                    };
-                } catch (e) {
-                    console.error('Audio Connect Failed:', e);
-                }
+                this.ws.onerror = () => {
+                    this.emit('status', false);
+                    this.setStatus('音频连接错误');
+                };
+
+                this.ws.onmessage = (evt) => {
+                    const buf = evt.data; // ArrayBuffer
+                    if (!(buf instanceof ArrayBuffer)) return;
+                    this._ingestPCM16(buf);
+                    this._maybeSchedule();
+                };
             }
 
             disconnect() {
                 if (this.ws) {
-                    this.ws.close();
+                    try { this.ws.close(); } catch {}
                     this.ws = null;
                 }
                 this.connected = false;
+                // Stop scheduling and clear buffers
+                this.resetBuffers();
+                // Optionally pause audio to save CPU
+                if (this.audioCtx?.state === 'running') this.audioCtx.suspend();
+                this.setStatus('音频未连接');
                 this.emit('status', false);
             }
 
-            handlePCM(buffer) {
+            resetBuffers() {
+                // stop periodic tick if any
+                if (this._tickTimer) {
+                    clearTimeout(this._tickTimer);
+                    this._tickTimer = null;
+                }
+                this.chunkQueue = [];
+                this.queuedSamples = 0;
+                this.scheduledEndTime = this.audioCtx ? this.audioCtx.currentTime : 0;
+                this.buffering = true;
+                this.started = false;
+                // 本地静音缓冲区也清空
+                this.audioQueueBuffer = [];
+            }
+
+            _ingestPCM16(arrayBuffer) {
                 // 触发PCM事件供转录器使用
-                this.emit('pcm', buffer);
+                this.emit('pcm', arrayBuffer);
 
                 // 录音收集
                 if (this.recording) {
-                    this.recordedChunks.push(buffer.slice(0));
+                    this.recordedChunks.push(arrayBuffer.slice(0));
                 }
 
-                // PCM16 -> Float32
-                const int16 = new Int16Array(buffer);
-                const float32 = new Float32Array(int16.length);
-                const scale = 1.0 / 32768;
-                for (let i = 0; i < int16.length; i++) {
-                    float32[i] = int16[i] * scale;
+                const view = new Int16Array(arrayBuffer);
+                // Convert to Float32 [-1,1]
+                const f32 = new Float32Array(view.length);
+                for (let i = 0; i < view.length; i++) {
+                    f32[i] = view[i] / 32768;
                 }
-                
+
+                // Latency control: if too much queued, drop oldest to ~targetLeadSec (api3.0 优化)
+                const queuedSec = this.queuedSamples / this.inputSampleRate;
+                if (queuedSec > this.maxBufferSec) {
+                    const targetSamples = Math.floor(this.targetLeadSec * this.inputSampleRate);
+                    // Drop enough from head
+                    let toDrop = (this.queuedSamples + f32.length) - targetSamples;
+                    while (toDrop > 0 && this.chunkQueue.length) {
+                        const c = this.chunkQueue[0];
+                        if (c.length <= toDrop) {
+                            this.chunkQueue.shift();
+                            this.queuedSamples -= c.length;
+                            toDrop -= c.length;
+                        } else {
+                            // Trim head of first chunk
+                            const remain = c.length - toDrop;
+                            const trimmed = c.subarray(c.length - remain);
+                            this.chunkQueue[0] = trimmed;
+                            this.queuedSamples -= toDrop;
+                            toDrop = 0;
+                        }
+                    }
+                }
+
                 // 本地静音逻辑 (500ms 延迟)
                 if (this.localMuteEnabled) {
                     this.audioQueueBuffer.push({
-                        data: float32,
+                        data: f32,
                         ts: Date.now()
                     });
                     this.processAudioQueueBuffer();
                 } else {
-                    this.chunkQueue.push(float32);
-                    this.schedule();
+                    this.chunkQueue.push(f32);
+                    this.queuedSamples += f32.length;
                 }
             }
             
+            _maybeSchedule() {
+                if (!this.audioCtx) return;
+
+                const now = this.audioCtx.currentTime;
+                if (this.scheduledEndTime < now) this.scheduledEndTime = now;
+
+                const queuedSec = this.queuedSamples / this.inputSampleRate;
+
+                // Buffering logic (api3.0 优化)
+                if (this.buffering) {
+                    if (queuedSec >= this.minStartBufferSec) {
+                        this.buffering = false;
+                        this.started = true;
+                        this.setStatus('播放中');
+                    } else {
+                        // Not enough yet for the very first start
+                        this.setStatus('缓冲中...');
+                        return;
+                    }
+                }
+
+                // Schedule ahead to maintain target lead time (api3.0 优化)
+                while ((this.scheduledEndTime - now) < this.targetLeadSec && this.chunkQueue.length) {
+                    const chunk = this.chunkQueue.shift();
+                    this.queuedSamples -= chunk.length;
+
+                    const buffer = this.audioCtx.createBuffer(1, chunk.length, this.inputSampleRate);
+                    buffer.copyToChannel(chunk, 0, 0);
+
+                    const src = this.audioCtx.createBufferSource();
+                    src.buffer = buffer;
+                    // Route each source into processing chain entry (shared), or analyser if chain missing
+                    if (this._chainInput) {
+                        src.connect(this._chainInput);
+                    } else {
+                        src.connect(this.analyser);
+                    }
+
+                    const duration = chunk.length / this.inputSampleRate;
+                    src.start(this.scheduledEndTime);
+                    this.scheduledEndTime += duration;
+                }
+
+                // If we've started and currently没有可用数据，不要重回缓冲状态；等待新数据并保持"播放中"状态
+                if (this.started && !this.buffering) {
+                    this.setStatus('播放中');
+                }
+
+                // Keep a light scheduling tick while connected
+                if (this.connected) {
+                    clearTimeout(this._tickTimer);
+                    this._tickTimer = setTimeout(() => this._maybeSchedule(), 60);
+                }
+            }
+
             processAudioQueueBuffer() {
                 const now = Date.now();
                 // 处理缓冲区
@@ -689,13 +809,14 @@ window.APP_CONFIG = {
                             // Mute (discard)
                         } else {
                             this.chunkQueue.push(item.data);
-                            this.schedule();
+                            this.queuedSamples += item.data.length;
+                            this._maybeSchedule();
                         }
                     } else {
                         break;
                     }
                 }
-                
+
                 // Continue checking if buffer is not empty
                 if (this.audioQueueBuffer.length > 0) {
                     setTimeout(() => this.processAudioQueueBuffer(), 50);
@@ -709,9 +830,13 @@ window.APP_CONFIG = {
                     this.audioQueueBuffer = []; // Clear buffer to be responsive
                 }
             }
-            
+
             setLocalTransmission(isLocal) {
                 this.isLocalTransmitting = isLocal;
+            }
+
+            setVolume(val) {
+                if (this.gainNode) this.gainNode.gain.value = Number(val) || 0;
             }
 
             startRecording() {
@@ -736,21 +861,21 @@ window.APP_CONFIG = {
                     buffer.set(new Uint8Array(chunk), offset);
                     offset += chunk.byteLength;
                 }
-                
+
                 // 创建 WAV 头
-                const wavHeader = this.createWavHeader(totalLen, 1, this.sampleRate, 16);
+                const wavHeader = this.createWavHeader(totalLen, 1, this.inputSampleRate, 16);
                 return new Blob([wavHeader, buffer], { type: 'audio/wav' });
             }
 
             createWavHeader(dataLength, numChannels, sampleRate, bitsPerSample) {
                 const header = new ArrayBuffer(44);
                 const view = new DataView(header);
-                
+
                 // RIFF chunk descriptor
                 this.writeString(view, 0, 'RIFF');
                 view.setUint32(4, 36 + dataLength, true);
                 this.writeString(view, 8, 'WAVE');
-                
+
                 // fmt sub-chunk
                 this.writeString(view, 12, 'fmt ');
                 view.setUint32(16, 16, true); // Subchunk1Size (16 for PCM)
@@ -760,76 +885,18 @@ window.APP_CONFIG = {
                 view.setUint32(28, sampleRate * numChannels * bitsPerSample / 8, true); // ByteRate
                 view.setUint16(32, numChannels * bitsPerSample / 8, true); // BlockAlign
                 view.setUint16(34, bitsPerSample, true);
-                
+
                 // data sub-chunk
                 this.writeString(view, 36, 'data');
                 view.setUint32(40, dataLength, true);
-                
+
                 return header;
             }
-            
+
             writeString(view, offset, string) {
                 for (let i = 0; i < string.length; i++) {
                     view.setUint8(offset + i, string.charCodeAt(i));
                 }
-            }
-
-            schedule() {
-                if (!this.audioCtx) return;
-                
-                // 如果处于挂起状态，不进行调度，避免错误日志刷屏
-                if (this.audioCtx.state === 'suspended') return;
-
-                const now = this.audioCtx.currentTime;
-                if (this.scheduledEndTime < now) this.scheduledEndTime = now;
-
-                // 简单的缓冲策略
-                if (this.buffering) {
-                    // 积攒约 0.5s 数据再开始
-                    const totalSamples = this.chunkQueue.reduce((acc, c) => acc + c.length, 0);
-                    if (totalSamples / this.sampleRate > 0.5) {
-                        this.buffering = false;
-                        this.started = true;
-                    } else {
-                        return;
-                    }
-                }
-
-                // 延迟控制/追赶逻辑
-                // 如果计划时间落后当前时间太多（欠载），重置为当前时间
-                if (this.scheduledEndTime < now) {
-                    this.scheduledEndTime = now + 0.01; // 给一点小缓冲
-                }
-                
-                // 如果计划时间超前当前时间太多（积压），进行丢包处理以减少延迟
-                const latency = this.scheduledEndTime - now;
-                if (latency > 1.0) { // 允许最大 800ms 延迟
-                    // 丢弃队列头部的包，直到延迟在此范围内
-                    // 注意：这会导致音频跳跃，但在实时通信中低延迟优先
-                    console.log(`Latency too high (${latency.toFixed(3)}s), skipping packets...`);
-                    // 简单粗暴：清空队列，重置时间
-                    this.chunkQueue = [];
-                    this.scheduledEndTime = now + 0.05;
-                    return;
-                }
-
-                // 调度所有队列中的块
-                while (this.chunkQueue.length) {
-                    const chunk = this.chunkQueue.shift();
-                    const buffer = this.audioCtx.createBuffer(1, chunk.length, this.sampleRate);
-                    buffer.copyToChannel(chunk, 0);
-
-                    const source = this.audioCtx.createBufferSource();
-                    source.buffer = buffer;
-                    source.connect(this.gainNode);
-                    source.start(this.scheduledEndTime);
-
-                    this.scheduledEndTime += chunk.length / this.sampleRate;
-                }
-            }
-
-            setVolume(val) {
-                if (this.gainNode) this.gainNode.gain.value = val;
             }
         }
 
@@ -1883,7 +1950,7 @@ window.APP_CONFIG = {
 
                 // 8. 图例 (自适应)
                 if (minDim > 350) { // 图例需要更多空间，阈值稍高
-                    const legendY = h - 25;
+                    const legendY = h - 60; // 移到60px上方，留出空间给UI元素
                     const legendItems = [
                         { color: '#FFD700', label: 'Sun' },
                         { color: '#A9A9A9', label: 'Rocky' },
@@ -2068,14 +2135,24 @@ window.APP_CONFIG = {
 
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-                if (!this.analyser) return;
+                // Use dummy analyser if real one is missing, to ensure rendering (especially callsigns) continues
+                let effectiveAnalyser = this.analyser;
+                if (!effectiveAnalyser) {
+                    effectiveAnalyser = {
+                        frequencyBinCount: 128,
+                        getByteFrequencyData: (arr) => arr.fill(0),
+                        getByteTimeDomainData: (arr) => arr.fill(128),
+                        fftSize: 256
+                    };
+                }
 
-                const bufferLength = this.analyser.frequencyBinCount;
+                const bufferLength = effectiveAnalyser.frequencyBinCount;
                 const dataArray = (this.freqData && this.freqData.length === bufferLength)
                     ? this.freqData
                     : (this.freqData = new Uint8Array(bufferLength));
 
-                this.renderers[this.mode].draw(this.analyser, dataArray, bufferLength, {
+                // Note: Renderers usually call getByteFrequencyData themselves, so we pass effectiveAnalyser
+                this.renderers[this.mode].draw(effectiveAnalyser, dataArray, bufferLength, {
                     primary: this.colorTheme,
                     secondary: this.colorSecondary
                 }, { 
@@ -2111,431 +2188,6 @@ window.APP_CONFIG = {
                 this.ctx = null;
                 this.analyser = null;
                 this.freqData = null;
-            }
-        }
-
-        /** 语音转录器 - 实时语音识别 */
-        class SpeechTranscriber extends EventEmitter {
-            constructor() {
-                super();
-                
-                // API配置 - 从localStorage或使用默认值
-                this.apiKey = localStorage.getItem('transcriber_apiKey') || 'sk-lickpcbkftopqzyemjqdtgggkcdcsafwpjeameotbtuqklao';
-                this.apiUrl = 'https://api.siliconflow.cn/v1/audio/transcriptions';
-                this.modelName = 'TeleAI/TeleSpeechASR';
-                
-                // 音频参数（与AudioPlayer一致）
-                this.sampleRate = 8000;
-                this.bitsPerSample = 16;
-                this.numChannels = 1;
-                
-                // 动态分段配置 - 基于VAD（语音活动检测）或Callsign事件
-                // Callsign驱动模式参数（唯一支持的分段方式）
-                this.CALLSIGN_END_DELAY_MS = 2000;   // callsign后2秒无新呼号则结束分段
-                this.MAX_CALLSIGN_DURATION_MS = 5000; // 单个callsign最长说话时间（5秒）
-                this.lastCallsignTime = null;        // 最后一个callsign的时间
-                this.callsignStartTime = null;       // 当前callsign的开始时间
-                this.currentCallsign = null;         // 当前callsign
-                this.callsignSegmentEndTimer = null; // callsign分段结束计时器
-                this.callsignMaxDurationTimer = null;// callsign最大时长计时器
-                
-                // 状态管理
-                this.enabled = false;
-                this.pcmBuffer = new Uint8Array(0);
-                this.transcriptionQueue = [];
-                this.isProcessing = false;
-                this.currentRetry = 0;
-                this.maxRetries = 3;
-                
-                // UI元素
-                this.statusDot = null;
-                this.statusText = null;
-                this.transcriptArea = null;
-                this.btnStart = null;
-                this.btnStop = null;
-                this.btnClear = null;
-                
-                this.typeWriterTimer = null; // 打字机效果定时器
-                
-                this.initUI();
-            }
-            
-            initUI() {
-                // 获取UI元素
-                this.transcriptArea = document.getElementById('subtitle-overlay');
-                this.btnStart = document.getElementById('btn-subtitle-toggle');
-                
-                if (!this.btnStart) return;
-                
-                // 验证API KEY
-                if (!this.apiKey || this.apiKey.length < 10) {
-                    this.btnStart.textContent = '字幕: Key无效';
-                    this.btnStart.disabled = true;
-                    return;
-                }
-                
-                // 恢复上次状态
-                const savedState = localStorage.getItem('transcriber_enabled');
-                if (savedState === 'true') {
-                    // 延迟一点启动，确保其他组件已就绪
-                    setTimeout(() => this.start(), 1000);
-                }
-                
-                // 事件监听
-                this.btnStart.addEventListener('click', () => {
-                    if (this.enabled) {
-                        this.stop();
-                        localStorage.setItem('transcriber_enabled', 'false');
-                    } else {
-                        this.start();
-                        localStorage.setItem('transcriber_enabled', 'true');
-                    }
-                });
-            }
-            
-            // 处理新的callsign事件（来自EventsClient）
-            onCallsignDetected(callsign) {
-                if (!this.enabled) return;
-                
-                const now = Date.now();
-                
-                // 如果有前一个callsign的PCM数据，立即提交（不等待2s超时）
-                if (this.currentCallsign !== null && this.currentCallsign !== callsign && this.pcmBuffer.length > 0) {
-                    this.queueTranscription(this.pcmBuffer.slice(0), this.currentCallsign);
-                    this.pcmBuffer = new Uint8Array(0);
-                }
-                
-                // 更新当前callsign
-                this.lastCallsignTime = now;
-                this.callsignStartTime = now; // 记录新callsign的开始时间
-                this.currentCallsign = callsign;
-                
-                // 清除之前的延时计时器
-                if (this.callsignSegmentEndTimer) {
-                    clearTimeout(this.callsignSegmentEndTimer);
-                }
-                
-                // 清除之前的最大时长计时器
-                if (this.callsignMaxDurationTimer) {
-                    clearTimeout(this.callsignMaxDurationTimer);
-                }
-                
-                // 设置新的延时计时器：2秒后无新callsign则结束分段
-                this.callsignSegmentEndTimer = setTimeout(() => {
-                    if (this.pcmBuffer.length > 0) {
-                        this.queueTranscription(this.pcmBuffer.slice(0), this.currentCallsign);
-                        this.pcmBuffer = new Uint8Array(0);
-                        // 不要设为 null，保持当前 callsign 以便新 callsign 到达时正确识别变化
-                    }
-                    
-                    this.callsignSegmentEndTimer = null;
-                }, this.CALLSIGN_END_DELAY_MS);
-                
-                // 设置最大说话时长限制：防止单个callsign无限积累
-                this.callsignMaxDurationTimer = setTimeout(() => {
-                    if (this.pcmBuffer.length > 0) {
-                        this.queueTranscription(this.pcmBuffer.slice(0), this.currentCallsign);
-                        this.pcmBuffer = new Uint8Array(0);
-                    }
-                    
-                    // 清除2秒延时计时器，因为已经强制提交了
-                    if (this.callsignSegmentEndTimer) {
-                        clearTimeout(this.callsignSegmentEndTimer);
-                        this.callsignSegmentEndTimer = null;
-                    }
-                    
-                    this.callsignMaxDurationTimer = null;
-                }, this.MAX_CALLSIGN_DURATION_MS);
-            }
-            
-            // 添加PCM数据块到缓冲区（Callsign 驱动分段）
-            addPCMChunk(buffer) {
-                if (!this.enabled) return;
-                
-                // 追加PCM数据
-                const newBuffer = new Uint8Array(this.pcmBuffer.length + buffer.byteLength);
-                newBuffer.set(this.pcmBuffer);
-                newBuffer.set(new Uint8Array(buffer), this.pcmBuffer.length);
-                this.pcmBuffer = newBuffer;
-                
-                // Callsign驱动分段：由onCallsignDetected驱动，这里只负责累积PCM数据
-                
-                // 防止内存溢出（60秒音频约为960KB）
-                const MAX_BUFFER_BYTES = this.sampleRate * 120 * (this.bitsPerSample / 8); // 最多120秒
-                if (this.pcmBuffer.length > MAX_BUFFER_BYTES) {
-                    this.pcmBuffer = new Uint8Array(0);
-                }
-            }
-            
-            // 处理对讲停止事件：当isSpeaking变为false时立即提交待定的PCM数据
-            onSpeakingEnd() {
-                if (!this.enabled) return;
-                if (!this.currentCallsign || this.pcmBuffer.length === 0) return;
-                
-                // 立即提交缓冲区内容
-                this.queueTranscription(this.pcmBuffer.slice(0), this.currentCallsign);
-                this.pcmBuffer = new Uint8Array(0);
-                
-                // 清除待定的定时器
-                if (this.callsignSegmentEndTimer) {
-                    clearTimeout(this.callsignSegmentEndTimer);
-                    this.callsignSegmentEndTimer = null;
-                }
-                if (this.callsignMaxDurationTimer) {
-                    clearTimeout(this.callsignMaxDurationTimer);
-                    this.callsignMaxDurationTimer = null;
-                }
-            }
-            
-            // 将PCM数据转为WAV Blob并加入队列
-            queueTranscription(pcmData, callsign) {
-                const wavBlob = this.pcmToWav(pcmData);
-                this.transcriptionQueue.push({ wavBlob, callsign });
-                
-                // 如果没有正在处理，开始处理队列
-                if (!this.isProcessing) {
-                    this.processQueue();
-                }
-            }
-            
-            // 处理转录队列
-            processQueue() {
-                if (this.transcriptionQueue.length === 0 || this.isProcessing) {
-                    return;
-                }
-                
-                this.isProcessing = true;
-                const queueItem = this.transcriptionQueue.shift();
-                const wavBlob = queueItem.wavBlob || queueItem; // 兼容旧格式
-                const callsign = queueItem.callsign;
-                this.currentRetry = 0;
-                
-                // 直接传递 callsign，而不是保存到全局变量（避免并发覆盖）
-                this.sendToAPI(wavBlob, callsign);
-            }
-            
-            // 打字机效果输出
-            typeWriter(text) {
-                if (!this.transcriptArea) return;
-                
-                // 清除之前的打字机定时器
-                if (this.typeWriterTimer) {
-                    clearTimeout(this.typeWriterTimer);
-                    this.typeWriterTimer = null;
-                }
-                
-                let i = 0;
-                this.transcriptArea.textContent = ''; // 先清空
-                
-                // 如果文本太长，加速
-                const speed = text.length > 20 ? 30 : 50;
-                
-                const type = () => {
-                    if (i < text.length) {
-                        this.transcriptArea.textContent += text.charAt(i);
-                        i++;
-                        this.typeWriterTimer = setTimeout(type, speed);
-                    } else {
-                        this.typeWriterTimer = null;
-                        // 3秒后如果没有新内容，可以考虑清空或者变淡（可选，暂时保留显示）
-                    }
-                };
-                
-                type();
-            }
-            
-            // 发送到SiliconFlow API
-            sendToAPI(wavBlob, callsign) {
-                this.setStatus('processing', '识别中...');
-                
-                const formData = new FormData();
-                formData.append('file', wavBlob, 'audio.wav');
-                formData.append('model', this.modelName);
-                
-                fetch(this.apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${this.apiKey}`
-                    },
-                    body: formData
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        // 读取错误响应体以获取更多信息
-                        return response.text().then(text => {
-                            throw new Error(`API Error: ${response.status} - ${text}`);
-                        });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    this.currentRetry = 0;
-                    
-                    if (data.text && data.text.trim()) {
-                        // 更新字幕显示（打字机流式效果）
-                        const callsignPrefix = callsign ? `[${callsign}] ` : '';
-                        const result = `${callsignPrefix}${data.text}`;
-                        
-                        // 使用打字机效果
-                        this.typeWriter(result);
-                        
-                        this.setStatus('idle', '就绪');
-                    }
-                    
-                    // 继续处理队列
-                    this.isProcessing = false;
-                    setTimeout(() => this.processQueue(), 200);
-                })
-                .catch(error => {
-                    // 重试逻辑
-                    if (this.currentRetry < this.maxRetries) {
-                        this.currentRetry++;
-                        this.setStatus('error', `错误，重试 ${this.currentRetry}/${this.maxRetries}...`);
-                        setTimeout(() => this.sendToAPI(wavBlob, callsign), 1000 * this.currentRetry);
-                    } else {
-                        this.setStatus('error', '识别失败');
-                        this.isProcessing = false;
-                        
-                        // 继续处理队列中的其他段
-                        setTimeout(() => this.processQueue(), 1000);
-                    }
-                });
-            }
-            
-            // PCM数据转WAV格式
-            pcmToWav(pcmData) {
-                const wavHeader = this.createWavHeader(pcmData.length, this.numChannels, this.sampleRate, this.bitsPerSample);
-                return new Blob([wavHeader, pcmData], { type: 'audio/wav' });
-            }
-            
-            // 创建WAV文件头
-            createWavHeader(dataLength, numChannels, sampleRate, bitsPerSample) {
-                const header = new ArrayBuffer(44);
-                const view = new DataView(header);
-                
-                // RIFF chunk descriptor
-                const writeString = (offset, string) => {
-                    for (let i = 0; i < string.length; i++) {
-                        view.setUint8(offset + i, string.charCodeAt(i));
-                    }
-                };
-                
-                writeString(0, 'RIFF');
-                view.setUint32(4, 36 + dataLength, true);
-                writeString(8, 'WAVE');
-                
-                // fmt sub-chunk
-                writeString(12, 'fmt ');
-                view.setUint32(16, 16, true); // Subchunk1Size
-                view.setUint16(20, 1, true); // AudioFormat (PCM)
-                view.setUint16(22, numChannels, true);
-                view.setUint32(24, sampleRate, true);
-                view.setUint32(28, sampleRate * numChannels * bitsPerSample / 8, true); // ByteRate
-                view.setUint16(32, numChannels * bitsPerSample / 8, true); // BlockAlign
-                view.setUint16(34, bitsPerSample, true);
-                
-                // data sub-chunk
-                writeString(36, 'data');
-                view.setUint32(40, dataLength, true);
-                
-                return header;
-            }
-            
-            // 更新状态显示
-            setStatus(state, text) {
-                if (!this.btnStart) return;
-                
-                if (state === 'processing') {
-                    this.btnStart.textContent = '字幕: 识别中...';
-                    this.btnStart.style.color = 'var(--accent-magenta)';
-                } else if (state === 'error') {
-                    this.btnStart.textContent = '字幕: 错误';
-                    this.btnStart.style.color = '#ff3333';
-                } else if (this.enabled) {
-                    this.btnStart.textContent = '字幕: ON';
-                    this.btnStart.style.color = 'var(--accent-green)';
-                } else {
-                    this.btnStart.textContent = '字幕: OFF';
-                    this.btnStart.style.color = '';
-                }
-            }
-            
-            // 启动转录
-            start() {
-                this.enabled = true;
-                // this.btnStart.disabled = true; // 不需要禁用，用于切换
-                this.setStatus('idle', '就绪');
-                
-                // 显示字幕面板
-                if (this.transcriptArea) {
-                    this.transcriptArea.classList.add('active');
-                    this.transcriptArea.textContent = 'Ready ...';
-                }
-            }
-            
-            // 停止转录
-            stop() {
-                this.enabled = false;
-                
-                // 清除所有计时器
-                if (this.callsignSegmentEndTimer) {
-                    clearTimeout(this.callsignSegmentEndTimer);
-                    this.callsignSegmentEndTimer = null;
-                }
-                if (this.callsignMaxDurationTimer) {
-                    clearTimeout(this.callsignMaxDurationTimer);
-                    this.callsignMaxDurationTimer = null;
-                }
-                
-                this.setStatus('idle', '已停止');
-                
-                // 隐藏字幕面板
-                if (this.transcriptArea) {
-                    this.transcriptArea.classList.remove('active');
-                }
-            }
-            
-            // 清空字幕
-            clear() {
-                this.transcriptArea.textContent = '';
-                this.pcmBuffer = new Uint8Array(0);
-                this.transcriptionQueue = [];
-                this.isProcessing = false;
-                this.setStatus('idle', '已清空');
-            }
-            
-            // 设置API KEY
-            setAPIKey(key) {
-                if (!key || key.length < 10) {
-                    this.setStatus('error', 'API KEY格式无效');
-                    return false;
-                }
-                this.apiKey = key;
-                localStorage.setItem('transcriber_apiKey', key);
-                this.setStatus('idle', '就绪');
-                return true;
-            }
-            
-            // 获取API KEY（用于测试）
-            getAPIKeyStatus() {
-                const keyLength = this.apiKey ? this.apiKey.length : 0;
-                return {
-                    valid: keyLength >= 10,
-                    keyPrefix: this.apiKey ? this.apiKey.substring(0, 10) + '...' : 'Not set',
-                    message: keyLength >= 10 ? '✓ API Key已设置' : '✗ API Key无效或未设置'
-                };
-            }
-            
-            // 获取当前配置
-            getConfig() {
-                return {
-                    mode: 'callsign',
-                    apiModel: this.modelName,
-                    callsign: {
-                        endDelayMs: this.CALLSIGN_END_DELAY_MS,
-                        maxDurationMs: this.MAX_CALLSIGN_DURATION_MS
-                    }
-                };
             }
         }
 
@@ -2920,9 +2572,11 @@ window.APP_CONFIG = {
                             this.shrinkBadge();
 
                             const grid = item.dataset.grid;
+                            const call = item.querySelector('.qso-call')?.textContent;
                             if (grid && grid !== '-') {
-                                this.locateGrid(grid);
-                                
+                                // 定位到特定的QSO标记并打开弹窗
+                                this.highlightQsoOnMap(grid, call);
+
                                 // 高亮选中项
                                 const prev = this.listEl.querySelector('.qso-item.active');
                                 if (prev) prev.classList.remove('active');
@@ -2950,7 +2604,21 @@ window.APP_CONFIG = {
                         } else if (msg.data.list) {
                             this.updateCount(msg.data.list.length);
                         }
-                        this.renderList(msg.data.list || []);
+                        const list = msg.data.list || [];
+                        this.renderList(list);
+
+                        // 发送所有QSO网格到地图显示
+                        if (list.length > 0) {
+                            const grids = list.filter(item => item.grid && item.grid !== '-')
+                                           .map(item => ({
+                                               grid: item.grid,
+                                               callsign: item.toCallsign || 'UNKNOWN',
+                                               timestamp: item.timestamp
+                                           }));
+                            setTimeout(() => {
+                                this.displayAllQsosOnMap(grids);
+                            }, 300);
+                        }
                     }
                 });
 
@@ -3006,9 +2674,34 @@ window.APP_CONFIG = {
             locateGrid(grid) {
                 if (this.mapFrame && this.mapFrame.contentWindow) {
                     console.log('Locating grid:', grid);
+
+                    // 延迟发送消息，确保 iframe 已完全加载
+                    setTimeout(() => {
+                        this.mapFrame.contentWindow.postMessage({
+                            type: 'LOCATE_GRID',
+                            grid: grid
+                        }, '*');
+                    }, 100);
+                }
+            }
+
+            displayAllQsosOnMap(grids) {
+                if (this.mapFrame && this.mapFrame.contentWindow) {
+                    console.log('Displaying all QSOs on map:', grids);
                     this.mapFrame.contentWindow.postMessage({
-                        type: 'LOCATE_GRID',
-                        grid: grid
+                        type: 'DISPLAY_ALL_QSOS',
+                        grids: grids
+                    }, '*');
+                }
+            }
+
+            highlightQsoOnMap(grid, callsign) {
+                if (this.mapFrame && this.mapFrame.contentWindow) {
+                    console.log('Highlighting QSO on map:', grid, callsign);
+                    this.mapFrame.contentWindow.postMessage({
+                        type: 'HIGHLIGHT_QSO',
+                        grid: grid,
+                        callsign: callsign
                     }, '*');
                 }
             }
@@ -3052,7 +2745,7 @@ window.APP_CONFIG = {
                 this.listEl.innerHTML = list.map((item, index) => {
                     const call = item.toCallsign || 'UNKNOWN';
                     const grid = item.grid || '-';
-                    const ts = this.formatDate(item.ts);
+                    const ts = this.formatDate(item.timestamp);
 
                     return `
                 <div class="qso-item" data-grid="${grid}" tabindex="0" role="button" aria-label="QSO Record: ${call}, Grid: ${grid}">
@@ -3078,8 +2771,6 @@ window.APP_CONFIG = {
                 this.reconnectTimer = null;
                 this.retryMs = 1000;
                 this.listeners = new Set();
-                this.subtitleEl = document.getElementById('subtitle-overlay');
-                this.subtitleText = document.getElementById('subtitle-text');
                 this.speakingTimeout = null;
             }
 
@@ -3140,8 +2831,10 @@ window.APP_CONFIG = {
             }
 
             handleMessage(msg) {
+                // console.log('Event received:', msg); // Debug log
                 // 处理 QSO 发言人事件
                 if (msg.type === 'qso' && msg.subType === 'callsign' && msg.data) {
+                    console.log('Callsign event:', msg.data);
                     const { callsign, isSpeaking, isHost } = msg.data;
                     // 只处理开始发言事件，或者根据需要处理
                     // 这里假设每次 isSpeaking=true 都是一次新的发言或持续发言
@@ -3174,24 +2867,16 @@ window.APP_CONFIG = {
         const player = new AudioPlayer();
         const events = new EventsClient(); // 实例化
         const viz = new Visualizer(document.getElementById('viz-canvas'), null);
-        const transcriber = new SpeechTranscriber(); // 实例化语音转录器
         const qsoMgr = new QsoManager(ctrl); // 初始化 QSO 管理器 (供 Ticker 使用)
-        
+
         // 实例化呼号显示组件
         const ticker = new CallsignTicker('callsign-ticker', viz, qsoMgr);
         // Expose to window for Python injection
         window.ticker = ticker;
-        window.transcriber = transcriber; // 暴露给全局以便调试
-        
-        // 连接音频流到转录器
-        player.on('pcm', (buffer) => {
-            transcriber.addPCMChunk(buffer);
-        });
-        
+
         // 连接事件
         events.onCallsignReceived((callsign) => {
             ticker.addCallsign(callsign);
-            transcriber.onCallsignDetected(callsign);
         });
 
         events.onSpeakingStateChanged((callsign, isSpeaking, isHost) => {
@@ -3204,9 +2889,6 @@ window.APP_CONFIG = {
                 if (viz.currentCallsign === callsign) {
                     viz.setCallsign('');
                 }
-                
-                // 通知转录器发言结束
-                transcriber.onSpeakingEnd();
             }
         });
 
@@ -3235,37 +2917,6 @@ window.APP_CONFIG = {
             stationModal: document.getElementById('station-modal'),
             stCountModal: document.getElementById('st-count-modal'),
         };
-
-        // API Key 设置逻辑
-        const inpApiKey = document.getElementById('inp-apikey');
-        const btnSaveKey = document.getElementById('btn-save-key');
-
-        // 加载已保存的 Key
-        if (transcriber.apiKey) {
-            inpApiKey.value = transcriber.apiKey;
-        } else {
-            inpApiKey.value = '';
-            inpApiKey.placeholder = '请输入 SiliconFlow API Key';
-        }
-
-        btnSaveKey.addEventListener('click', () => {
-            const key = inpApiKey.value.trim();
-            if (key === '') {
-                localStorage.removeItem('transcriber_apiKey');
-                transcriber.apiKey = null;
-                console.log('Alert suppressed:', 'API Key 已清除');
-                if (ui.settingsArea.classList.contains('active')) {
-                    ui.settingsArea.classList.remove('active');
-                }
-            } else if (transcriber.setAPIKey(key)) {
-                console.log('Alert suppressed:', 'API Key 已保存');
-                if (ui.settingsArea.classList.contains('active')) {
-                    ui.settingsArea.classList.remove('active');
-                }
-            } else {
-                console.log('Alert suppressed:', 'API Key 格式无效，请检查');
-            }
-        });
 
         let currentStationId = null;
 
@@ -3448,8 +3099,8 @@ window.APP_CONFIG = {
         });
 
          // 4. 台站列表逻辑 - 性能优化版本
-         ctrl.on('stationList', (list) => {
-             ui.stCount.textContent = `${list.length} STATIONS`;
+          ctrl.on('stationList', (list) => {
+              ui.stCount.textContent = list.length;
 
              // 将台站列表传递给太阳系可视化器的中继台系统
              if (viz && viz.renderers && viz.renderers[0]) {

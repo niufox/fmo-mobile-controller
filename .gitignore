@@ -10,3 +10,5 @@
 /model_sherpa/encoder-epoch-99-avg-1.int8.onnx
 /model_sherpa/encoder-epoch-99-avg-1.onnx
 /fmo-controller-iso.html
+model_sherpa/encoder-epoch-99-avg-1.int8.onnx
+model_sherpa/encoder-epoch-99-avg-1.onnx

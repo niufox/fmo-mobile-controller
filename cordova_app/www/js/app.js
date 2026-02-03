@@ -1,10 +1,3 @@
-window.APP_CONFIG = {
-    "FETCH_PAGE_SIZE": 20,
-    "AUTO_REFRESH_INTERVAL": 30000,
-    "RECONNECT_DELAY": 3000,
-    "POST_SWITCH_DELAY": 3000,
-    "WS_PATH": "/ws"
-};
 /**
  * FMO Audio Controller - Main Application
  */
@@ -41,6 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isSpeaking) {
             viz.setCallsign(callsign);
             player.setLocalTransmission(isHost);
+            
+            // Trigger UFO Easter Egg if isHost
+            if (isHost) {
+                viz.triggerUFO();
+            }
         } else {
             player.setLocalTransmission(false);
             // 如果当前显示的正是停止说话的人，则清除
@@ -459,41 +457,76 @@ document.addEventListener('DOMContentLoaded', () => {
     // 初始化设备历史列表
     deviceMgr.render();
 
-    // 自动连接 - 优化：恢复全功能自动连接 (Control + Audio + Events + Viz)
+    // 自动填充上次连接的主机，但不自动连接
     const lastHost = deviceMgr.devices.length > 0 ? deviceMgr.devices[0] : 'fmo.local';
     if (ui.inpHost) {
         ui.inpHost.value = lastHost;
-        
-        if (lastHost) {
-            console.log('[AutoConnect] Connecting to ' + lastHost + '...');
-            
-            // 顺序连接：Control -> Audio -> Events
-            ctrl.connect(lastHost)
-                .then(async () => {
-                    console.log('[AutoConnect] Control connected.');
-                    
-                    // 连接音频
-                    try {
-                        // 尝试创建/恢复 AudioContext (虽可能被挂起，但先建立连接)
-                        player.ensureAudio();
-                        await player.connect(lastHost);
-                        console.log('[AutoConnect] Audio connected.');
-                        
-                        // 启动可视化 (即使音频挂起，也要先启动渲染循环)
-                        viz.start();
-                        
-                        // 连接事件流
-                        events.connect(lastHost).catch(e => console.warn('[AutoConnect] Events connect skipped:', e));
-                        
-                    } catch (audioErr) {
-                        console.warn('[AutoConnect] Audio failed:', audioErr);
-                    }
-                })
-                .catch(e => {
-                    console.error('[AutoConnect] Control connect failed:', e);
-                });
-        }
     }
+
+    // 6.1 Geolocation Logic
+    const cbGeoSingle = document.getElementById('cb-geo-single-allow');
+    const cbGeoPeriodic = document.getElementById('cb-geo-periodic-allow');
+
+    // Load Geo Settings
+    if (cbGeoSingle) {
+        cbGeoSingle.checked = localStorage.getItem('fmo_geo_single') === 'true';
+        cbGeoSingle.addEventListener('change', () => {
+            localStorage.setItem('fmo_geo_single', cbGeoSingle.checked);
+            // If checked, trigger immediate single sync
+            if (cbGeoSingle.checked) {
+                sendGeolocation(true);
+            }
+        });
+    }
+    if (cbGeoPeriodic) {
+        cbGeoPeriodic.checked = localStorage.getItem('fmo_geo_periodic') === 'true';
+        cbGeoPeriodic.addEventListener('change', () => {
+            localStorage.setItem('fmo_geo_periodic', cbGeoPeriodic.checked);
+        });
+    }
+
+    const sendGeolocation = (isSingleOneTime = false) => {
+        if (!ctrl.connected) return;
+        
+        // Permission Check
+        if (isSingleOneTime) {
+            // If it's the one-time trigger, check the single-allow checkbox
+            if (!cbGeoSingle || !cbGeoSingle.checked) return;
+        } else {
+            // If it's the periodic trigger, check the periodic-allow checkbox
+            if (!cbGeoPeriodic || !cbGeoPeriodic.checked) return;
+        }
+
+        if (!navigator.geolocation) return;
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                // Round to 6 decimal places
+                const latFixed = parseFloat(latitude.toFixed(6));
+                const lonFixed = parseFloat(longitude.toFixed(6));
+                
+                // Format: {"type":"config","subType":"setCordinate","data":{"latitude":x,"longitude":y}}
+                ctrl.send('config', 'setCordinate', { latitude: latFixed, longitude: lonFixed });
+                console.log(`[Geo] Sent (${isSingleOneTime ? 'Single' : 'Periodic'}): ${latFixed}, ${lonFixed}`);
+            },
+            (err) => {
+                console.warn('[Geo] Error:', err.message);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    };
+
+    // Interval: 30 minute (30min) for Real-time
+    setInterval(() => sendGeolocation(false), 300000*6);
+
+    // Trigger single update shortly after connection
+    ctrl.on('status', (connected) => {
+        if (connected) {
+            // Wait a bit for connection stability, then try single sync
+            setTimeout(() => sendGeolocation(true), 3000);
+        }
+    });
 
     // 6.5 Debug Info Logic
     const btnShowDebug = document.getElementById('btn-show-debug');
@@ -669,65 +702,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // 暴露清理函数到全局（供调试使用）
     window.cleanupResources = cleanupResources;
 });
-
-// --- INJECTED DEBUG CONSOLE START ---
-(function() {
-    console.log("Initializing Debug Console...");
-    if (window.WebSocket) {
-        const OriginalWebSocket = window.WebSocket;
-        window.WebSocket = function(url, protocols) {
-            console.log('🔌 [WS-HOOK] Connecting to:', url);
-            try {
-                const ws = new OriginalWebSocket(url, protocols);
-                ws.addEventListener('open', () => console.log('✅ [WS-HOOK] Connected:', url));
-                ws.addEventListener('error', (e) => console.error('❌ [WS-HOOK] Error:', url, e));
-                ws.addEventListener('close', (e) => console.log('🔒 [WS-HOOK] Closed:', url, e.code));
-                return ws;
-            } catch (e) { console.error('❌ [WS-HOOK] Exception:', e); throw e; }
-        };
-        window.WebSocket.prototype = OriginalWebSocket.prototype;
-        Object.assign(window.WebSocket, OriginalWebSocket);
-    }
-    // Debug UI (simplified for brevity, assumes style exists or uses console only if UI fails)
-    // Full UI code from previous build.js omitted for brevity but recommended for full functionality
-    // Re-adding essential UI creation:
-    const debugDiv = document.createElement('div');
-    debugDiv.id = 'debug-console';
-    debugDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);color:#0f0;font-family:monospace;font-size:12px;overflow:auto;z-index:9999;display:none;padding:10px;box-sizing:border-box;pointer-events:auto;white-space:pre-wrap;backdrop-filter:blur(5px);';
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = '❌ Close';
-    closeBtn.style.cssText = 'position:fixed;top:10px;right:10px;padding:8px;background:#d32f2f;color:#fff;border:none;border-radius:4px;';
-    closeBtn.onclick = () => debugDiv.style.display = 'none';
-    debugDiv.appendChild(closeBtn);
-
-    const contentDiv = document.createElement('div');
-    contentDiv.style.marginTop = '40px';
-    debugDiv.appendChild(contentDiv);
-    document.body.appendChild(debugDiv);
-
-    const oldLog = console.log, oldWarn = console.warn, oldError = console.error;
-    function appendLog(type, args) {
-        const msg = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
-        const line = document.createElement('div');
-        line.textContent = `[${new Date().toLocaleTimeString()}] [${type}] ${msg}`;
-        if(type==='ERR') line.style.color='#ff5555';
-        contentDiv.appendChild(line);
-        if(debugDiv.style.display!=='none') debugDiv.scrollTop = debugDiv.scrollHeight;
-    }
-    console.log = (...args) => { oldLog.apply(console, args); appendLog('LOG', args); };
-    console.warn = (...args) => { oldWarn.apply(console, args); appendLog('WARN', args); };
-    console.error = (...args) => { oldError.apply(console, args); appendLog('ERR', args); };
-    window.onerror = (m,u,l) => appendLog('FATAL', [m, '@', l]);
-
-    setTimeout(() => {
-        const btn = document.getElementById('btn-maximize');
-        if (btn) {
-            const newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-            newBtn.innerHTML = '🐞';
-            newBtn.onclick = () => debugDiv.style.display = (debugDiv.style.display === 'none' ? 'block' : 'none');
-        }
-    }, 1000);
-})();
-// --- INJECTED DEBUG CONSOLE END ---

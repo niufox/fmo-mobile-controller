@@ -561,8 +561,8 @@ export class SolarSystemRenderer extends BaseRenderer {
         this.repeaterSpawnTimer = 0; // 中继台浮现计时器
         this.repeaterSpawnInterval = 5000; // 每5秒尝试浮现1-3个中继台
         this.repeaterFadeTimer = 0; // 中继台消失计时器
-        this.repeaterFadeInterval = 8000; // 8秒后开始消失
-        this.repeaterFadeDuration = 2000; // 2秒完全消失
+        this.repeaterFadeInterval = 10000; // 10秒后开始消失
+        this.repeaterFadeDuration = 5000; // 5秒完全消失
 
         // 太阳喷发系统配置
         this.eruptions = [];
@@ -572,6 +572,99 @@ export class SolarSystemRenderer extends BaseRenderer {
             intensity: 1.0,     // 光芒强度缩放
             speed: 0.5          // 喷发速度缩放
         };
+
+        // UFO Easter Egg
+        this.ufo = {
+            active: false,
+            x: 0, y: 0,
+            vx: 0, vy: 0,
+            size: 2.0, // Matches Earth r=2.0
+            angle: 0
+        };
+    }
+
+    triggerUFO() {
+        if (this.ufo.active) return;
+        
+        const w = this.width;
+        const h = this.height;
+        
+        // Randomize start position (edge of screen)
+        const side = Math.floor(Math.random() * 4);
+        let startX, startY;
+        const offset = 100;
+        
+        switch(side) {
+            case 0: startX = Math.random() * w; startY = -offset; break; // Top
+            case 1: startX = w + offset; startY = Math.random() * h; break; // Right
+            case 2: startX = Math.random() * w; startY = h + offset; break; // Bottom
+            case 3: startX = -offset; startY = Math.random() * h; break; // Left
+        }
+        
+        // Target a random point in the central area
+        const targetX = w/2 + (Math.random() - 0.5) * w * 0.5;
+        const targetY = h/2 + (Math.random() - 0.5) * h * 0.5;
+        
+        const dx = targetX - startX;
+        const dy = targetY - startY;
+        
+        // Extend target to be off-screen (Exit point P2)
+        // We want the UFO to fly *through* the center area and out the other side
+        // Multiplier ensures we go far enough (e.g., 3x screen size)
+        const extendFactor = 4.0;
+        const p2x = startX + dx * extendFactor;
+        const p2y = startY + dy * extendFactor;
+        
+        // Control Point (P1) for Quadratic Bezier
+        // Midpoint between Start (P0) and End (P2)
+        const midX = (startX + p2x) / 2;
+        const midY = (startY + p2y) / 2;
+        
+        // Add random perpendicular offset to create the curve
+        // Perpendicular vector to (dx, dy) is (-dy, dx) or (dy, -dx)
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const perpX = -dy / dist;
+        const perpY = dx / dist;
+        
+        // Curve intensity: How much it bends
+        // Random direction (+ or -) and magnitude
+        // INCREASED CURVATURE per user request: 0.8 base * (0.8-1.8 multiplier)
+        const curveDirection = Math.random() < 0.5 ? 1 : -1;
+        const curveIntensity = (Math.min(w, h) * 0.8) * (0.8 + Math.random()); 
+        
+        const p1x = midX + perpX * curveIntensity * curveDirection;
+        const p1y = midY + perpY * curveIntensity * curveDirection;
+        
+        // Store Bezier Control Points
+        this.ufo.p0 = { x: startX, y: startY };
+        this.ufo.p1 = { x: p1x, y: p1y };
+        this.ufo.p2 = { x: p2x, y: p2y };
+        
+        // Progress (0.0 to 1.0)
+        this.ufo.t = 0;
+        
+        // Speed calculation
+        // Estimate arc length roughly as distance between points
+        const estimatedDist = Math.hypot(p1x-startX, p1y-startY) + Math.hypot(p2x-p1x, p2y-p1y);
+        const desiredDuration = 10 + Math.random() * 5; // 10-15 seconds
+        // Assuming 60fps
+        this.ufo.tSpeed = 1.0 / (desiredDuration * 60);
+
+        // Randomize appearance
+        // Size: 1.0 (0.5x Earth) to 4.0 (2x Earth). Max < Sun.
+        this.ufo.size = 1.0 + Math.random() * 3.0; 
+        
+        // Shape: Random selection
+        const shapes = ['classic', 'triangle', 'cigar', 'orb'];
+        this.ufo.shape = shapes[Math.floor(Math.random() * shapes.length)];
+
+        // Color: Random Hue
+        const hue = Math.floor(Math.random() * 360);
+        this.ufo.colorBody = `hsl(${hue}, 80%, 85%)`; // Light pastel
+        this.ufo.colorDome = `hsl(${hue}, 80%, 50%)`; // Darker saturated
+        
+        this.ufo.active = true;
+        this.ufo.angle = 0;
     }
 
     draw(analyser, dataArray, bufferLength, theme, extra) {
@@ -1015,6 +1108,169 @@ export class SolarSystemRenderer extends BaseRenderer {
             });
         });
 
+        // UFO Logic
+        if (this.ufo.active) {
+            // Update progress
+            this.ufo.t += this.ufo.tSpeed;
+            
+            if (this.ufo.t > 1.0) {
+                this.ufo.active = false;
+            } else {
+                const t = this.ufo.t;
+                const invT = 1 - t;
+                
+                // Quadratic Bezier Formula:
+                // B(t) = (1-t)^2 * P0 + 2(1-t)t * P1 + t^2 * P2
+                const p0 = this.ufo.p0;
+                const p1 = this.ufo.p1;
+                const p2 = this.ufo.p2;
+                
+                const nextX = (invT * invT * p0.x) + (2 * invT * t * p1.x) + (t * t * p2.x);
+                const nextY = (invT * invT * p0.y) + (2 * invT * t * p1.y) + (t * t * p2.y);
+                
+                // Calculate velocity for rotation (derivative or delta)
+                this.ufo.vx = nextX - this.ufo.x;
+                this.ufo.vy = nextY - this.ufo.y;
+                
+                this.ufo.x = nextX;
+                this.ufo.y = nextY;
+                
+                this.ufo.angle += 0.05;
+                
+                renderList.push({
+                    y: this.ufo.y,
+                    draw: () => {
+                        const ufoSize = Math.max(3, this.ufo.size * scale * 0.12);
+                        
+                        ctx.save();
+                        ctx.translate(this.ufo.x, this.ufo.y);
+                        // Tilt slightly based on movement
+                        ctx.rotate(Math.atan2(this.ufo.vy, this.ufo.vx) * 0.1);
+                        
+                        const shape = this.ufo.shape || 'classic';
+                        const time = Date.now();
+
+                        if (shape === 'triangle') {
+                            // Triangle Shape (TR-3B style)
+                            ctx.fillStyle = this.ufo.colorBody;
+                            ctx.shadowBlur = 5;
+                            ctx.shadowColor = '#000000';
+                            ctx.beginPath();
+                            // Points: Tip(front), RearLeft, RearRight
+                            ctx.moveTo(ufoSize * 1.2, 0);
+                            ctx.lineTo(-ufoSize * 0.8, -ufoSize);
+                            ctx.lineTo(-ufoSize * 0.8, ufoSize);
+                            ctx.closePath();
+                            ctx.fill();
+                            ctx.shadowBlur = 0;
+                            
+                            // Center Dome/Engine
+                            ctx.fillStyle = this.ufo.colorDome;
+                            ctx.beginPath();
+                            ctx.arc(-ufoSize*0.2, 0, ufoSize * 0.3, 0, Math.PI * 2);
+                            ctx.fill();
+
+                            // Corner Lights
+                            const lights = [
+                                {x: ufoSize * 1.2, y: 0},
+                                {x: -ufoSize * 0.8, y: -ufoSize},
+                                {x: -ufoSize * 0.8, y: ufoSize}
+                            ];
+                            lights.forEach((l, i) => {
+                                ctx.fillStyle = (Math.floor(time / 150) + i) % 2 === 0 ? '#ff0000' : '#ffffff';
+                                ctx.beginPath();
+                                ctx.arc(l.x, l.y, ufoSize * 0.15, 0, Math.PI * 2);
+                                ctx.fill();
+                            });
+
+                        } else if (shape === 'cigar') {
+                            // Cigar Shape (Cylindrical)
+                            const length = ufoSize * 3.0;
+                            const width = ufoSize * 0.8;
+                            const halfL = length / 2;
+                            const radius = width / 2;
+                            
+                            ctx.fillStyle = this.ufo.colorBody;
+                            ctx.shadowBlur = 10;
+                            ctx.shadowColor = this.ufo.colorDome;
+                            
+                            ctx.beginPath();
+                            // Left circle end
+                            ctx.arc(-halfL + radius, 0, radius, Math.PI/2, Math.PI * 1.5);
+                            // Right circle end
+                            ctx.arc(halfL - radius, 0, radius, -Math.PI/2, Math.PI/2);
+                            ctx.closePath();
+                            ctx.fill();
+                            ctx.shadowBlur = 0;
+
+                            // Windows along the side
+                            const windowCount = 5;
+                            const step = (length - width) / (windowCount - 1);
+                            const startX = -(length - width) / 2;
+                            
+                            for(let i=0; i<windowCount; i++) {
+                                ctx.fillStyle = (Math.floor(time / 200) + i) % 2 === 0 ? this.ufo.colorDome : '#111';
+                                ctx.beginPath();
+                                ctx.arc(startX + i * step, 0, width * 0.2, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
+
+                        } else if (shape === 'orb') {
+                            // Orb Shape (Glowing Sphere)
+                            // Core
+                            ctx.fillStyle = '#ffffff';
+                            ctx.shadowBlur = 20;
+                            ctx.shadowColor = this.ufo.colorDome; // Use dome color for glow
+                            ctx.beginPath();
+                            ctx.arc(0, 0, ufoSize * 0.8, 0, Math.PI * 2);
+                            ctx.fill();
+                            
+                            // Outer Halo/Shell
+                            ctx.strokeStyle = this.ufo.colorBody;
+                            ctx.lineWidth = 3;
+                            ctx.beginPath();
+                            ctx.arc(0, 0, ufoSize * 1.1, 0, Math.PI * 2);
+                            ctx.stroke();
+                            
+                            ctx.shadowBlur = 0;
+
+                        } else {
+                            // Classic Disc (Default)
+                            // Dome
+                            ctx.fillStyle = this.ufo.colorDome || '#a0a0a0';
+                            ctx.beginPath();
+                            ctx.arc(0, -ufoSize*0.3, ufoSize*0.6, Math.PI, 0);
+                            ctx.fill();
+                            
+                            // Body (Disc)
+                            ctx.fillStyle = this.ufo.colorBody || '#e0e0e0';
+                            ctx.shadowBlur = 10;
+                            ctx.shadowColor = '#ffffff';
+                            ctx.beginPath();
+                            ctx.ellipse(0, 0, ufoSize, ufoSize*0.4, 0, 0, Math.PI*2);
+                            ctx.fill();
+                            ctx.shadowBlur = 0;
+                            
+                            // Lights
+                            const lightCount = 5;
+                            for(let k=0; k<lightCount; k++) {
+                                const la = (k / lightCount) * Math.PI * 2 + this.ufo.angle;
+                                const lx = Math.cos(la) * ufoSize * 0.7;
+                                const ly = Math.sin(la) * ufoSize * 0.25;
+                                // Blink
+                                ctx.fillStyle = (Math.floor(time / 100) + k) % 2 === 0 ? '#ff0000' : '#00ff00';
+                                ctx.beginPath();
+                                ctx.arc(lx, ly, ufoSize*0.15, 0, Math.PI*2);
+                                ctx.fill();
+                            }
+                        }
+                        
+                        ctx.restore();
+                    }
+                });
+            }
+        }
+
         // 排序并绘制
         renderList.sort((a, b) => a.y - b.y);
         renderList.forEach(item => item.draw());
@@ -1204,6 +1460,14 @@ export class Visualizer {
     switchMode() {
         this.mode = (this.mode + 1) % this.modes.length;
         return this.modes[this.mode];
+    }
+
+    triggerUFO() {
+        // Trigger UFO on SolarSystemRenderer (index 0)
+        const solarRenderer = this.renderers[0];
+        if (solarRenderer && typeof solarRenderer.triggerUFO === 'function') {
+            solarRenderer.triggerUFO();
+        }
     }
 
     start() {

@@ -29,6 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Expose to window for Python injection
     window.ticker = ticker;
 
+    // Start Visualizer immediately (renders idle state until connected)
+    viz.start();
+
     // 连接事件
     events.onCallsignReceived((callsign) => {
         ticker.addCallsign(callsign);
@@ -160,9 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('[App] Connecting Audio...');
             await player.connect(host);
             console.log('[App] Audio connected');
-            
-            // Start Visualizer after audio is ready
-            viz.start();
             
             // Step 4: Connect Events (for callsign updates)
             // This can happen after audio, or in parallel with audio if we wanted, 
@@ -459,19 +459,35 @@ document.addEventListener('DOMContentLoaded', () => {
     // 初始化设备历史列表
     deviceMgr.render();
 
-    // 自动连接 - 优化：只连接控制和事件，音频需用户交互
+    // 自动连接 - 优化：恢复全功能自动连接 (Control + Audio + Events + Viz)
     const lastHost = deviceMgr.devices.length > 0 ? deviceMgr.devices[0] : 'fmo.local';
     if (ui.inpHost) {
         ui.inpHost.value = lastHost;
         
-        // Auto connect Control (Safe without user gesture)
-        // Audio connection requires user interaction (click Play or Connect) to avoid policy violations
-        // Events disabled to save connection slot (Max 2: Control + Audio)
         if (lastHost) {
             console.log('[AutoConnect] Connecting to ' + lastHost + '...');
+            
+            // 顺序连接：Control -> Audio -> Events
             ctrl.connect(lastHost)
-                .then(() => {
-                    console.log('[AutoConnect] Control connected. Click Play or Connect to enable Audio.');
+                .then(async () => {
+                    console.log('[AutoConnect] Control connected.');
+                    
+                    // 连接音频
+                    try {
+                        // 尝试创建/恢复 AudioContext (虽可能被挂起，但先建立连接)
+                        player.ensureAudio();
+                        await player.connect(lastHost);
+                        console.log('[AutoConnect] Audio connected.');
+                        
+                        // 启动可视化 (即使音频挂起，也要先启动渲染循环)
+                        viz.start();
+                        
+                        // 连接事件流
+                        events.connect(lastHost).catch(e => console.warn('[AutoConnect] Events connect skipped:', e));
+                        
+                    } catch (audioErr) {
+                        console.warn('[AutoConnect] Audio failed:', audioErr);
+                    }
                 })
                 .catch(e => {
                     console.error('[AutoConnect] Control connect failed:', e);

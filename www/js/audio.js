@@ -61,7 +61,7 @@ export class AudioPlayer extends EventEmitter {
             // Create context on user gesture
             this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             this.gainNode = this.audioCtx.createGain();
-            this.gainNode.gain.value = 1;
+            this.gainNode.gain.value = 3.0; // Boost volume (optimized)
 
             // Create analyser for FFT visualization
             this.analyser = this.audioCtx.createAnalyser();
@@ -77,44 +77,44 @@ export class AudioPlayer extends EventEmitter {
             if (!this._chainInput) {
                 // Unified entry for all sources
                 this._chainInput = this.audioCtx.createGain();
-                this._chainInput.gain.value = 1.0;
+                this._chainInput.gain.value = 1.5; // Pre-gain boost
 
                 // High-pass to remove DC/rumble (walkie‑talkie voice) - 优化参数
                 this.hpf = this.audioCtx.createBiquadFilter();
                 this.hpf.type = 'highpass';
-                this.hpf.frequency.value = 220; // slightly lower for more body/warmth
-                this.hpf.Q.value = 0.5; // gentler slope to avoid plastic/boxy feel
+                this.hpf.frequency.value = 800; // User requested 800Hz HPF for clearer voice
+                this.hpf.Q.value = 0.7;
 
                 // Low-pass to tame hiss/sibilance given 8 kHz sampling (Nyquist 4 kHz) - 优化参数
                 this.lpf = this.audioCtx.createBiquadFilter();
                 this.lpf.type = 'lowpass';
-                this.lpf.frequency.value = 3000; // a touch lower to soften edge
-                this.lpf.Q.value = 0.5; // reduce resonance/phasey artifacts
+                this.lpf.frequency.value = 3500; // Opened up slightly for clarity
+                this.lpf.Q.value = 0.5;
 
-                // EQ: subtle voice shaping
+                // EQ: Voice shaping
                 this.eqLow = this.audioCtx.createBiquadFilter();
-                this.eqLow.type = 'lowshelf';
-                this.eqLow.frequency.value = 180; // slight warmth
-                this.eqLow.gain.value = 0.5; // dB, tiny lift
+                this.eqLow.type = 'peaking'; // Changed to peaking to add body above cutoff
+                this.eqLow.frequency.value = 1000; 
+                this.eqLow.gain.value = 2.0; // dB boost
 
                 this.eqMid = this.audioCtx.createBiquadFilter();
                 this.eqMid.type = 'peaking';
                 this.eqMid.frequency.value = 1400; // reduce nasality
-                this.eqMid.Q.value = 0.8; // broader, more natural
-                this.eqMid.gain.value = 1.0; // dB, milder boost
+                this.eqMid.Q.value = 0.8; 
+                this.eqMid.gain.value = 1.0; 
 
                 this.eqHigh = this.audioCtx.createBiquadFilter();
                 this.eqHigh.type = 'highshelf';
-                this.eqHigh.frequency.value = 2600; // keep brightness conservative
-                this.eqHigh.gain.value = 0.0; // dB, remove added sheen to avoid plasticky top
+                this.eqHigh.frequency.value = 2600; 
+                this.eqHigh.gain.value = 1.0; // Slight boost for intelligibility
 
-                // Gentle compression to increase loudness consistency - 优化参数
+                // Dynamics Compressor - Optimized for voice & volume
                 this.compressor = this.audioCtx.createDynamicsCompressor();
-                this.compressor.threshold.value = -22; // dB, a bit lighter
-                this.compressor.knee.value = 24; // dB, softer knee
-                this.compressor.ratio.value = 2.0; // :1, reduce flattening
-                this.compressor.attack.value = 0.006; // s, let transients breathe
-                this.compressor.release.value = 0.30; // s, smoother recovery
+                this.compressor.threshold.value = -24; // Lower threshold
+                this.compressor.knee.value = 20;
+                this.compressor.ratio.value = 4.0; // Higher ratio for limiting
+                this.compressor.attack.value = 0.002; // Faster attack
+                this.compressor.release.value = 0.25;
 
                 // Wire: input -> HPF -> LPF -> EQ(Low -> Mid -> High) -> Compressor -> Analyser (-> Gain -> Dest)
                 this._chainInput.connect(this.hpf);

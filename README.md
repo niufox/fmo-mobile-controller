@@ -4,6 +4,8 @@ FMO Mobile Controller 是一个基于 Web 技术构建的现代化移动端控�
 
 （单文件维护起来太累了，毕竟ai写，小功能都要从头读一遍，token消耗量惊人。。。穷了啊）
 
+感谢贡献者：BG9JYT\BH6RGQ\BG4LLK
+
 本项目采用响应式设计，既可直接在浏览器中运行，也支持通过 Cordova 打包为 Android/iOS 原生应用。
 演示网站：http://180.76.54.163
 

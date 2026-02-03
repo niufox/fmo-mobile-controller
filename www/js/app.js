@@ -31,13 +31,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     events.onSpeakingStateChanged((callsign, isSpeaking, isHost) => {
+        // Debug Log for Speaking State
+        console.log('[App] Speaking State Changed:', { callsign, isSpeaking, isHost });
+
         if (isSpeaking) {
             viz.setCallsign(callsign);
             player.setLocalTransmission(isHost);
             
             // Trigger UFO Easter Egg if isHost
             if (isHost) {
+                console.log('[App] Triggering UFO (isHost=true)');
                 viz.triggerUFO();
+            } else {
+                console.log('[App] UFO skipped (isHost=false)');
             }
         } else {
             player.setLocalTransmission(false);
@@ -53,6 +59,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // qsoMgr 已提前初始化
     
     const ui = {
+        ledControl: document.getElementById('led-control'),
+        ledEvents: document.getElementById('led-events'),
         ledAudio: document.getElementById('led-audio'),
         btnTheme: document.getElementById('btn-theme'),
         btnSettingsToggle: document.getElementById('btn-settings-toggle'),
@@ -173,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (e) {
             console.error('[App] Connection Sequence Failed:', e);
-            alert('Connection failed: ' + e.message);
+            // alert('Connection failed: ' + e.message);
             // Optional: Disconnect partial connections?
             // ctrl.disconnect(); 
             // player.disconnect();
@@ -181,12 +189,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     ctrl.on('status', (connected) => {
+        if (ui.ledControl) {
+            ui.ledControl.className = `status-dot ${connected ? 'connected' : 'error'}`;
+        }
         if (connected) {
             ui.btnConnect.textContent = '已连接';
             ui.btnConnect.style.color = 'var(--accent-green)';
         } else {
             ui.btnConnect.textContent = 'CONNECT';
             ui.btnConnect.style.color = 'var(--accent-cyan)';
+        }
+    });
+
+    // 监听事件连接状态
+    events.on('status', (connected) => {
+        if (ui.ledEvents) {
+            ui.ledEvents.className = `status-dot ${connected ? 'connected' : 'error'}`;
         }
     });
 
@@ -209,8 +227,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // 监听音频连接状态改变按钮样式
+    // 监听音频连接状态改变按钮样式及LED
     player.on('status', (connected) => {
+        // Update Play Button
         if (connected) {
             ui.btnPlay.classList.add('active');
             ui.btnPlay.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
@@ -218,7 +237,37 @@ document.addEventListener('DOMContentLoaded', () => {
             ui.btnPlay.classList.remove('active');
             ui.btnPlay.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
         }
+        
+        // Update Audio LED
+        updateLed(ui.ledAudio, connected);
     });
+
+    // 监听 Control 连接状态 (WS)
+    ctrl.on('status', (connected) => {
+        updateLed(ui.ledControl, connected);
+    });
+
+    // 监听 Events 连接状态
+    events.on('status', (connected) => {
+        updateLed(ui.ledEvents, connected);
+    });
+
+    // LED 更新辅助函数
+    function updateLed(el, connected) {
+        if (!el) return;
+        if (connected) {
+            el.classList.add('connected');
+            el.classList.remove('error');
+        } else {
+            el.classList.remove('connected');
+            // 暂时不显示 error 红色，除非明确是错误断开？
+            // 目前需求只是 "判断通联"，断开即灰，连接即绿
+            // 如果需要红色，可以在 onerror 中处理，这里简化为灰/绿
+            // 但为了提示异常，如果之前是连接状态突然断开，可以变红？
+            // 简单起见：连接=绿，未连接=灰。
+            // 之前的CSS定义了 .error，这里暂不使用，保持简洁
+        }
+    }
 
     // 音量条初始化
     const volContainer = document.getElementById('vol-container');
@@ -262,7 +311,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!player.recording) {
             // 开始录音（需要音频已连接）
             if (!player.connected) {
-                alert('请先连接音频！');
+                // alert('请先连接音频！');
+                console.warn('[Record] Skipped: Audio not connected');
                 return;
             }
             player.startRecording();
@@ -286,7 +336,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.URL.revokeObjectURL(url);
                 }, 100);
             } else {
-                alert('录音时长太短或无数据');
+                // alert('录音时长太短或无数据');
+                console.warn('[Record] Save failed: Duration too short or no data');
             }
         }
     });
@@ -485,7 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const sendGeolocation = (isSingleOneTime = false) => {
+    const sendGeolocation = (isSingleOneTime = false, delayMs = 0) => {
         if (!ctrl.connected) return;
         
         // Permission Check
@@ -506,9 +557,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const latFixed = parseFloat(latitude.toFixed(6));
                 const lonFixed = parseFloat(longitude.toFixed(6));
                 
-                // Format: {"type":"config","subType":"setCordinate","data":{"latitude":x,"longitude":y}}
-                ctrl.send('config', 'setCordinate', { latitude: latFixed, longitude: lonFixed });
-                console.log(`[Geo] Sent (${isSingleOneTime ? 'Single' : 'Periodic'}): ${latFixed}, ${lonFixed}`);
+                const doSend = () => {
+                    if (!ctrl.connected) return;
+                    // Format: {"type":"config","subType":"setCordinate","data":{"latitude":x,"longitude":y}}
+                    ctrl.send('config', 'setCordinate', { latitude: latFixed, longitude: lonFixed });
+                    console.log(`[Geo] Sent (${isSingleOneTime ? 'Single' : 'Periodic'}): ${latFixed}, ${lonFixed}`);
+                };
+
+                if (delayMs > 0) {
+                     console.log(`[Geo] Coordinates obtained. Waiting ${delayMs}ms before sending to FMO...`);
+                     setTimeout(doSend, delayMs);
+                } else {
+                    doSend();
+                }
             },
             (err) => {
                 console.warn('[Geo] Error:', err.message);
@@ -523,8 +584,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Trigger single update shortly after connection
     ctrl.on('status', (connected) => {
         if (connected) {
-            // Wait a bit for connection stability, then try single sync
-            setTimeout(() => sendGeolocation(true), 3000);
+            // User request: Immediately request position, then write after 1s delay
+            sendGeolocation(true, 1000);
         }
     });
 
@@ -614,7 +675,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             btnCopyDebug.textContent = 'Copied!';
                             setTimeout(() => btnCopyDebug.textContent = originalText, 2000);
                         })
-                        .catch(err => alert('Copy failed: ' + err));
+                        .catch(err => console.error('[Debug] Copy failed:', err)); // alert('Copy failed: ' + err));
                 } else {
                     // Fallback for older WebViews
                     const range = document.createRange();
@@ -623,7 +684,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.getSelection().addRange(range);
                     document.execCommand('copy');
                     window.getSelection().removeAllRanges();
-                    alert('Copied to clipboard');
+                    // alert('Copied to clipboard');
+                    console.log('[Debug] Copied to clipboard via execCommand');
                 }
             });
         }

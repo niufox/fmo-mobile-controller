@@ -185,7 +185,8 @@ wsService.onMessage((event) => {
   if (event.type === "message") {
     console.log("收到消息：", event.data);
   } else if (event.type === "maxReconnect") {
-    alert("WS连接失败，已停止重连，请检查服务端");
+    // alert("WS连接失败，已停止重连，请检查服务端");
+    console.warn("WS连接失败，已停止重连，请检查服务端");
   }
 });
 

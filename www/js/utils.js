@@ -28,7 +28,7 @@ export const Utils = {
     // 显示用户友好的错误提示
     showError(message, error = null) {
         console.error('[Error]', message, error);
-        alert(`${message}${error ? `\n\n详细信息: ${error.message}` : ''}`);
+        // alert(`${message}${error ? `\n\n详细信息: ${error.message}` : ''}`);
     },
 
     // 安全的JSON解析

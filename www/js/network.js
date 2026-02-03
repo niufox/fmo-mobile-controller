@@ -165,7 +165,8 @@ export class ControlClient extends EventEmitter {
                     this.connected = false;
                     this.emit('status', false);
                     if (window.cordova) {
-                            alert(`WebSocket Error connecting to ${this.host}\nPlease check:\n1. Server is running\n2. Phone is on same Wi-Fi\n3. Use IP address instead of 'fmo.local'`);
+                            // alert(`WebSocket Error connecting to ${this.host}\nPlease check:\n1. Server is running\n2. Phone is on same Wi-Fi\n3. Use IP address instead of 'fmo.local'`);
+                            console.warn('[WS] Connection failed (Cordova environment)');
                     }
                 };
 
@@ -211,7 +212,7 @@ export class ControlClient extends EventEmitter {
             // The only case is if requestConnection succeeded but we crashed before try block? No.
             
             if (window.cordova) {
-                alert(`Connection Exception: ${e.message}\nHost: ${host}`);
+                // alert(`Connection Exception: ${e.message}\nHost: ${host}`);
             }
             throw e; // Re-throw to allow app.js to handle sequence
         }
@@ -390,8 +391,9 @@ export class ControlClient extends EventEmitter {
 }
 
 /** 事件订阅客户端 (EventsService) */
-export class EventsClient {
+export class EventsClient extends EventEmitter {
     constructor() {
+        super();
         this.ws = null;
         this.host = '';
         this.connected = false;
@@ -452,6 +454,7 @@ export class EventsClient {
                 this.ws.onopen = () => {
                     this.isConnecting = false;
                     this.connected = true;
+                    this.emit('status', true);
                     this.retryMs = 1000;
                     console.log('Events connected');
                     // No heartbeat for Events interface (Receive only)
@@ -490,6 +493,7 @@ export class EventsClient {
                     }
                     
                     this.connected = false;
+                    this.emit('status', false);
                     this.ws = null;
                     console.log("Events WS连接断开，准备重连");
                     
@@ -522,13 +526,17 @@ export class EventsClient {
     // stopHeartbeat() {}
 
     disconnect() {
-        if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = null;
+        }
         if (this.ws) {
             this.ws.onclose = null; // Prevent reconnect
             this.ws.close();
             this.ws = null;
         }
         this.connected = false;
+        this.emit('status', false);
     }
 
     scheduleReconnect() {

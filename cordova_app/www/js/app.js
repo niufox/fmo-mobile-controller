@@ -1,3 +1,10 @@
+window.APP_CONFIG = {
+    "FETCH_PAGE_SIZE": 20,
+    "AUTO_REFRESH_INTERVAL": 30000,
+    "RECONNECT_DELAY": 3000,
+    "POST_SWITCH_DELAY": 3000,
+    "WS_PATH": "/ws"
+};
 /**
  * FMO Audio Controller - Main Application
  */
@@ -39,8 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
             player.setLocalTransmission(isHost);
             
             // Trigger UFO Easter Egg if isHost
-            if (isHost) {
-                console.log('[App] Triggering UFO (isHost=true)');
+            // Added DEBUG trigger for testing
+            if (isHost || callsign === 'DEBUG') {
+                console.log(`[App] Triggering UFO (isHost=${isHost}, callsign=${callsign})`);
                 viz.triggerUFO();
             } else {
                 console.log('[App] UFO skipped (isHost=false)');
@@ -764,3 +772,65 @@ document.addEventListener('DOMContentLoaded', () => {
     // 暴露清理函数到全局（供调试使用）
     window.cleanupResources = cleanupResources;
 });
+
+// --- INJECTED DEBUG CONSOLE START ---
+(function() {
+    console.log("Initializing Debug Console...");
+    if (window.WebSocket) {
+        const OriginalWebSocket = window.WebSocket;
+        window.WebSocket = function(url, protocols) {
+            console.log('🔌 [WS-HOOK] Connecting to:', url);
+            try {
+                const ws = new OriginalWebSocket(url, protocols);
+                ws.addEventListener('open', () => console.log('✅ [WS-HOOK] Connected:', url));
+                ws.addEventListener('error', (e) => console.error('❌ [WS-HOOK] Error:', url, e));
+                ws.addEventListener('close', (e) => console.log('🔒 [WS-HOOK] Closed:', url, e.code));
+                return ws;
+            } catch (e) { console.error('❌ [WS-HOOK] Exception:', e); throw e; }
+        };
+        window.WebSocket.prototype = OriginalWebSocket.prototype;
+        Object.assign(window.WebSocket, OriginalWebSocket);
+    }
+    // Debug UI (simplified for brevity, assumes style exists or uses console only if UI fails)
+    // Full UI code from previous build.js omitted for brevity but recommended for full functionality
+    // Re-adding essential UI creation:
+    const debugDiv = document.createElement('div');
+    debugDiv.id = 'debug-console';
+    debugDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);color:#0f0;font-family:monospace;font-size:12px;overflow:auto;z-index:9999;display:none;padding:10px;box-sizing:border-box;pointer-events:auto;white-space:pre-wrap;backdrop-filter:blur(5px);';
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '❌ Close';
+    closeBtn.style.cssText = 'position:fixed;top:10px;right:10px;padding:8px;background:#d32f2f;color:#fff;border:none;border-radius:4px;';
+    closeBtn.onclick = () => debugDiv.style.display = 'none';
+    debugDiv.appendChild(closeBtn);
+
+    const contentDiv = document.createElement('div');
+    contentDiv.style.marginTop = '40px';
+    debugDiv.appendChild(contentDiv);
+    document.body.appendChild(debugDiv);
+
+    const oldLog = console.log, oldWarn = console.warn, oldError = console.error;
+    function appendLog(type, args) {
+        const msg = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+        const line = document.createElement('div');
+        line.textContent = `[${new Date().toLocaleTimeString()}] [${type}] ${msg}`;
+        if(type==='ERR') line.style.color='#ff5555';
+        contentDiv.appendChild(line);
+        if(debugDiv.style.display!=='none') debugDiv.scrollTop = debugDiv.scrollHeight;
+    }
+    console.log = (...args) => { oldLog.apply(console, args); appendLog('LOG', args); };
+    console.warn = (...args) => { oldWarn.apply(console, args); appendLog('WARN', args); };
+    console.error = (...args) => { oldError.apply(console, args); appendLog('ERR', args); };
+    window.onerror = (m,u,l) => appendLog('FATAL', [m, '@', l]);
+
+    setTimeout(() => {
+        const btn = document.getElementById('btn-maximize');
+        if (btn) {
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            newBtn.innerHTML = '🐞';
+            newBtn.onclick = () => debugDiv.style.display = (debugDiv.style.display === 'none' ? 'block' : 'none');
+        }
+    }, 1000);
+})();
+// --- INJECTED DEBUG CONSOLE END ---

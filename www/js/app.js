@@ -39,8 +39,9 @@ document.addEventListener('DOMContentLoaded', () => {
             player.setLocalTransmission(isHost);
             
             // Trigger UFO Easter Egg if isHost
-            if (isHost) {
-                console.log('[App] Triggering UFO (isHost=true)');
+            // Added DEBUG trigger for testing
+            if (isHost || callsign === 'DEBUG') {
+                console.log(`[App] Triggering UFO (isHost=${isHost}, callsign=${callsign})`);
                 viz.triggerUFO();
             } else {
                 console.log('[App] UFO skipped (isHost=false)');

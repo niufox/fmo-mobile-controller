@@ -34,7 +34,7 @@ try {
     console.log('--- FMO Build Workflow (Adapted for WWW) ---');
     
     // 1. Setup Cordova Project (if needed)
-    console.log('[1/4] Checking Cordova environment...');
+    console.log('[1/5] Checking Cordova environment...');
     if (!fs.existsSync(CORDOVA_PROJECT_DIR)) {
         console.log('  - Creating new Cordova project...');
         try {
@@ -92,13 +92,13 @@ try {
     });
 
     // 2. Copy WWW files
-    console.log('[2/4] Copying files from www to cordova_app/www...');
+    console.log('[2/5] Copying files from www to cordova_app/www...');
     cleanDir(DEST_DIR);
     copyDir(SOURCE_DIR, DEST_DIR);
     console.log('  - Files copied.');
 
     // 3. Post-Process Files (Inject Scripts, Fixes)
-    console.log('[3/4] Applying Mobile Optimizations...');
+    console.log('[3/5] Applying Mobile Optimizations...');
 
     // 3.1 Process index.html
     const indexHtmlPath = path.join(DEST_DIR, 'index.html');
@@ -253,7 +253,42 @@ try {
         console.log('  - Patched webSocketService.js');
     }
 
-    console.log('[4/4] Build complete! Ready to run: cordova build android');
+    // 4. Build Android APK
+    console.log('[4/5] Building Android APK...');
+    try {
+        execSync('cordova build android', { cwd: CORDOVA_PROJECT_DIR, stdio: 'inherit' });
+    } catch (e) {
+        console.error('  ! Build failed. Please check the logs above.');
+        throw e;
+    }
+
+    // 5. Copy APK to release
+    console.log('[5/5] Copying APK to release directory...');
+    const RELEASE_DIR = path.join(__dirname, 'release');
+    if (!fs.existsSync(RELEASE_DIR)) fs.mkdirSync(RELEASE_DIR, { recursive: true });
+
+    // Standard Cordova Android output path
+    const possiblePaths = [
+        path.join(CORDOVA_PROJECT_DIR, 'platforms/android/app/build/outputs/apk/debug/app-debug.apk'),
+        path.join(CORDOVA_PROJECT_DIR, 'platforms/android/build/outputs/apk/debug/android-debug.apk')
+    ];
+
+    let apkFound = false;
+    for (const apkPath of possiblePaths) {
+        if (fs.existsSync(apkPath)) {
+            const destPath = path.join(RELEASE_DIR, 'fmo-controller-debug.apk');
+            fs.copyFileSync(apkPath, destPath);
+            console.log(`  - APK copied to: ${destPath}`);
+            apkFound = true;
+            break;
+        }
+    }
+
+    if (!apkFound) {
+        console.warn('  ! Could not find generated APK file. Check cordova_app/platforms/android/app/build/outputs/apk/debug/');
+    }
+
+    console.log('--- Build Process Finished Successfully ---');
     
 } catch (e) {
     console.error('Build Failed:', e);

@@ -1,5 +1,6 @@
 /**
  * QSO Map Logic
+ * QSO 地图逻辑
  */
 
 let map = null;
@@ -10,12 +11,14 @@ let qsoRectanglesLayer = null;
 let highlightedMarker = null;
 
 // 网格解码算法 (6字符标准)
+// Grid decoding algorithm (6-character standard)
 function maidenheadDecode(grid) {
     if (!grid || grid.length < 4 || grid.length > 6) return null;
 
     grid = grid.toUpperCase();
 
     // 第一级: 场 (Field) - 20°×10°
+    // Level 1: Field - 20°×10°
     const lonIdx = grid.charCodeAt(0) - 'A'.charCodeAt(0);
     const latIdx = grid.charCodeAt(1) - 'A'.charCodeAt(0);
 
@@ -27,6 +30,7 @@ function maidenheadDecode(grid) {
     let latSize = 10;
 
     // 第二级: 方 (Square) - 2°×1°
+    // Level 2: Square - 2°×1°
     if (grid.length >= 4) {
         const lonNum = parseInt(grid[2]);
         const latNum = parseInt(grid[3]);
@@ -40,6 +44,7 @@ function maidenheadDecode(grid) {
     }
 
     // 第三级: 块 (Subsquare) - 5'×2.5'
+    // Level 3: Subsquare - 5'×2.5'
     if (grid.length >= 6) {
         const lonSub = grid.charCodeAt(4) - 'A'.charCodeAt(0);
         const latSub = grid.charCodeAt(5) - 'A'.charCodeAt(0);
@@ -61,11 +66,13 @@ function maidenheadDecode(grid) {
 }
 
 // 获取地理位置名称 (反向地理编码) - 已禁用以避免API错误
+// Get location name (Reverse Geocoding) - Disabled to avoid API errors
 async function resolveLocationName(lat, lon) {
     return null;
 }
 
 // 初始化地图
+// Initialize map
 function initMap() {
     try {
         console.log('Initializing Leaflet map...');
@@ -95,6 +102,7 @@ function initMap() {
         defaultLayer.addTo(map);
 
         // 应用深色滤镜
+        // Apply dark mode filter
         document.getElementById('map').classList.add('map-dark-mode');
 
         L.control.layers(baseLayers).addTo(map);
@@ -134,6 +142,7 @@ function initMap() {
 }
 
 // 定位到网格
+// Locate to grid
 function locateGrid(grid) {
     const data = maidenheadDecode(grid);
     if (!data) {
@@ -144,6 +153,7 @@ function locateGrid(grid) {
     console.log('Locating grid:', data);
 
     // 清除之前的标记
+    // Clear previous markers
     if (currentGridLayer) map.removeLayer(currentGridLayer);
     qsoMarkersLayer.clearLayers();
     qsoRectanglesLayer.clearLayers();
@@ -158,6 +168,7 @@ function locateGrid(grid) {
     `;
 
     // 绘制网格边界
+    // Draw grid bounds
     currentGridLayer = L.rectangle(data.bounds, {
         color: '#d32f2f',
         weight: 3,
@@ -167,6 +178,7 @@ function locateGrid(grid) {
     }).addTo(map);
 
     // 标记中心点
+    // Mark center point
     const marker = L.circleMarker(data.center, {
         radius: 10,
         fillColor: '#d32f2f',
@@ -179,20 +191,24 @@ function locateGrid(grid) {
     marker.bindPopup(popupContent);
 
     // 设置视图中心并缩放
+    // Set view center and zoom
     map.fitBounds(data.bounds, { padding: [50, 50], maxZoom: 12 });
 
     // 自动打开弹出窗口
+    // Automatically open popup
     setTimeout(() => {
         marker.openPopup();
     }, 500);
 }
 
 // 显示所有QSO
+// Display all QSOs
 function displayAllQsos(qsos) {
     // console.log('Displaying QSOs on map:', qsos);
     currentQsos = qsos;
 
     // 清除之前的标记
+    // Clear previous markers
     if (currentGridLayer) map.removeLayer(currentGridLayer);
     qsoMarkersLayer.clearLayers();
     qsoRectanglesLayer.clearLayers();
@@ -207,6 +223,7 @@ function displayAllQsos(qsos) {
     console.log('Processing QSOs:', qsos.length);
 
     // 计算当日通联统计
+    // Calculate daily contact statistics
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -257,6 +274,7 @@ function displayAllQsos(qsos) {
         marker.bindPopup(popupContent);
 
         // 创建网格矩形
+        // Create grid rectangle
         const rectangle = L.rectangle(data.bounds, {
             color: '#4dabf7',
             weight: 1,
@@ -283,6 +301,7 @@ function displayAllQsos(qsos) {
 }
 
 // 高亮特定QSO
+// Highlight specific QSO
 function highlightQso(grid, callsign) {
     console.log('Highlighting QSO:', grid, callsign);
 

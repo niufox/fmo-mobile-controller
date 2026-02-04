@@ -136,92 +136,7 @@
 
 
         /* 主题定义 */
-        body.theme-matrix {
-            --bg-color: #000000;
-            --panel-bg: rgba(0, 20, 0, 0.9);
-            --text-main: #00ff00;
-            --text-muted: #008800;
-            --accent-cyan: #00ff00; /* 主色调 */
-            --accent-magenta: #008f11; /* 辅色调 */
-            --accent-green: #00ff00;
-            --border-color: rgba(0, 255, 0, 0.2);
-            --viz-bg: #000;
-        }
-
-        body.theme-ocean {
-            --bg-color: #001f3f;
-            --panel-bg: rgba(0, 31, 63, 0.85);
-            --text-main: #b3e5fc;
-            --text-muted: #568ea3;
-            --accent-cyan: #7FDBFF;
-            --accent-magenta: #0074D9;
-            --accent-green: #39CCCC;
-            --border-color: rgba(127, 219, 255, 0.2);
-            --viz-bg: linear-gradient(to bottom, #001f3f, #001020);
-        }
-
-        body.theme-sunset {
-            --bg-color: #2d1b2e;
-            --panel-bg: rgba(45, 27, 46, 0.85);
-            --text-main: #ffd1dc;
-            --text-muted: #b07289;
-            --accent-cyan: #ff9e64;
-            --accent-magenta: #ff0055;
-            --accent-green: #ffca28;
-            --border-color: rgba(255, 158, 100, 0.2);
-            --viz-bg: linear-gradient(to bottom, #2d1b2e, #1a0f1a);
-        }
-
-        body.theme-light {
-            --bg-color: #f0f2f5;
-            --panel-bg: rgba(255, 255, 255, 0.9);
-            --text-main: #333333;
-            --text-muted: #666666;
-            --accent-cyan: #2196F3;
-            --accent-magenta: #673AB7;
-            --accent-green: #4CAF50;
-            --border-color: rgba(0, 0, 0, 0.1);
-            --viz-bg: #e0e0e0;
-        }
-
-        /* 新增主题：猛男粉 */
-        body.theme-pink {
-            --bg-color: #2e001f;
-            --panel-bg: rgba(60, 0, 40, 0.85);
-            --text-main: #ffc2d1;
-            --text-muted: #d88fa5;
-            --accent-cyan: #ff4081;
-            --accent-magenta: #f50057;
-            --accent-green: #ff80ab;
-            --border-color: rgba(255, 64, 129, 0.2);
-            --viz-bg: linear-gradient(to bottom, #2e001f, #1a0010);
-        }
-
-        /* 新增主题：基佬紫 */
-        body.theme-purple {
-            --bg-color: #1a002e;
-            --panel-bg: rgba(40, 0, 60, 0.85);
-            --text-main: #e1bee7;
-            --text-muted: #ba68c8;
-            --accent-cyan: #d500f9;
-            --accent-magenta: #aa00ff;
-            --accent-green: #e040fb;
-            --border-color: rgba(213, 0, 249, 0.2);
-            --viz-bg: linear-gradient(to bottom, #1a002e, #0d0017);
-        }
-
-        /* 新增主题：蕾丝红 */
-        body.theme-red {
-            --bg-color: #2b0000;
-            --panel-bg: rgba(50, 0, 0, 0.85);
-            --text-main: #ffcdd2;
-            --text-muted: #e57373;
-            --accent-cyan: #ff1744;
-            --accent-magenta: #d50000;
-            --accent-green: #ff5252;
-            --border-color: rgba(255, 23, 68, 0.2);
-            --viz-bg: linear-gradient(to bottom, #2b0000, #150000);
-        }
+        /* Removed duplicate theme definitions - now using data-theme attribute only */
 
         *
 
@@ -958,6 +873,17 @@
 
         /* 工具类 */
         .hidden { display: none !important; }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
         .text-cyan { color: var(--accent-cyan); }
         
         /* 平板/桌面端适配 (Landscape & Large Screens) */

@@ -21,39 +21,40 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                 <span id="qso-count-value">0</span>
             </div>
-            <button id="btn-settings-toggle" class="theme-btn" title="设置">
+            <button id="btn-settings-toggle" class="theme-btn" aria-label="设置" aria-expanded="false">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
-            <button id="btn-maximize" class="theme-btn" title="最大化窗口">
+            <button id="btn-maximize" class="theme-btn" aria-label="最大化窗口" aria-pressed="false">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2-2h3"/>
                     </svg>
                 </button>
 
-            <button id="btn-theme" class="theme-btn" title="切换主题">
+            <button id="btn-theme" class="theme-btn" aria-label="切换主题">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>
             </button>
-            <div class="status-indicators">
-                <div id="led-control" class="status-dot" title="控制连接 (WS)"></div>
-                <div id="led-events" class="status-dot" title="事件连接 (Events)"></div>
-                <div id="led-audio" class="status-dot" title="音频连接 (Audio)"></div>
+            <div class="status-indicators" role="group" aria-label="连接状态">
+                <div id="led-control" class="status-dot" role="status" aria-label="控制连接状态" aria-live="polite"></div>
+                <div id="led-events" class="status-dot" role="status" aria-label="事件连接状态" aria-live="polite"></div>
+                <div id="led-audio" class="status-dot" role="status" aria-label="音频连接状态" aria-live="polite"></div>
             </div>
         </div>
     </header>
 
     <!-- 设置面板：输入 IP、历史设备与发现设备 -->
-    <div id="settings-area">
+    <div id="settings-area" role="region" aria-label="设置面板">
         <div class="input-group">
-            <input type="text" id="inp-host" class="input-dark" placeholder="设备 IP 地址" value="">
-            <button id="btn-connect" class="btn-small text-cyan">CONNECT</button>
+            <label for="inp-host" class="sr-only">设备 IP 地址</label>
+            <input type="text" id="inp-host" class="input-dark" placeholder="设备 IP 地址" value="" aria-label="设备 IP 地址">
+            <button id="btn-connect" class="btn-small text-cyan" aria-label="连接设备">CONNECT</button>
         </div>
 
-        <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+        <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px;" role="group" aria-label="地理位置上报设置">
             <div style="color: var(--accent-cyan); font-size: 12px; margin-bottom: 12px; font-weight: bold;">地理位置上报设置</div>
-            
+
             <div style="display: flex; align-items: center; margin-bottom: 12px;">
                 <label class="switch-toggle">
-                    <input type="checkbox" id="cb-geo-single-allow">
+                    <input type="checkbox" id="cb-geo-single-allow" aria-label="连接时单次同步位置">
                     <span class="slider"></span>
                 </label>
                 <div style="font-size: 13px; color: var(--text-main); line-height: 1.3;">
@@ -64,7 +65,7 @@
 
             <div style="display: flex; align-items: center;">
                 <label class="switch-toggle">
-                    <input type="checkbox" id="cb-geo-periodic-allow">
+                    <input type="checkbox" id="cb-geo-periodic-allow" aria-label="实时同步位置，30分钟间隔">
                     <span class="slider"></span>
                 </label>
                 <div style="font-size: 13px; color: var(--text-main); line-height: 1.3;">
@@ -74,9 +75,9 @@
             </div>
         </div>
 
-        <div id="device-history" class="device-history"></div>
-        <div id="discovered-list" class="device-history" style="margin-top: 10px; border-top: 1px dashed #333; padding-top: 10px; display: none;"></div>
-        
+        <div id="device-history" class="device-history" role="list" aria-label="历史设备列表"></div>
+        <div id="discovered-list" class="device-history" role="list" aria-label="发现的设备列表" style="margin-top: 10px; border-top: 1px dashed #333; padding-top: 10px; display: none;"></div>
+
 
     </div>
 
@@ -101,51 +102,51 @@
     <!-- 控制区：播放、录音、台站切换、音量 -->
     <div class="controls-area">
         <!-- 播放器控制：包含播放/录音/上下台切换 -->
-        <div class="control-btn-group">
-            <button id="btn-play" class="btn-rect-lg">
+        <div class="control-btn-group" role="group" aria-label="播放控制">
+            <button id="btn-play" class="btn-rect-lg" aria-label="播放/暂停" aria-pressed="false">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
             </button>
             <!-- 录音按钮：中间图标为圆点 -->
-            <button id="btn-record" class="btn-rect-lg btn-record" title="录音">
+            <button id="btn-record" class="btn-rect-lg btn-record" aria-label="开始录音" aria-pressed="false">
                 <div class="icon"></div>
             </button>
 
-            <button id="btn-prev" class="btn-rect-lg" title="上一台">
+            <button id="btn-prev" class="btn-rect-lg" aria-label="上一台站">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
             </button>
-            <button id="btn-next" class="btn-rect-lg" title="下一台">
+            <button id="btn-next" class="btn-rect-lg" aria-label="下一台站">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
             </button>
         </div>
 
         <!-- 音量控制条 -->
-        <div class="vol-bar-container" id="vol-container">
-            <div class="vol-icon" id="vol-mute-btn">
+        <div class="vol-bar-container" id="vol-container" role="group" aria-label="音量控制">
+            <div class="vol-icon" id="vol-mute-btn" role="button" tabindex="0" aria-label="静音/取消静音" aria-pressed="false">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
                 </svg>
             </div>
-            <div class="vol-track-wrapper" id="vol-track-wrapper">
+            <div class="vol-track-wrapper" id="vol-track-wrapper" role="slider" aria-valuemin="0" aria-valuemax="200" aria-valuenow="100" aria-label="音量">
                 <div class="vol-track">
                     <div class="vol-fill" id="vol-fill">
                         <div class="vol-thumb"></div>
                     </div>
                 </div>
             </div>
-            <div class="vol-value-text" id="vol-value-text">100%</div>
+            <div class="vol-value-text" id="vol-value-text" aria-live="off">100%</div>
             <!-- Local Audio Mute Toggle -->
-            <div class="local-mute-toggle inactive" id="local-mute-toggle" title="Toggle Local Audio Mute">
+            <div class="local-mute-toggle inactive" id="local-mute-toggle" role="button" tabindex="0" aria-label="切换本地静音" aria-pressed="false">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
             </div>
         </div>
 
         <!-- 台站列表 - 改为触发按钮 -->
-        <div class="station-panel">
+        <div class="station-panel" role="region" aria-label="台站信息">
             <div class="station-header">
                 <span>STATIONS</span>
-                <span id="st-count">0/0</span>
+                <span id="st-count" aria-live="polite">0/0</span>
             </div>
-            <button id="btn-open-stations" class="btn-rect-lg" style="background: var(--panel-bg); border: 1px solid var(--border-color);">
+            <button id="btn-open-stations" class="btn-rect-lg" aria-label="打开台站列表" style="background: var(--panel-bg); border: 1px solid var(--border-color);">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/></svg>
             </button>
         </div>
@@ -155,19 +156,19 @@
 
 
     <!-- QSO Log Modal -->
-    <div id="qso-modal" class="modal-overlay">
+    <div id="qso-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="qso-modal-title" aria-hidden="true">
         <div class="modal-content qso-modal-content">
             <div class="modal-header">
                 <div class="radio-icon-container">
-                    <svg class="radio-icon-svg" viewBox="0 0 24 24" fill="currentColor">
+                    <svg class="radio-icon-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                         <path d="M3.24 6.15C2.51 6.43 2 7.17 2 8v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8c0-1.1-.9-2-2-2H8.3l8.26-3.34L15.88 1 3.24 6.15zM7 20c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3 3 3zm13-8h-2v-2h-2v2H4V8h16v4z"/>
                     </svg>
-                    <h5>QSO LOGS</h5>
-                    <a href="https://map.srv.ink" target="_blank" style="margin-left: 15px; color: var(--accent-cyan); text-decoration: none; font-size: 12px; display: flex; align-items: center;">
+                    <h5 id="qso-modal-title">QSO LOGS</h5>
+                    <a href="https://map.srv.ink" target="_blank" rel="noopener noreferrer" style="margin-left: 15px; color: var(--accent-cyan); text-decoration: none; font-size: 12px; display: flex; align-items: center;" aria-label="访问 FMO APRS 地图（新窗口）">
                         <span style="margin-right: 4px;">🗺️</span> FMO APRS Map（Designed BY BG9JYT）
                     </a>
                 </div>
-                <button id="btn-qso-close" class="btn-icon">×</button>
+                <button id="btn-qso-close" class="btn-icon" aria-label="关闭 QSO 日志">×</button>
             </div>
             <div class="modal-body-split">
                 <div id="qso-list" class="qso-list-panel">
@@ -182,27 +183,27 @@
     </div>
 
     <!-- Station List Modal - Bottom Sheet Style -->
-    <div id="station-modal" class="station-modal-overlay">
+    <div id="station-modal" class="station-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="station-modal-title" aria-hidden="true">
         <div class="station-modal-content">
-            <div class="station-modal-header">
-                <div class="station-drag-handle"></div>
+            <div class="station-modal-header" role="heading" aria-level="2">
+                <div class="station-drag-handle" aria-hidden="true"></div>
                 <div class="station-modal-title">
-                    <span>STATIONS</span>
-                    <span id="st-count-modal">0</span>
+                    <span id="station-modal-title">STATIONS</span>
+                    <span id="st-count-modal" aria-live="polite">0</span>
                 </div>
             </div>
-            <div id="st-list" class="station-list-modal">
+            <div id="st-list" class="station-list-modal" role="list" aria-label="台站列表">
                 <div class="station-item" style="grid-column: 1 / -1; justify-content: center; align-items: center; color: #666;">等待连接...点击顶部设置按钮设置IP</div>
             </div>
         </div>
     </div>
 
     <!-- Credits Modal -->
-    <div id="credits-modal" class="modal-overlay">
+    <div id="credits-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="credits-modal-title" aria-hidden="true">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>致谢与贡献</h3>
-                <button id="btn-credits-close" class="btn-icon">×</button>
+                <h3 id="credits-modal-title">致谢与贡献</h3>
+                <button id="btn-credits-close" class="btn-icon" aria-label="关闭致谢">×</button>
             </div>
             <div style="padding: 30px 20px; text-align: center; overflow-y: auto;">
                 <div class="brand" style="justify-content: center; font-size: 1.5rem; margin-bottom: 20px; color: var(--accent-cyan);">

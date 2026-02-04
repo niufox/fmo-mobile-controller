@@ -1,5 +1,7 @@
 // Simple WebSocket events client for ws://<host>/events
+// 简单的 WebSocket 事件客户端，用于 ws://<host>/events
 // Purpose: keep /events subscription logic isolated from audioPlayer.js
+// 目的：将 /events 订阅逻辑与 audioPlayer.js 隔离
 
 class EventsService {
   constructor({ url = `ws://${window.location.host}/events`, autoReconnect = true } = {}) {
@@ -11,6 +13,10 @@ class EventsService {
     this._retryMs = 1000;
   }
 
+  /**
+   * Connect to WebSocket
+   * 连接 WebSocket
+   */
   connect() {
     this.want = true;
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) return;
@@ -41,6 +47,7 @@ class EventsService {
 
     this.ws.onerror = () => {
       // let onclose handle reconnect
+      // 让 onclose 处理重连
     };
 
     this.ws.onclose = () => {
@@ -53,6 +60,10 @@ class EventsService {
     };
   }
 
+  /**
+   * Disconnect WebSocket
+   * 断开 WebSocket 连接
+   */
   disconnect() {
     this.want = false;
     if (this.ws) {
@@ -61,11 +72,21 @@ class EventsService {
     }
   }
 
+  /**
+   * Subscribe to messages
+   * 订阅消息
+   * @param {Function} cb
+   */
   subscribe(cb) {
     if (typeof cb !== 'function') return;
     this.listeners.add(cb);
   }
 
+  /**
+   * Unsubscribe from messages
+   * 取消订阅消息
+   * @param {Function} cb
+   */
   unsubscribe(cb) {
     this.listeners.delete(cb);
   }

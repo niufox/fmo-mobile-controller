@@ -1,6 +1,22 @@
+/**
+ * @fileoverview WiFi Controller
+ * WiFi 控制器
+ */
 import { t } from './i18n.js'
 import { getWiFiService } from './wifiService.js';
+
+/**
+ * WiFi Controller Class
+ * WiFi 控制器类
+ * Manages the WiFi settings UI and interactions
+ * 管理 WiFi 设置界面和交互
+ */
 class WiFiCtl {
+    /**
+     * Constructor
+     * 构造函数
+     * @param {WiFiService} wifiService
+     */
     constructor(wifiService) {
         if (WiFiCtl.instance) {
             return WiFiCtl.instance;
@@ -107,12 +123,21 @@ class WiFiCtl {
         return this;
     }
 
+    /**
+     * Update Button Text
+     * 更新按钮文本
+     * @param {string} content
+     */
     updateButtonText(content) {
         this.model.buttonContent = content;
         this.renderExtra();
         return this;
     }
 
+    /**
+     * Render Extra UI Elements
+     * 渲染额外 UI 元素
+     */
     renderExtra() {
         this.element.title.innerHTML = t('wifiTitle');
         this.element.notify.innerText = this.model.helpContent;
@@ -243,6 +268,10 @@ class WiFiCtl {
         return item;
     }
 
+    /**
+     * Render WiFi List
+     * 渲染 WiFi 列表
+     */
     renderList() {
         const list = this.element.list;
         Array.from(list.querySelectorAll('.wifi-item-box')).forEach(n => {
@@ -335,6 +364,11 @@ class WiFiCtl {
             this.onSaveWiFi(result);
         });
     }
+    /**
+     * Handle Connect Button Click
+     * 处理连接按钮点击
+     * @param {object} context
+     */
     buttonOnConnectClick(context) {
         if (this.wifiService.isBusy()) {
             return;
@@ -356,6 +390,11 @@ class WiFiCtl {
         this.wifiService.connect(model.ssid, model.password, context);
     }
 
+    /**
+     * Handle Disconnect Button Click
+     * 处理断开按钮点击
+     * @param {object} context
+     */
     buttonOnDisconnectClick(context) {
         if (this.wifiService.isBusy()) {
             return;
@@ -365,6 +404,11 @@ class WiFiCtl {
         this.wifiService.disconnect(context);
     }
 
+    /**
+     * Handle Forget Button Click
+     * 处理忘记按钮点击
+     * @param {object} context
+     */
     buttonOnForgetClick(context) {
         if (this.wifiService.isBusy()) {
             return;
@@ -374,6 +418,11 @@ class WiFiCtl {
         this.wifiService.forget(model.ssid, context);
     }
 
+    /**
+     * Handle Cancel Button Click
+     * 处理取消按钮点击
+     * @param {object} context
+     */
     buttonOnCancelClick(context) {
         if (this.wifiService.isBusy()) {
             return;
@@ -461,6 +510,11 @@ class WiFiCtl {
         this.renderList();
     }
 
+    /**
+     * Handle Get WiFi Info
+     * 处理获取 WiFi 信息
+     * @param {object} result
+     */
     onGetWiFi(result) {
         console.log("get connected:" + JSON.stringify(result));
         if (result.status == 'success') {

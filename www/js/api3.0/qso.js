@@ -49,6 +49,10 @@ class QsoPage {
     this._bindService();
   }
 
+  /**
+   * Setup Text Content
+   * 设置文本内容
+   */
   _setupText() {
     this.elements.title.innerHTML = t('qsoLogTitle');
     this.elements.hint.innerHTML = t('qsoLogHint');
@@ -125,6 +129,7 @@ class QsoPage {
         this._renderPage();
 
         // 若翻到空页（比如最后一页之后），自动回退一页
+        // If empty page is reached (e.g. after the last page), automatically go back one page
         if ((this.state.list.length === 0) && this.state.page > 0) {
           this._loadPage(this.state.page - 1);
         }
@@ -140,26 +145,47 @@ class QsoPage {
     });
   }
 
+  /**
+   * Load Page
+   * 加载页面
+   * @param {number} page
+   */
   _loadPage(page) {
     this.service.getList(page, this.state.pageSize);
   }
 
+  /**
+   * Go to Previous Page
+   * 上一页
+   */
   _goPrev() {
     const p = this.state.page || 0;
     if (p <= 0) return;
     this._loadPage(p - 1);
   }
 
+  /**
+   * Go to Next Page
+   * 下一页
+   */
   _goNext() {
     const p = this.state.page || 0;
     this._loadPage(p + 1);
   }
 
+  /**
+   * Render Page Info
+   * 渲染页面信息
+   */
   _renderPage() {
     const p = (this.state.page || 0) + 1;
     this.elements.page.innerText = `${t('qsoLogPage')}: ${p}`;
   }
 
+  /**
+   * Render Log List
+   * 渲染日志列表
+   */
   _renderList() {
     this.elements.list.innerHTML = '';
     this.state.list.forEach(item => {
@@ -173,6 +199,7 @@ class QsoPage {
       btn.innerText = `${callsign} ${grid} ${time}`;
       btn.addEventListener('click', () => {
         // 再次点击同一条：收起
+        // Click the same item again: collapse
         if (logId && logId === this.state.selectedLogId && this.inlineDetailEl) {
           this.state.selectedLogId = 0;
           this.state.pendingLogId = 0;
@@ -191,6 +218,7 @@ class QsoPage {
       this.elements.list.appendChild(btn);
 
       // 若当前页切换后仍命中选中项，则把详情插回正确位置
+      // If the selected item is still hit after switching the current page, insert the details back to the correct position
       if (logId && logId === this.state.selectedLogId && this.inlineDetailEl) {
         this._expandInlineDetailUnder(btn);
       }
@@ -198,6 +226,10 @@ class QsoPage {
     this._highlight();
   }
 
+  /**
+   * Highlight Selected Log
+   * 高亮选中日志
+   */
   _highlight() {
     const children = this.elements.list.querySelectorAll('button[data-logid]');
     children.forEach(b => {
@@ -207,6 +239,10 @@ class QsoPage {
     });
   }
 
+  /**
+   * Ensure Inline Detail Element Exists
+   * 确保行内详情元素存在
+   */
   _ensureInlineDetail() {
     if (this.inlineDetailEl && this.inlineDetailTextarea) return;
     const wrap = document.createElement('div');
@@ -222,21 +258,36 @@ class QsoPage {
     this.inlineDetailTextarea = ta;
   }
 
+  /**
+   * Collapse Inline Detail
+   * 收起行内详情
+   */
   _collapseInlineDetail() {
     if (this.inlineDetailEl && this.inlineDetailEl.parentNode) {
       this.inlineDetailEl.parentNode.removeChild(this.inlineDetailEl);
     }
   }
 
+  /**
+   * Expand Inline Detail Under Element
+   * 在元素下方展开行内详情
+   * @param {HTMLElement} btnEl
+   */
   _expandInlineDetailUnder(btnEl) {
     this._ensureInlineDetail();
     this._collapseInlineDetail();
     // 插在按钮正下方
+    // Insert directly below the button
     if (btnEl && btnEl.parentNode) {
       btnEl.parentNode.insertBefore(this.inlineDetailEl, btnEl.nextSibling);
     }
   }
 
+  /**
+   * Render Inline Detail Content
+   * 渲染行内详情内容
+   * @param {object} log
+   */
   _renderInlineDetail(log) {
     this._ensureInlineDetail();
     if (!this.inlineDetailTextarea) return;

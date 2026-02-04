@@ -119,6 +119,13 @@ try {
             console.log('  - Injected CSP Meta Tag');
         }
 
+        // Inject 51.la Analytics
+        if (!htmlContent.includes('sdk.51.la')) {
+            const analyticsScript = '\n    <script charset="UTF-8" id="LA_COLLECT" src="https://sdk.51.la/js-sdk-pro.min.js"></script>\n    <script>LA.init({id:"3OsEEBPqEOQHt9BT",ck:"3OsEEBPqEOQHt9BT",autoTrack:true,hashMode:true})</script>\n';
+            htmlContent = htmlContent.replace('</head>', analyticsScript + '</head>');
+            console.log('  - Injected 51.la Analytics');
+        }
+
         fs.writeFileSync(indexHtmlPath, htmlContent);
     }
 

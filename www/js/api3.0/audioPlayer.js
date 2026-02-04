@@ -1,9 +1,14 @@
 // Lightweight 8kHz PCM audio streaming player with buffering and scheduling
+// 轻量级 8kHz PCM 音频流播放器，具有缓冲和调度功能
 // Assumptions:
 // - WebSocket endpoint provides raw 16-bit PCM (LE), mono, 8000 Hz
+// - WebSocket 端点提供原始 16 位 PCM (LE)，单声道，8000 Hz
 // - Endpoint path: ws://<host>/audio
+// - 端点路径: ws://<host>/audio
 // - We resample implicitly via WebAudio by creating buffers with sampleRate 8000
+// - 我们通过使用 sampleRate 8000 创建缓冲区，通过 WebAudio 隐式重采样
 // - Minimizes copies via chunk queue; adaptive buffering & simple latency control
+// - 通过块队列最小化复制；自适应缓冲和简单的延迟控制
 
 export class AudioStreamPlayer {
   constructor({ url = `ws://${window.location.host}/audio`, inputSampleRate = 8000 } = {}) {
@@ -25,19 +30,22 @@ export class AudioStreamPlayer {
     this.connected = false;
 
     // Buffering & scheduling
+    // 缓冲和调度
     this.chunkQueue = []; // Array<Float32Array>
     this.queuedSamples = 0;
     this.scheduledEndTime = 0; // in audioCtx time
     this.buffering = true;
-  this.started = false; // once playback started, don't re-enter buffering
+  this.started = false; // once playback started, don't re-enter buffering // 一旦播放开始，不要重新进入缓冲
 
     // Tunables
-  this.minStartBufferSec = 0.1;   // require at least this to start
-  this.lowBufferSec = 0.3;        // legacy: kept for compat, no rebuffering once started
-    this.targetLeadSec = 0.5;       // try to keep this much scheduled ahead
-    this.maxBufferSec = 1.0;        // if queue exceeds this, drop oldest to reduce latency
+    // 可调参数
+  this.minStartBufferSec = 0.1;   // require at least this to start // 至少需要这么多才能开始
+  this.lowBufferSec = 0.3;        // legacy: kept for compat, no rebuffering once started // 遗留：保持兼容，一旦开始就不再重新缓冲
+    this.targetLeadSec = 0.5;       // try to keep this much scheduled ahead // 尝试保持这么多提前调度
+    this.maxBufferSec = 1.0;        // if queue exceeds this, drop oldest to reduce latency // 如果队列超过这个值，丢弃最早的以减少延迟
 
     // State callbacks
+    // 状态回调
     this.onStatus = null; // (statusText) => void
   }
 
@@ -48,39 +56,49 @@ export class AudioStreamPlayer {
   ensureAudio() {
     if (this.audioCtx) return;
     // Create context on user gesture
+    // 在用户手势上创建上下文
     this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   this.gainNode = this.audioCtx.createGain();
   this.gainNode.gain.value = 1;
 
   // Create analyser for FFT visualization
+  // 创建用于 FFT 可视化的分析器
   this.analyser = this.audioCtx.createAnalyser();
   this.analyser.fftSize = 1024; // 1024-point FFT; freqBinCount = 512
   this.analyser.smoothingTimeConstant = 0.8;
   // Destination chain (tail): analyser -> gain -> destination
+  // 目标链 (尾部): analyser -> gain -> destination
   // We'll feed the analyser from our processing chain
+  // 我们将从处理链向分析器提供数据
   this.analyser.connect(this.gainNode);
   this.gainNode.connect(this.audioCtx.destination);
 
   // Build processing chain (head): source -> _chainInput -> HPF -> LPF -> EQ(Low,Mid,High) -> Compressor -> analyser
+  // 构建处理链 (头部): source -> _chainInput -> HPF -> LPF -> EQ(Low,Mid,High) -> Compressor -> analyser
   // Create once and reuse for all scheduled chunks
+  // 创建一次并重用于所有调度的块
   if (!this._chainInput) {
     // Unified entry for all sources
+    // 所有源的统一入口
     this._chainInput = this.audioCtx.createGain();
     this._chainInput.gain.value = 1.0;
 
   // High-pass to remove DC/rumble (walkie‑talkie voice)
+  // 高通滤波器移除直流/隆隆声 (对讲机声音)
     this.hpf = this.audioCtx.createBiquadFilter();
     this.hpf.type = 'highpass';
   this.hpf.frequency.value = 220; // slightly lower for more body/warmth
   this.hpf.Q.value = 0.5; // gentler slope to avoid plastic/boxy feel
 
   // Low-pass to tame hiss/sibilance given 8 kHz sampling (Nyquist 4 kHz)
+  // 低通滤波器平滑嘶嘶声/齿音，基于 8 kHz 采样 (奈奎斯特 4 kHz)
     this.lpf = this.audioCtx.createBiquadFilter();
     this.lpf.type = 'lowpass';
   this.lpf.frequency.value = 3000; // a touch lower to soften edge
   this.lpf.Q.value = 0.5; // reduce resonance/phasey artifacts
 
     // EQ: subtle voice shaping
+    // EQ: 微妙的声音整形
   this.eqLow = this.audioCtx.createBiquadFilter();
     this.eqLow.type = 'lowshelf';
   this.eqLow.frequency.value = 180; // slight warmth
@@ -98,6 +116,7 @@ export class AudioStreamPlayer {
   this.eqHigh.gain.value = 0.0; // dB, remove added sheen to avoid plasticky top
 
     // Gentle compression to increase loudness consistency
+    // 温和的压缩以增加响度一致性
   this.compressor = this.audioCtx.createDynamicsCompressor();
   this.compressor.threshold.value = -22; // dB, a bit lighter
   this.compressor.knee.value = 24; // dB, softer knee
@@ -106,6 +125,7 @@ export class AudioStreamPlayer {
   this.compressor.release.value = 0.30; // s, smoother recovery
 
     // Wire: input -> HPF -> LPF -> EQ(Low -> Mid -> High) -> Compressor -> Analyser (-> Gain -> Dest)
+    // 连线: input -> HPF -> LPF -> EQ(Low -> Mid -> High) -> Compressor -> Analyser (-> Gain -> Dest)
     this._chainInput.connect(this.hpf);
     this.hpf.connect(this.lpf);
     this.lpf.connect(this.eqLow);
@@ -132,6 +152,7 @@ export class AudioStreamPlayer {
       this.connected = true;
       this.setStatus('音频已连接');
       // Resume audio if it was suspended
+      // 如果音频已挂起，则恢复音频
       if (this.audioCtx?.state === 'suspended') this.audioCtx.resume();
     };
 
@@ -159,14 +180,17 @@ export class AudioStreamPlayer {
     }
     this.connected = false;
     // Stop scheduling and clear buffers
+    // 停止调度并清除缓冲区
     this.resetBuffers();
     // Optionally pause audio to save CPU
+    // 可选：暂停音频以节省 CPU
     if (this.audioCtx?.state === 'running') this.audioCtx.suspend();
     this.setStatus('音频未连接');
   }
 
   resetBuffers() {
     // stop periodic tick if any
+    // 停止定期 tick (如果有)
     if (this._tickTimer) {
       clearTimeout(this._tickTimer);
       this._tickTimer = null;
@@ -187,10 +211,12 @@ export class AudioStreamPlayer {
     }
 
     // Latency control: if too much queued, drop oldest to ~targetLeadSec
+    // 延迟控制: 如果排队过多，丢弃最早的数据至 ~targetLeadSec
     const queuedSec = this.queuedSamples / this.inputSampleRate;
     if (queuedSec > this.maxBufferSec) {
       const targetSamples = Math.floor(this.targetLeadSec * this.inputSampleRate);
       // Drop enough from head
+      // 从头部丢弃足够的数据
       let toDrop = (this.queuedSamples + f32.length) - targetSamples;
       while (toDrop > 0 && this.chunkQueue.length) {
         const c = this.chunkQueue[0];
@@ -200,6 +226,7 @@ export class AudioStreamPlayer {
           toDrop -= c.length;
         } else {
           // Trim the head of the first chunk
+          // 修剪第一个块的头部
           const remain = c.length - toDrop;
           const trimmed = c.subarray(c.length - remain);
           this.chunkQueue[0] = trimmed;
@@ -222,6 +249,7 @@ export class AudioStreamPlayer {
     const queuedSec = this.queuedSamples / this.inputSampleRate;
 
     // Buffering logic
+    // 缓冲逻辑
     if (this.buffering) {
       if (queuedSec >= this.minStartBufferSec) {
         this.buffering = false;
@@ -229,12 +257,14 @@ export class AudioStreamPlayer {
         this.setStatus('播放中');
       } else {
         // Not enough yet for the very first start
+        // 第一次启动时数据不足
         this.setStatus('缓冲中...');
         return;
       }
     }
 
     // Schedule ahead to maintain target lead time
+    // 提前调度以维持目标提前时间
     while ((this.scheduledEndTime - now) < this.targetLeadSec && this.chunkQueue.length) {
       const chunk = this.chunkQueue.shift();
       this.queuedSamples -= chunk.length;
@@ -245,6 +275,7 @@ export class AudioStreamPlayer {
   const src = this.audioCtx.createBufferSource();
   src.buffer = buffer;
   // Route each source into processing chain entry (shared), or analyser if chain missing
+  // 将每个源路由到处理链入口 (共享)，如果缺少链则路由到分析器
   if (this._chainInput) {
     src.connect(this._chainInput);
   } else {
@@ -257,11 +288,13 @@ export class AudioStreamPlayer {
     }
 
     // If we've started and currently没有可用数据，不要重回缓冲状态；等待新数据并保持“播放中”状态
+    // If we've started and currently have no available data, do not go back to buffering state; wait for new data and keep "Playing" state
     if (this.started && !this.buffering) {
       this.setStatus('播放中');
     }
 
     // Keep a light scheduling tick while connected
+    // 连接时保持轻量级调度 tick
     if (this.connected) {
       clearTimeout(this._tickTimer);
       this._tickTimer = setTimeout(() => this._maybeSchedule(), 60);

@@ -1,6 +1,7 @@
 /**
  * Debug Log Capture
  * 捕获控制台日志用于调试面板显示
+ * Capture console logs for debug panel display
  */
 window.__DEBUG_LOGS__ = [];
 

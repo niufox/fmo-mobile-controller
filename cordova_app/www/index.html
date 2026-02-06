@@ -8,6 +8,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="format-detection" content="telephone=no">
     <title>FMO Mobile Controller</title>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📻</text></svg>">
     <link rel="stylesheet" href="css/main.css">
 <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src * ws: wss:;">
@@ -87,6 +95,22 @@
     <!-- 可视化区域：频谱/模式标记 -->
     <div class="viz-container" id="viz-area">
         <canvas id="viz-canvas"></canvas>
+        <canvas id="webgl-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none;"></canvas>
+        
+        <!-- Model Loading Progress Bar -->
+        <div id="model-loader" class="model-loader" style="display: none;">
+            <div class="loader-content">
+                <div class="loader-text">空天战机空间跳跃完成度 <span id="loader-percent">0</span>%</div>
+                <div class="loader-bar-track">
+                    <div id="loader-bar-fill" class="loader-bar-fill"></div>
+                </div>
+                <div class="loader-info">
+                    <span id="loader-speed">0 KB/s</span>
+                    <span id="loader-remaining">--:--</span>
+                </div>
+            </div>
+        </div>
+
         <!-- 呼号队列显示 -->
         <div id="callsign-ticker" class="callsign-ticker-container">
             <!-- Items injected by JS -->

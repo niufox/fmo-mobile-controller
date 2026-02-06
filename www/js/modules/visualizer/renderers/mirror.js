@@ -3,9 +3,7 @@ import { BaseRenderer } from '../core/base-renderer.js';
 
 /**
  * 2. 镜像模式渲染器 (MIRROR)
- * 2. Mirror Mode Renderer (MIRROR)
  * 优化：离屏Canvas缓存背景
- * Optimization: Offscreen Canvas for background caching
  */
 export class MirrorRenderer extends BaseRenderer {
     /**

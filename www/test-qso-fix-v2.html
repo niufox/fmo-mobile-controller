@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QSO星星统计修复 - 逻辑修正版</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+        }
+        h1 {
+            text-align: center;
+            color: #e94560;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            background: rgba(22, 33, 62, 0.8);
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+            border: 2px solid #0f3460;
+        }
+        .section-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #4ade80;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4ade80;
+        }
+        .code-block {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            overflow-x: auto;
+        }
+        .highlight {
+            color: #e94560;
+            font-weight: bold;
+        }
+        .success {
+            color: #4ade80;
+        }
+        .info {
+            color: #60a5fa;
+        }
+        .demo-panel {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        .badge-demo {
+            flex: 1;
+            background: rgba(233, 69, 96, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            border: 1px solid #0f3460;
+            margin-bottom: 15px;
+        }
+        .badge-icon {
+            width: 16px;
+            height: 16px;
+        }
+        .badge-count {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        button {
+            background: #0f3460;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #e94560;
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            background: #333;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        .log-output {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .log-item {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .log-time {
+            color: #888;
+            margin-right: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #0f3460;
+        }
+        th {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌟 QSO星星统计修复 - 逻辑修正版</h1>
+
+    <div class="test-section">
+        <div class="section-title">核心修复</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>问题</th>
+                    <th>修复前</th>
+                    <th>修复后</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>重复累加</strong></td>
+                    <td>每个响应都累加总数</td>
+                    <td><span class="success">只在全量获取时累加</span></td>
+                </tr>
+                <tr>
+                    <td><strong>重复请求</strong></td>
+                    <td>每次打开都请求第一页</td>
+                    <td><span class="success">使用缓存数据</span></td>
+                </tr>
+                <tr>
+                    <td><strong>事件监听</strong></td>
+                    <td>每次都添加新监听器</td>
+                    <td><span class="success">统一在initEvents中处理</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="test-section">
+        <div class="section-title">新增属性</div>
+        <div class="code-block">
+<span class="info">// 在构造函数中新增</span><br>
+this.totalQsoCount = 0;      <span class="success">// 累计总数</span><br>
+this.currentPage = 0;           <span class="success">// 当前页码</span><br>
+this.isFetchingAll = false;     <span class="success">// 是否正在全量获取</span><br>
+this.qsoList = [];            <span class="success">// 缓存所有QSO记录</span><br>
+this.lastFetchPage = -1;       <span class="highlight">// 记录最后一次请求的页码</span>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <div class="section-title">fetchAllQsoPages 简化</div>
+        <div class="code-block">
+<span class="success">// 修改前：包含事件监听器，重复添加</span><br>
+fetchAllQsoPages() {<br>
+&nbsp;&nbsp;const handleQsoResponse = (msg) => { ... };<br>
+&nbsp;&nbsp;this.client.on('qsoMessage', handleQsoResponse);  <span class="highlight">// 重复！</span><br>
+}<br><br>
+<span class="success">// 修改后：只发起请求，事件处理统一在initEvents</span><br>
+fetchAllQsoPages() {<br>
+&nbsp;&nbsp;this.isFetchingAll = true;<br>
+&nbsp;&nbsp;this.lastFetchPage = this.currentPage;  <span class="highlight">// 记录页码</span><br>
+&nbsp;&nbsp;this.client.getQsoList(this.currentPage, this.pageSize);<br>
+}
+        </div>
+    </div>
+
+    <div class="test-section">
+        <div class="section-title">事件处理统一</div>
+        <div class="code-block">
+<span class="info">// initEvents中的事件处理器</span><br>
+this.client.on('qsoMessage', (msg) => {<br>
+&nbsp;&nbsp;if (msg.subType === 'getListResponse') {<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="info">// 分两种情况处理</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.isFetchingAll) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="success">// 全量获取模式</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.totalQsoCount += list.length;  <span class="highlight">// 累加</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.updateCount(this.totalQsoCount);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// 判断是否继续...<br>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="success">// 单次请求模式</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.renderList(list);  <span class="highlight">// 只显示，不累加</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// 发送到地图...<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;}<br>
+});
+        </div>
+    </div>
+
+    <div class="test-section">
+        <div class="section-title">show() 方法优化</div>
+        <div class="code-block">
+<span class="highlight">// 修改前：每次打开都请求</span><br>
+show() {<br>
+&nbsp;&nbsp;this.modal.classList.add('show');<br>
+&nbsp;&nbsp;this.fetchData(true, true);  <span class="highlight">// 每次都请求！</span><br>
+}<br><br>
+<span class="success">// 修改后：使用缓存数据</span><br>
+show() {<br>
+&nbsp;&nbsp;this.modal.classList.add('show');<br>
+<br>
+&nbsp;&nbsp;<span class="info">// 如果已有缓存数据，直接显示</span><br>
+&nbsp;&nbsp;if (this.qsoList && this.qsoList.length > 0) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;this.renderList(this.qsoList);  <span class="highlight">// 不请求！</span><br>
+&nbsp;&nbsp;} else if (!this.isFetchingAll) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;this.fetchAllQsoPages();  <span class="highlight">// 只在无数据时启动</span><br>
+&nbsp;&nbsp;}<br>
+}
+        </div>
+    </div>
+
+    <div class="test-section">
+        <div class="section-title">交互演示</div>
+        <div class="demo-panel">
+            <div class="badge-demo">
+                <div style="font-weight: bold; margin-bottom: 10px;">星星徽章</div>
+                <div class="badge">
+                    <svg class="badge-icon" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                    <span class="badge-count" id="badge-count">0</span>
+                </div>
+                <div style="font-size: 0.85em; color: #888; margin-top: 10px;">
+                    显示当前QSO总数
+                </div>
+            </div>
+            <div style="flex: 1;">
+                <div style="font-weight: bold; margin-bottom: 15px;">模拟操作</div>
+                <button onclick="simulateConnect()" id="btn-connect">
+                    📡 模拟连接
+                </button>
+                <button onclick="simulateClickBadge()" id="btn-click">
+                    🌟 点击星星
+                </button>
+                <button onclick="simulateRefresh()" id="btn-refresh">
+                    🔄 模拟刷新
+                </button>
+                <button onclick="simulateReset()" id="btn-reset">
+                    🗑️ 重置状态
+                </button>
+            </div>
+        </div>
+        <div class="log-output" id="log-output">
+            <div class="log-item" style="color: #888;">等待操作...</div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <div class="section-title">预期行为</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>操作</th>
+                    <th>星星数字变化</th>
+                    <th>说明</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>模拟连接</td>
+                    <td><span class="success">0 → 20 → 40 → 50</span></td>
+                    <td>循环获取所有页面，累加总数</td>
+                </tr>
+                <tr>
+                    <td>点击星星</td>
+                    <td><span class="success">不变</span></td>
+                    <td>使用缓存数据，不重复请求</td>
+                </tr>
+                <tr>
+                    <td>再次点击</td>
+                    <td><span class="success">不变</span></td>
+                    <td>继续使用缓存数据</td>
+                </tr>
+                <tr>
+                    <td>自动刷新</td>
+                    <td><span class="success">不变</span></td>
+                    <td>获取中，跳过重复获取</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px; color: #888; font-size: 0.9em;">
+        <p><strong>✅ 逻辑修正完成！</strong></p>
+        <p>修复了重复累加和重复请求的问题</p>
+    </div>
+
+    <script>
+        // 模拟状态
+        let isFetchingAll = false;
+        let currentPage = 0;
+        let totalQsoCount = 0;
+        let qsoList = [];
+        const pageSize = 20;
+
+        // 模拟数据（3页，共50条）
+        const mockData = [
+            { page: 0, count: 20 },
+            { page: 1, count: 20 },
+            { page: 2, count: 10 }
+        ];
+
+        function addLog(message) {
+            const logOutput = document.getElementById('log-output');
+            const time = new Date().toLocaleTimeString();
+            const logItem = document.createElement('div');
+            logItem.className = 'log-item';
+            logItem.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+            logOutput.insertBefore(logItem, logOutput.firstChild.nextSibling);
+
+            // 限制日志条数
+            while (logOutput.children.length > 50) {
+                logOutput.removeChild(logOutput.lastChild);
+            }
+        }
+
+        function updateBadge(count) {
+            document.getElementById('badge-count').textContent = count;
+        }
+
+        function simulateConnect() {
+            if (isFetchingAll) {
+                addLog('<span style="color: #fbbf24;">⚠️ 已在获取中，跳过</span>');
+                return;
+            }
+
+            addLog('<span style="color: #4ade80;">📡 开始模拟连接...</span>');
+            isFetchingAll = true;
+            currentPage = 0;
+            totalQsoCount = 0;
+            qsoList = [];
+
+            simulateFetchPage(0);
+        }
+
+        function simulateFetchPage(page) {
+            addLog(`<span style="color: #60a5fa;">📄 获取 page ${page}...</span>`);
+
+            // 模拟网络延迟
+            setTimeout(() => {
+                const data = mockData.find(d => d.page === page);
+                if (!data) {
+                    addLog('<span style="color: #f87171;">❌ 数据为空，停止获取</span>');
+                    isFetchingAll = false;
+                    return;
+                }
+
+                const count = data.count;
+                totalQsoCount += count;
+                qsoList = qsoList.concat(Array(count).fill({ page, count }));
+                updateBadge(totalQsoCount);
+
+                addLog(`<span style="color: #4ade80;">✓ Page ${page} 返回 ${count} 条，累计 ${totalQsoCount} 条</span>`);
+
+                // 判断是否继续
+                if (count < pageSize) {
+                    addLog(`<span style="color: #4ade80;">✅ 获取完成，总计 ${totalQsoCount} 条</span>`);
+                    isFetchingAll = false;
+                } else {
+                    addLog(`<span style="color: #fbbf24;">⏰ 等待60秒后继续...</span>`);
+                    currentPage++;
+                    setTimeout(() => {
+                        if (isFetchingAll) {
+                            simulateFetchPage(currentPage);
+                        }
+                    }, 2000); // 演示用2秒代替60秒
+                }
+            }, 500);
+        }
+
+        function simulateClickBadge() {
+            addLog('🌟 点击星星徽章');
+
+            if (qsoList.length > 0) {
+                addLog(`<span style="color: #4ade80;">✓ 使用缓存数据（${qsoList.length}条），不重新请求</span>`);
+                addLog('✓ 星星数字不变');
+            } else if (!isFetchingAll) {
+                addLog('<span style="color: #60a5fa;">📡 无缓存数据，启动全量获取</span>');
+                simulateConnect();
+            } else {
+                addLog('<span style="color: #fbbf24;">⚠️ 正在获取中，跳过</span>');
+            }
+        }
+
+        function simulateRefresh() {
+            addLog('🔄 模拟自动刷新');
+
+            if (isFetchingAll) {
+                addLog('<span style="color: #fbbf24;">⚠️ 正在获取中，跳过重复获取</span>');
+            } else {
+                addLog('<span style="color: #4ade80;">✓ 获取已完成或未开始，重新启动全量获取</span>');
+                isFetchingAll = false;
+                qsoList = [];
+                simulateConnect();
+            }
+        }
+
+        function simulateReset() {
+            addLog('🗑️ 重置所有状态');
+            isFetchingAll = false;
+            currentPage = 0;
+            totalQsoCount = 0;
+            qsoList = [];
+            updateBadge(0);
+            addLog('<span style="color: #4ade80;">✓ 状态已重置</span>');
+        }
+    </script>
+</body>
+</html>

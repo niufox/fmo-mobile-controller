@@ -3,7 +3,6 @@ import { BaseRenderer } from '../core/base-renderer.js';
 
 /**
  * 3. 波形模式渲染器 (WAVEFORM)
- * 3. Waveform Mode Renderer (WAVEFORM)
  */
 export class WaveformRenderer extends BaseRenderer {
     /**
@@ -17,7 +16,6 @@ export class WaveformRenderer extends BaseRenderer {
         const { ctx, width: w, height: h } = this;
         
         // 1. 电流光晕
-        // 1. Electric Glow
         ctx.lineWidth = 3;
         ctx.strokeStyle = theme.primary;
         ctx.shadowBlur = 20;
@@ -38,7 +36,6 @@ export class WaveformRenderer extends BaseRenderer {
         ctx.stroke();
         
         // 2. 幻影重影 (RGB分离)
-        // 2. Ghost Echo (RGB Split)
         ctx.lineWidth = 2;
         ctx.strokeStyle = theme.secondary;
         ctx.globalAlpha = 0.4;

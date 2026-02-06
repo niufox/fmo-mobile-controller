@@ -3,7 +3,6 @@ import { BaseRenderer } from '../core/base-renderer.js';
 
 /**
  * 4. 示波器渲染器 (OSCILLOSCOPE)
- * 4. Oscilloscope Renderer (OSCILLOSCOPE)
  */
 export class OscilloscopeRenderer extends BaseRenderer {
     /**
@@ -17,7 +16,6 @@ export class OscilloscopeRenderer extends BaseRenderer {
         const { ctx, width: w, height: h } = this;
 
         // 1. 全息网格
-        // 1. Holographic Grid
         const time = Date.now() / 1000;
         const gridOffset = (time * 50) % 50;
         
@@ -29,7 +27,6 @@ export class OscilloscopeRenderer extends BaseRenderer {
         ctx.stroke();
 
         // 2. 高亮信号线
-        // 2. Highlight Signal Line
         ctx.lineWidth = 2;
         ctx.strokeStyle = '#00ff00';
         ctx.shadowBlur = 10;
@@ -49,7 +46,6 @@ export class OscilloscopeRenderer extends BaseRenderer {
         ctx.shadowBlur = 0;
 
         // 3. 扫描线纹理
-        // 3. Scanline Texture
         ctx.fillStyle = 'rgba(0,0,0,0.1)';
         for(let i=0; i<h; i+=3) { ctx.fillRect(0, i, w, 1); }
 

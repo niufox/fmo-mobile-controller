@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <title>FMO Mobile</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .connection-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-group input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .input-group input:focus {
+            border-color: #00d4ff;
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
+        }
+
+        .input-group input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            border: none;
+            border-radius: 12px;
+            padding: 14px 24px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn.connected {
+            background: linear-gradient(135deg, #00c853, #009624);
+        }
+
+        .status-indicators {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 10px 0;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #555;
+            transition: all 0.3s;
+        }
+
+        .status-dot.connected {
+            background: #00c853;
+            box-shadow: 0 0 10px #00c853;
+        }
+
+        .status-dot.error {
+            background: #ff5252;
+        }
+
+        .speaking-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        .speaking-section h2 {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .speaking-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 32px;
+            background: rgba(0, 212, 255, 0.1);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 50px;
+            font-size: 20px;
+            font-weight: 600;
+            color: #00d4ff;
+            transition: all 0.3s;
+        }
+
+        .speaking-indicator.active {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 0 15px rgba(0, 212, 255, 0);
+            }
+        }
+
+        .speaking-indicator .wave {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .speaking-indicator .wave span {
+            width: 4px;
+            height: 20px;
+            background: #00d4ff;
+            border-radius: 2px;
+            animation: wave 1s infinite ease-in-out;
+        }
+
+        .speaking-indicator .wave span:nth-child(1) { animation-delay: 0s; }
+        .speaking-indicator .wave span:nth-child(2) { animation-delay: 0.1s; }
+        .speaking-indicator .wave span:nth-child(3) { animation-delay: 0.2s; }
+        .speaking-indicator .wave span:nth-child(4) { animation-delay: 0.3s; }
+        .speaking-indicator .wave span:nth-child(5) { animation-delay: 0.4s; }
+
+        @keyframes wave {
+            0%, 100% { height: 10px; }
+            50% { height: 30px; }
+        }
+
+        .stations-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stations-section h2 {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .station-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .station-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .station-item:active {
+            transform: scale(0.98);
+        }
+
+        .station-item.active {
+            background: rgba(0, 212, 255, 0.15);
+            border-color: rgba(0, 212, 255, 0.5);
+        }
+
+        .station-item.speaking {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .station-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .station-name {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .station-status {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .station-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #555;
+        }
+
+        .station-item.active .station-indicator {
+            background: #00c853;
+            box-shadow: 0 0 8px #00c853;
+        }
+
+        .station-item.speaking .station-indicator {
+            background: #00d4ff;
+            box-shadow: 0 0 8px #00d4ff;
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .volume-control {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .volume-control label {
+            display: block;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 10px;
+        }
+
+        .volume-slider {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .device-history {
+            margin-top: 15px;
+        }
+
+        .device-history h3 {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 10px;
+        }
+
+        .history-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .history-item {
+            padding: 8px 14px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .history-item:active {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>FMO Mobile</h1>
+        </div>
+
+        <div class="connection-section">
+            <div class="input-group">
+                <input type="text" id="host-input" placeholder="输入设备IP地址" value="">
+                <button id="connect-btn" class="btn">连接</button>
+            </div>
+            
+            <div class="status-indicators">
+                <div class="status-item">
+                    <div class="status-dot" id="control-status"></div>
+                    <span>控制</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot" id="audio-status"></div>
+                    <span>音频</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot" id="events-status"></div>
+                    <span>事件</span>
+                </div>
+            </div>
+
+            <div class="volume-control">
+                <label>音量控制</label>
+                <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="80">
+            </div>
+
+            <div class="device-history" id="device-history" style="display: none;">
+                <h3>历史设备</h3>
+                <div class="history-list" id="history-list"></div>
+            </div>
+        </div>
+
+        <div class="speaking-section">
+            <h2>当前说话</h2>
+            <div class="speaking-indicator" id="speaking-indicator">
+                <div class="wave">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span id="speaking-name">等待中...</span>
+            </div>
+        </div>
+
+        <div class="stations-section">
+            <h2>台站列表</h2>
+            <div class="station-list" id="station-list">
+                <div class="empty-state">请先连接设备</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { ControlClient, EventsClient } from './js/network.js';
+        import { AudioPlayer } from './js/audio.js';
+
+        class MobileApp {
+            constructor() {
+                this.ctrl = new ControlClient();
+                this.player = new AudioPlayer();
+                this.events = new EventsClient();
+                
+                this.currentStationId = null;
+                this.stations = [];
+                this.speakingCallsign = null;
+                
+                this.initElements();
+                this.initEventListeners();
+                this.loadHistory();
+            }
+
+            initElements() {
+                this.hostInput = document.getElementById('host-input');
+                this.connectBtn = document.getElementById('connect-btn');
+                this.controlStatus = document.getElementById('control-status');
+                this.audioStatus = document.getElementById('audio-status');
+                this.eventsStatus = document.getElementById('events-status');
+                this.volumeSlider = document.getElementById('volume-slider');
+                this.speakingIndicator = document.getElementById('speaking-indicator');
+                this.speakingName = document.getElementById('speaking-name');
+                this.stationList = document.getElementById('station-list');
+                this.deviceHistory = document.getElementById('device-history');
+                this.historyList = document.getElementById('history-list');
+            }
+
+            initEventListeners() {
+                this.connectBtn.addEventListener('click', () => this.handleConnect());
+                this.volumeSlider.addEventListener('input', (e) => this.handleVolumeChange(e.target.value));
+                
+                this.ctrl.on('status', (connected) => this.updateStatus('control', connected));
+                this.player.on('status', (connected) => this.updateStatus('audio', connected));
+                this.events.on('status', (connected) => this.updateStatus('events', connected));
+                
+                this.ctrl.on('stationList', (stations) => this.handleStationList(stations));
+                this.ctrl.on('stationCurrent', (station) => this.handleCurrentStation(station));
+                
+                this.events.onCallsignReceived((callsign) => this.handleCallsignReceived(callsign));
+                this.events.onSpeakingStateChanged((callsign, isSpeaking, isHost) => this.handleSpeakingState(callsign, isSpeaking));
+            }
+
+            async handleConnect() {
+                const host = this.hostInput.value.trim();
+                if (!host) {
+                    alert('请输入设备IP地址');
+                    return;
+                }
+
+                try {
+                    this.connectBtn.disabled = true;
+                    this.connectBtn.textContent = '连接中...';
+                    
+                    await this.ctrl.connect(host);
+                    await this.player.connect(host);
+                    await this.events.connect(host);
+                    
+                    this.addToHistory(host);
+                    this.connectBtn.textContent = '已连接';
+                    this.connectBtn.classList.add('connected');
+                    
+                } catch (error) {
+                    console.error('连接失败:', error);
+                    alert('连接失败: ' + error.message);
+                    this.connectBtn.textContent = '连接';
+                    this.connectBtn.classList.remove('connected');
+                } finally {
+                    this.connectBtn.disabled = false;
+                }
+            }
+
+            updateStatus(type, connected) {
+                const statusEl = this[type + 'Status'];
+                if (statusEl) {
+                    statusEl.className = 'status-dot ' + (connected ? 'connected' : '');
+                }
+            }
+
+            handleStationList(stations) {
+                this.stations = stations;
+                this.renderStationList();
+            }
+
+            handleCurrentStation(station) {
+                this.currentStationId = station ? station.uid : null;
+                this.renderStationList();
+            }
+
+            handleCallsignReceived(callsign) {
+                console.log('收到呼号:', callsign);
+            }
+
+            handleSpeakingState(callsign, isSpeaking) {
+                if (isSpeaking) {
+                    this.speakingCallsign = callsign;
+                    this.speakingName.textContent = callsign || '未知';
+                    this.speakingIndicator.classList.add('active');
+                } else {
+                    if (this.speakingCallsign === callsign) {
+                        this.speakingCallsign = null;
+                        this.speakingName.textContent = '等待中...';
+                        this.speakingIndicator.classList.remove('active');
+                    }
+                }
+                this.renderStationList();
+            }
+
+            handleVolumeChange(value) {
+                if (this.player.gainNode) {
+                    this.player.gainNode.gain.value = value / 100 * 3;
+                }
+            }
+
+            renderStationList() {
+                if (this.stations.length === 0) {
+                    this.stationList.innerHTML = '<div class="loading">加载中</div>';
+                    return;
+                }
+
+                this.stationList.innerHTML = this.stations.map(station => {
+                    const isActive = station.uid === this.currentStationId;
+                    const isSpeaking = this.speakingCallsign === station.name;
+                    
+                    return `
+                        <div class="station-item ${isActive ? 'active' : ''} ${isSpeaking ? 'speaking' : ''}" 
+                             data-uid="${station.uid}">
+                            <div class="station-info">
+                                <div class="station-indicator"></div>
+                                <div>
+                                    <div class="station-name">${station.name || 'Station ' + station.uid}</div>
+                                    <div class="station-status">ID: ${station.uid}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                this.stationList.querySelectorAll('.station-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const stationId = parseInt(item.dataset.uid);
+                        this.switchStation(stationId);
+                    });
+                });
+            }
+
+            async switchStation(stationId) {
+                if (stationId === this.currentStationId) return;
+                
+                try {
+                    this.ctrl.setStation(stationId);
+                    this.currentStationId = stationId;
+                    this.renderStationList();
+                } catch (error) {
+                    console.error('切换台站失败:', error);
+                    alert('切换台站失败: ' + error.message);
+                }
+            }
+
+            loadHistory() {
+                const history = JSON.parse(localStorage.getItem('fmo_device_history') || '[]');
+                if (history.length > 0) {
+                    this.deviceHistory.style.display = 'block';
+                    this.historyList.innerHTML = history.map(host => 
+                        `<div class="history-item" data-host="${host}">${host}</div>`
+                    ).join('');
+                    
+                    this.historyList.querySelectorAll('.history-item').forEach(item => {
+                        item.addEventListener('click', () => {
+                            this.hostInput.value = item.dataset.host;
+                        });
+                    });
+                }
+            }
+
+            addToHistory(host) {
+                let history = JSON.parse(localStorage.getItem('fmo_device_history') || '[]');
+                history = history.filter(h => h !== host);
+                history.unshift(host);
+                history = history.slice(0, 5);
+                localStorage.setItem('fmo_device_history', JSON.stringify(history));
+                this.loadHistory();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new MobileApp();
+        });
+    </script>
+</body>
+</html>

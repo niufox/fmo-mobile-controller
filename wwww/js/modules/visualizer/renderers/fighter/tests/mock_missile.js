@@ -1,0 +1,1 @@
+export class MissileSystem { update() {} draw() {} }

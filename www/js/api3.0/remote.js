@@ -1,25 +1,10 @@
-/**
- * @fileoverview Remote Page Logic
- * 远程控制页面逻辑
- */
 import { t } from './i18n.js';
 import { getRemoteService } from './remoteService.js';
 import { AudioStreamPlayer } from './audioPlayer.js';
 import { eventsService } from './eventsService.js';
 
-/**
- * Remote Page Class
- * 远程控制页面类
- * Manages the UI for remote station control
- * 管理远程站点控制的 UI
- */
 class RemotePage {
-    /**
-     * Constructor
-     * 构造函数
-     * @param {RemoteService} service
-     */
-    constructor(service) {
+  constructor(service) {
     if (RemotePage.instance) return RemotePage.instance;
     this.service = service;
     this.elements = {
@@ -50,10 +35,6 @@ class RemotePage {
     this._initAudioAndEvents();
   }
 
-  /**
-   * Setup Text Content
-   * 设置文本内容
-   */
   _setupText(){
     this.elements.title.innerHTML = t('remoteTitle');
     this.elements.hint.innerHTML = t('remoteSelectHint');
@@ -70,20 +51,12 @@ class RemotePage {
     if (this.elements.audioSpeakingCallsign && !this.elements.audioSpeakingCallsign.textContent) this.elements.audioSpeakingCallsign.textContent = '-';
   }
 
-  /**
-   * Bind UI Events
-   * 绑定 UI 事件
-   */
   _bind(){
     this.elements.prevBtn.addEventListener('click', ()=>{ this.service.prev(); });
     this.elements.nextBtn.addEventListener('click', ()=>{ this.service.next(); });
     this.elements.moreBtn.addEventListener('click', ()=>{ this._loadMore(); });
   }
 
-  /**
-   * Bind Service Events
-   * 绑定服务事件
-   */
   _bindService(){
     this.service.subscribe('onDeviceStatusChange', (d)=>{
       if (d.status === 'connected'){
@@ -103,10 +76,6 @@ class RemotePage {
     this.service.subscribe('prev', (res)=>{ this._pollCurrentAfterAction(); });
   }
 
-  /**
-   * Initialize Audio and Event Services
-   * 初始化音频和事件服务
-   */
   _initAudioAndEvents(){
     eventsService.connect();
 
@@ -160,21 +129,12 @@ class RemotePage {
     this._callsignSubscribed = false;
   }
 
-  /**
-   * Load More Stations
-   * 加载更多站点
-   */
   _loadMore(){
     const start = this.state.list.length;
     const count = 8;
     this.service.getListRange(start, count);
   }
 
-  /**
-   * Render Current Station Info
-   * 渲染当前站点信息
-   * @param {string} name
-   */
   _renderCurrent(name){
     this.elements.current.innerHTML = `${t('remoteCurrent')}: ${name || '-'}`;
   }
@@ -192,10 +152,6 @@ class RemotePage {
     this._highlight();
   }
 
-  /**
-   * Highlight Current Station
-   * 高亮当前站点
-   */
   _highlight(){
     const children = this.elements.list.querySelectorAll('button[data-uid]');
     children.forEach(b=>{

@@ -1,21 +1,5 @@
-/**
- * @fileoverview WiFi Service
- * WiFi 服务
- */
 import { wsService } from './webSocketService.js';
-
-/**
- * WiFi Service Class
- * WiFi 服务类
- * Handles WiFi scanning, connection, and management
- * 处理 WiFi 扫描、连接和管理
- */
 export class WiFiService {
-    /**
-     * Constructor
-     * 构造函数
-     * @param {WebSocketService} webSocketService
-     */
     constructor(webSocketService) {
         if (WiFiService.instance) {
             return WiFiService.instance;
@@ -45,46 +29,23 @@ export class WiFiService {
         this.contextForForgetCb = null;
         this.setupMessageHandler();
     }
-    /**
-     * Notify Listeners
-     * 通知监听者
-     * @param {string} event
-     * @param {any} data
-     */
     _notifyListeners(event, data) {
         if (!this.listeners.has(event)) return;
         this.listeners.get(event).forEach((callback) => {
             callback(data);
         });
     }
-    /**
-     * Subscribe to Event
-     * 订阅事件
-     * @param {string} event
-     * @param {Function} callback
-     */
     subscribe(event, callback) {
         if (!this.listeners.has(event)) {
             this.listeners.set(event, new Set());
         }
         this.listeners.get(event).add(callback);
     }
-    /**
-     * Unsubscribe from Event
-     * 取消订阅事件
-     * @param {string} event
-     * @param {Function} callback
-     */
     unsubscribe(event, callback) {
         if (this.listeners.has(event)) {
             this.listeners.get(event).delete(callback);
         }
     }
-    /**
-     * Check if Service is Busy
-     * 检查服务是否繁忙
-     * @returns {boolean}
-     */
     isBusy() {
         return this.currentStatus.scanning || this.currentStatus.connecting || this.currentStatus.disconnecting || this.currentStatus.forgeting;
     }
@@ -133,10 +94,6 @@ export class WiFiService {
             this._notifyListeners('scanWifi', { status: 'error', error: error });
         }
     }
-    /**
-     * Get Scan Result
-     * 获取扫描结果
-     */
     async getScanResult() {
         try {
             this.webSocketService.send('wifi', 'scanWifiResult');
@@ -145,10 +102,6 @@ export class WiFiService {
             this._notifyListeners('scanWifiResult', { status: 'error', error: error });
         }
     }
-    /**
-     * Get Connected WiFi Info
-     * 获取已连接 WiFi 信息
-     */
     async getConnected() {
         try {
             this.webSocketService.send('wifi', 'getWifi');
@@ -157,12 +110,6 @@ export class WiFiService {
             this._notifyListeners('getWifi', { status: 'error', error: error });
         }
     }
-    /**
-     * Save WiFi Credentials
-     * 保存 WiFi 凭证
-     * @param {string} ssid
-     * @param {string} password
-     */
     async save(ssid, password) {
         try {
             this.webSocketService.send('wifi', 'saveWifi', { ssid: ssid, password: password });
@@ -171,13 +118,6 @@ export class WiFiService {
             this._notifyListeners('saveWifi', { status: 'error', error: error });
         }
     }
-    /**
-     * Connect to WiFi
-     * 连接 WiFi
-     * @param {string} ssid
-     * @param {string} password
-     * @param {object} contextForConnectCb
-     */
     async connect(ssid, password, contextForConnectCb) {
         if (this.isBusy()) return;
 
@@ -213,11 +153,6 @@ export class WiFiService {
             this._notifyListeners('forgetWifi', { status: 'error', error: error, context: this.contextForForgetCb });
         }
     }
-    /**
-     * Disconnect WiFi
-     * 断开 WiFi 连接
-     * @param {object} contextForDisconnectCb
-     */
     async disconnect(contextForDisconnectCb) {
         if (this.isBusy()) return;
         this.contextForDisconnectCb = contextForDisconnectCb;
@@ -328,10 +263,6 @@ export class WiFiService {
         this._notifyListeners('deviceDisconnect', { status: 'error' });
     }
 
-    /**
-     * Setup Message Handler
-     * 设置消息处理器
-     */
     setupMessageHandler() {
         this.webSocketService.subscribe('message', (message) => {
             if (message.type != 'wifi') return;

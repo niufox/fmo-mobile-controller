@@ -1,14 +1,11 @@
 import { EventEmitter } from './utils.js';
 import { connectionManager } from './connectionManager.js';
 
-/** WebSocket 控制客户端
- * WebSocket Control Client
- */
+/** WebSocket 控制客户端 */
 export class ControlClient extends EventEmitter {
     constructor() {
         super();
         // 配置常量 - 提取以提高可维护性
-        // Configuration constants - Extracted for maintainability
         this.CONFIG = {
             FETCH_PAGE_SIZE: 8, // Reduced from 20 to match remote.html implementation
             AUTO_REFRESH_INTERVAL: 30000,
@@ -19,17 +16,16 @@ export class ControlClient extends EventEmitter {
         this.ws = null;
         this.connected = false;
         this.reconnectTimer = null;
-        this.autoUpdateTimer = null; // 自动更新定时器 // Auto-update timer
+        this.autoUpdateTimer = null; // 自动更新定时器
         this.host = '';
-        this.stationList = []; // 存储所有已加载的台站 // Store all loaded stations
-        this.currentStationId = null; // 当前台站ID // Current station ID
+        this.stationList = []; // 存储所有已加载的台站
+        this.currentStationId = null; // 当前台站ID
         
         // 全量加载状态管理
-        // Full load state management
         this.fetchingAll = false;
         this.tempStationList = [];
         this.fetchStart = 0;
-        this.fetchPageSize = this.CONFIG.FETCH_PAGE_SIZE; // 每次获取限制 // Fetch limit per request
+        this.fetchPageSize = this.CONFIG.FETCH_PAGE_SIZE; // 每次获取限制
         
         // Heartbeat config
         this.heartbeatInterval = 30000; // 30s
@@ -73,7 +69,6 @@ export class ControlClient extends EventEmitter {
         this.isConnecting = true;
 
         // 重置加载状态，确保每次连接都能重新获取
-        // Reset load state to ensure fresh fetch on each connection
         this.fetchingAll = false;
         this.tempStationList = [];
         this.fetchStart = 0;
@@ -81,7 +76,6 @@ export class ControlClient extends EventEmitter {
         this.host = host;
         if (this.ws) {
             // 关闭旧连接前清除定时器
-            // Clear timers before closing old connection
             this.stopAutoRefresh();
             this.stopHeartbeat();
             this.ws.close();
@@ -120,19 +114,16 @@ export class ControlClient extends EventEmitter {
                     this.isConnecting = false;
                     this.connected = true;
                     this.emit('status', true);
-                    this.stationList = []; // 重置列表 // Reset list
+                    this.stationList = []; // 重置列表
                     // 连接后自动获取所有列表和当前台站
-                    // Auto-fetch full list and current station after connection
-                    this.fetchList(); // 初始加载 // Initial load
+                    this.fetchList(); // 初始加载
                     this.send('station', 'getCurrent');
 
                     // 开启30秒自动更新
-                    // Start 30s auto-refresh
                     this.startAutoRefresh();
                     // 启动心跳
-                    // Start heartbeat
                     this.startHeartbeat();
-                    console.log("WS连接成功"); // WS connected
+                    console.log("WS连接成功");
                     resolve();
                 };
 
@@ -157,13 +148,11 @@ export class ControlClient extends EventEmitter {
                         return;
                     }
 
-                    console.log("WS连接断开，准备重连"); // WS disconnected, preparing to reconnect
+                    console.log("WS连接断开，准备重连");
                     // 清除自动更新
-                    // Clear auto-refresh
                     this.stopAutoRefresh();
 
                     // 3秒后重连
-                    // Reconnect after 3 seconds
                     clearTimeout(this.reconnectTimer);
                     this.reconnectTimer = setTimeout(() => this.connect(this.host), this.CONFIG.RECONNECT_DELAY);
                 };
@@ -198,7 +187,7 @@ export class ControlClient extends EventEmitter {
                         
                         if (msg) {
                             if (msg.type === 'pong') {
-                                console.log("心跳确认"); // Heartbeat ack
+                                console.log("心跳确认");
                             } else {
                                 // console.log('WS Message:', msg); // Debug
                                 this.handleMessage(msg);
@@ -230,20 +219,17 @@ export class ControlClient extends EventEmitter {
     }
 
     // 启动心跳
-    // Start heartbeat
     startHeartbeat() {
         this.stopHeartbeat();
         this.heartbeatTimer = setInterval(() => {
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
                 // 发送自定义心跳包
-                // Send custom heartbeat packet
                 this.ws.send(JSON.stringify({ type: "ping", timestamp: Date.now() }));
             }
         }, this.heartbeatInterval);
     }
 
     // 停止心跳
-    // Stop heartbeat
     stopHeartbeat() {
         if (this.heartbeatTimer) {
             clearInterval(this.heartbeatTimer);
@@ -276,7 +262,6 @@ export class ControlClient extends EventEmitter {
 
     handleMessage(msg) {
         // 路由不同类型的消息
-        // Route messages of different types
         if (msg.type === 'station') {
             switch (msg.subType) {
                 case 'getListResponse':
@@ -284,10 +269,8 @@ export class ControlClient extends EventEmitter {
                     const start = msg.data.start;
 
                     // 如果正在进行全量加载流程
-                    // If full load process is in progress
                     if (this.fetchingAll) {
                         // 校验 start (如果服务器返回了 start)
-                        // Verify start (if server returned start)
                         // Relaxed check: if start is undefined, assume it's correct (server might not echo it)
                         if (start !== undefined && start !== this.fetchStart) {
                             console.warn(`Fetch order mismatch: expected ${this.fetchStart}, got ${start}`);
@@ -299,30 +282,24 @@ export class ControlClient extends EventEmitter {
                         this.tempStationList = this.tempStationList.concat(newList);
                         
                         // 检查是否还有更多数据
-                        // Check if there is more data
                         // 如果返回的数量少于请求的数量，说明是最后一页
-                        // If returned count is less than requested count, it's the last page
                         if (newList.length < this.fetchPageSize) {
                             // 加载完成
-                            // Load complete
                             console.log(`Fetch complete. Total: ${this.tempStationList.length}`);
                             this.stationList = this.tempStationList;
                             this.fetchingAll = false;
                             this.tempStationList = [];
                             
                             // 过滤空值
-                            // Filter empty values
                             this.stationList = this.stationList.filter(i => i);
                             this.emit('stationList', this.stationList);
                         } else {
                             // 继续获取下一页
-                            // Continue to fetch next page
                             this.fetchStart += this.fetchPageSize;
                             this.send('station', 'getListRange', { start: this.fetchStart, count: this.fetchPageSize });
                         }
                     } else {
                         // 非全量加载模式（兼容旧逻辑或单次更新）
-                        // Non-full load mode (Compatible with old logic or single update)
                         if ((start === 0 || start === undefined) && newList.length > 0) {
                             this.stationList = newList;
                             this.emit('stationList', this.stationList);
@@ -337,7 +314,6 @@ export class ControlClient extends EventEmitter {
                     break;
                 case 'setCurrentResponse':
                     // 操作结果，可加 Toast
-                    // Operation result, can add Toast
                     break;
             }
         } else if (msg.type === 'qso') {
@@ -346,10 +322,8 @@ export class ControlClient extends EventEmitter {
     }
 
     // 快捷指令
-    // Shortcuts
     setStation(uid) { 
         // 乐观更新：立即更新本地状态，解决连续点击失效问题
-        // Optimistic update: update local state immediately to solve continuous click failure
         this.currentStationId = uid;
         
         this.send('station', 'setCurrent', { uid }); 
@@ -370,16 +344,14 @@ export class ControlClient extends EventEmitter {
     }
     
     // 全量获取逻辑 (递归/分片获取)
-    // Full fetch logic (Recursive/Chunked fetch)
     fetchList() {
-        if (this.fetchingAll) return; // 避免重复触发 // Avoid duplicate triggers
+        if (this.fetchingAll) return; // 避免重复触发
         
         this.fetchingAll = true;
         this.tempStationList = [];
         this.fetchStart = 0;
         
         // 发起第一次请求
-        // Initiate first request
         this.send('station', 'getListRange', { start: 0, count: this.fetchPageSize });
     }
 
@@ -389,7 +361,7 @@ export class ControlClient extends EventEmitter {
             if (this.connected) {
                 this.fetchList();
             }
-        }, this.CONFIG.AUTO_REFRESH_INTERVAL); // 30秒间隔 // 30s interval
+        }, this.CONFIG.AUTO_REFRESH_INTERVAL); // 30秒间隔
     }
 
     stopAutoRefresh() {
@@ -400,7 +372,6 @@ export class ControlClient extends EventEmitter {
     }
     
     // QSO 指令
-    // QSO commands
     getQsoList(page = 0, pageSize = 20) {
         this.send('qso', 'getList', { page, pageSize });
     }
@@ -419,9 +390,7 @@ export class ControlClient extends EventEmitter {
     }
 }
 
-/** 事件订阅客户端 (EventsService)
- * Event Subscription Client (EventsService)
- */
+/** 事件订阅客户端 (EventsService) */
 export class EventsClient extends EventEmitter {
     constructor() {
         super();
@@ -509,7 +478,7 @@ export class EventsClient extends EventEmitter {
                         
                         if (msg) {
                             if (msg.type === 'pong') {
-                                console.log("Events心跳确认"); // Events heartbeat ack
+                                console.log("Events心跳确认");
                             } else {
                                 this.handleMessage(msg);
                             }
@@ -530,7 +499,7 @@ export class EventsClient extends EventEmitter {
                     this.connected = false;
                     this.emit('status', false);
                     this.ws = null;
-                    console.log("Events WS连接断开，准备重连"); // Events WS disconnected, preparing to reconnect
+                    console.log("Events WS连接断开，准备重连");
                     
                     if (e.code === 1007) {
                         console.error('[Critical] Events WebSocket disconnected due to invalid UTF-8.');
@@ -555,7 +524,6 @@ export class EventsClient extends EventEmitter {
     }
 
     // 启动心跳
-    // Start heartbeat
     startHeartbeat() {
         this.stopHeartbeat();
         this.heartbeatTimer = setInterval(() => {
@@ -570,7 +538,6 @@ export class EventsClient extends EventEmitter {
     }
 
     // 停止心跳
-    // Stop heartbeat
     stopHeartbeat() {
         if (this.heartbeatTimer) {
             clearInterval(this.heartbeatTimer);
@@ -606,24 +573,17 @@ export class EventsClient extends EventEmitter {
     handleMessage(msg) {
         // console.log('Event received:', msg); // Debug log
         // 处理 QSO 发言人事件
-        // Handle QSO speaker events
         if (msg.type === 'qso' && msg.subType === 'callsign' && msg.data) {
             console.log('Callsign event:', msg.data);
             const { callsign, isSpeaking, isHost } = msg.data;
             // 只处理开始发言事件，或者根据需要处理
-            // Only handle start speaking events, or handle as needed
             // 这里假设每次 isSpeaking=true 都是一次新的发言或持续发言
-            // Assuming every isSpeaking=true is a new speech or continuous speech
             // 为了避免重复，我们可以简单去重，或者每次都添加（作为新的事件）
-            // To avoid duplicates, we can simply de-duplicate or add every time (as a new event)
             // 用户需求是“接收到一个新的呼号时，触发显示更新”，通常意味着新的发言开始
-            // User requirement is "trigger display update when a new callsign is received", usually means new speech starts
             
             if (isSpeaking) {
                 // 简单的去重逻辑：如果最后一个呼号相同且时间很近，则不添加？
-                // Simple de-duplication logic: if the last callsign is the same and time is close, do not add?
                 // 暂时直接添加，让Ticker处理队列
-                // Add directly for now, let Ticker handle the queue
                 if (this.onCallsign) this.onCallsign(callsign);
                 if (this.onSpeakingState) this.onSpeakingState(callsign, true, isHost);
             } else {
@@ -633,7 +593,6 @@ export class EventsClient extends EventEmitter {
     }
 
     // 注册回调
-    // Register callback
     onCallsignReceived(callback) {
         this.onCallsign = callback;
     }
@@ -643,9 +602,7 @@ export class EventsClient extends EventEmitter {
     }
 }
 
-/** 发现管理器 (mDNS)
- * Discovery Manager (mDNS)
- */
+/** 发现管理器 (mDNS) */
 export class DiscoveryManager extends EventEmitter {
     constructor() {
         super();
@@ -655,7 +612,6 @@ export class DiscoveryManager extends EventEmitter {
         this.listEl = document.getElementById('discovered-list');
         
         // 监听 deviceready 事件自动开始扫描
-        // Listen for deviceready event to start scanning automatically
         document.addEventListener('deviceready', () => this.startScan(), false);
     }
 
@@ -707,11 +663,8 @@ export class DiscoveryManager extends EventEmitter {
                     permissions.requestPermission(nearbyPerm, 
                         (s) => {
                             // 无论权限请求成功与否，都尝试进行扫描
-                            // Attempt to scan regardless of permission request success
                             // 1. 如果是 Android 13+ 且用户授权，扫描正常工作
-                            // 1. If Android 13+ and user granted, scan works normally
                             // 2. 如果是旧版本 Android，该权限可能不适用，直接扫描
-                            // 2. If older Android version, permission might not apply, scan directly
                             performScan();
                         },
                         (err) => {
@@ -740,7 +693,6 @@ export class DiscoveryManager extends EventEmitter {
         if (!this.listEl) return;
         
         // 只有当有设备时才显示容器，或者正在扫描且没有任何历史记录时可以提示
-        // Only show container when there are devices, or hint when scanning and no history
         if (this.services.size === 0) {
             this.listEl.style.display = 'none';
             return;
@@ -750,7 +702,6 @@ export class DiscoveryManager extends EventEmitter {
         this.listEl.innerHTML = '';
         
         // 添加标题
-        // Add title
         const header = document.createElement('div');
         header.style.width = '100%';
         header.style.fontSize = '0.8rem';

@@ -1,8 +1,6 @@
 /**
  * Simple Unit Test for Visualizer Module
- * 可视化模块的简单单元测试
  * Run this in browser console or via a test runner
- * 在浏览器控制台或通过测试运行器运行此程序
  */
 
 import { Visualizer } from '../index.js';
@@ -61,7 +59,6 @@ class MockAnalyser {
 }
 
 // Global mocks for browser APIs
-// 浏览器 API 的全局模拟
 if (typeof ResizeObserver === 'undefined') {
     globalThis.ResizeObserver = class ResizeObserver {
         observe() {}
@@ -86,7 +83,6 @@ export function runTests() {
 
     try {
         // Test 1: Instantiation
-        // 测试 1：实例化
         const canvas = new MockCanvas();
         const analyser = new MockAnalyser();
         const viz = new Visualizer(canvas, analyser);
@@ -95,18 +91,15 @@ export function runTests() {
         assert(viz.renderers.length === 7, 'Should have 7 renderers initialized');
 
         // Test 2: Mode Switching
-        // 测试 2：模式切换
         const mode1 = viz.switchMode();
         assert(viz.mode === 1, 'Should switch to mode 1');
         assert(mode1 === 'SPECTRUM', 'Mode 1 should be SPECTRUM');
 
         // Test 3: Formation Creation
-        // 测试 3：编队创建
         viz.createFighterFormation(9);
-        assert(viz.mode === 6, 'Should switch to PARTICLES mode after formation creation');
+        assert(viz.mode === 6, 'Should switch to FIGHTER mode after formation creation');
         
         // Test 4: Renderer Resize
-        // 测试 4：渲染器调整大小
         viz.resize();
         assert(canvas.width === 800, 'Canvas width should be set');
 
@@ -120,7 +113,6 @@ export function runTests() {
 }
 
 // Run if in appropriate environment
-// 如果在适当的环境中则运行
 if (typeof window !== 'undefined') {
     window.runVisualizerTests = runTests;
 }

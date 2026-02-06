@@ -1,20 +1,7 @@
-/**
- * @fileoverview Configuration Page Logic
- * 配置页面逻辑
- */
 import { t } from './i18n.js'
 import { getConfigService } from './configService.js';
 
-/**
- * Configuration Page Class
- * 配置页面类
- */
 class Config {
-    /**
-     * Constructor
-     * 构造函数
-     * @param {ConfigService} configService
-     */
     constructor(configService) {
         if (Config.instance) {
             return Config.instance;
@@ -31,7 +18,6 @@ class Config {
             serverTitle: document.getElementById('server-title'),
             serverSubtitle: document.getElementById('server-subtitle'),
             // 线下物理可达性区块标题/副标题
-            // Offline Physical Reachability Section Title/Subtitle
             userPhySectionTitle: document.getElementById('user-phy-section-title'),
             userPhySectionSubtitle: document.getElementById('user-phy-section-subtitle'),
             serverItemTitle: document.getElementById('server-item-title'),
@@ -79,12 +65,10 @@ class Config {
             restartAprsItemButton: document.getElementById('restart-aprs-item-button'),
 
             // APRS网络设置
-            // APRS Network Settings
             aprsNetworkSectionTitle: document.getElementById('aprsNetworkSectionTitle'),
             aprsNetworkSectionSubtitle: document.getElementById('aprsNetworkSectionSubtitle'),
 
             // QSO 信息
-            // QSO Information
             qsoSectionTitle: document.getElementById('qso-section-title'),
             qsoSectionSubtitle: document.getElementById('qso-section-subtitle'),
             qsoBlessItemTitle: document.getElementById('qso-bless-item-title'),
@@ -93,7 +77,6 @@ class Config {
             qsoBlessItemButton: document.getElementById('qso-bless-item-button'),
 
             // 坐标设置
-            // Coordinate Settings
             coordinateSectionTitle: document.getElementById('coordinate-section-title'),
             coordinateSectionSubtitle: document.getElementById('coordinate-section-subtitle'),
             coordinatePreciseItemTitle: document.getElementById('coordinate-precise-item-title'),
@@ -115,7 +98,6 @@ class Config {
             helpTitle6: document.getElementById('help-title-6'),
             helpContent6: document.getElementById('help-content-6'),
             // 紧急模式
-            // Emergency Mode
             emergencyModeItemTitle: document.getElementById('emergency-mode-item-title'),
             emergencyModeItemHelp: document.getElementById('emergency-mode-item-help'),
             emergencyModeItemButton: document.getElementById('emergency-mode-item-button'),
@@ -126,7 +108,6 @@ class Config {
             aprsTypeItemButton: document.getElementById('aprs-type-item-button'),
 
             // 用户物理可达性
-            // User Physical Reachability
             userPhyDeviceNameItemTitle: document.getElementById('user-phy-device-name-item-title'),
             userPhyDeviceNameItemHelp: document.getElementById('user-phy-device-name-item-help'),
             userPhyDeviceNameItemInput: document.getElementById('user-phy-device-name-item-input'),
@@ -150,7 +131,6 @@ class Config {
         this._requeue = [];
         this._isProcess = false;
         // 加载紧急模式状态
-        // Load Emergency Mode Status
         this._emergencyMode = this._loadEmergencyMode ? this._loadEmergencyMode() : false;
         this.setupText();
         this.initAprsTypeSelect();
@@ -160,16 +140,10 @@ class Config {
         this._refreshEmergencyButtonUI();
     }
 
-    /**
-     * Initialize Server Filter Select Options
-     * 初始化服务器过滤下拉选项
-     */
     initServerFilterSelect() {
         // 清空
-        // Clear
         this.elements.serverFilterSelect.innerHTML = '';
         // 选项: 枚举序列化为 number -> 文案
-        // Options: Enum serialized as number -> Text
         const options = [
             { value: 0, label: t('filterNone') },
             { value: 1, label: t('filter50km') },
@@ -188,17 +162,11 @@ class Config {
         }
     }
 
-    /**
-     * Initialize APRS Type Select Options
-     * 初始化 APRS 类型下拉选项
-     */
     initAprsTypeSelect() {
         // 清空现有选项
-        // Clear existing options
         this.elements.aprsTypeSelect.innerHTML = '';
 
         // 添加1-15的选项
-        // Add options 1-15
         for (let i = 1; i <= 15; i++) {
             const option = document.createElement('option');
             option.value = i;
@@ -207,10 +175,6 @@ class Config {
         }
     }
 
-    /**
-     * Setup Text Content for UI Elements
-     * 设置 UI 元素的文本内容
-     */
     setupText() {
         this.elements.title.innerHTML = t('configTitle');
         this.elements.deviceStatus.innerHTML = t('tryConnToDevice');
@@ -252,7 +216,6 @@ class Config {
         this.elements.restartAprsItemButton.innerHTML = t('configRestartAprsItemButton');
 
         // APRS网络设置
-        // APRS Network Settings
         if (this.elements.aprsNetworkSectionTitle) {
             this.elements.aprsNetworkSectionTitle.innerHTML = t('aprsNetworkSectionTitle');
         }
@@ -273,7 +236,6 @@ class Config {
         this.elements.helpTitle6.innerHTML = t('configHelpTitle6');
         this.elements.helpContent6.innerHTML = t('configHelpContent6');
         // 紧急模式
-        // Emergency Mode
         if (this.elements.emergencyModeItemTitle) {
             this.elements.emergencyModeItemTitle.innerHTML = t('emergencyModeItemTitle');
         }
@@ -286,7 +248,6 @@ class Config {
         this.elements.aprsTypeItemButton.innerHTML = t('configAprsTypeItemButton');
 
         // 线下物理可达性：标题/副标题
-        // Offline Physical Reachability: Title/Subtitle
         if (this.elements.userPhySectionTitle) {
             this.elements.userPhySectionTitle.innerHTML = t('userPhySectionTitle');
         }
@@ -295,7 +256,6 @@ class Config {
         }
 
         // 用户物理可达性
-        // User Physical Reachability
         this.elements.userPhyDeviceNameItemTitle.innerHTML = t('userPhyDeviceNameItemTitle');
         this.elements.userPhyDeviceNameItemHelp.innerHTML = t('userPhyDeviceNameItemHelp');
         this.elements.userPhyDeviceNameItemButton.innerHTML = t('userPhyDeviceNameItemButton');
@@ -313,7 +273,6 @@ class Config {
         this.elements.userPhyAntHeightItemButton.innerHTML = t('userPhyAntHeightItemButton');
 
         // QSO 信息区块文案
-        // QSO Information Section Text
         if (this.elements.qsoSectionTitle) {
             this.elements.qsoSectionTitle.innerHTML = t('qsoSectionTitle');
         }
@@ -331,7 +290,6 @@ class Config {
         }
 
         // 坐标设置区块文案
-        // Coordinate Settings Section Text
         if (this.elements.coordinateSectionTitle) {
             this.elements.coordinateSectionTitle.innerHTML = t('coordinateSectionTitle');
         }
@@ -355,10 +313,6 @@ class Config {
         }
     }
 
-    /**
-     * Bind Button Click Events
-     * 绑定按钮点击事件
-     */
     bindItemButton() {
         this.elements.serverItemButton.addEventListener('click', () => {
             this.configService.setServiceUrl((this.elements.serverItemInput.value || '').trim());
@@ -415,7 +369,6 @@ class Config {
             console.log('Trigger Restart APRS Service');
         });
         // 紧急模式按钮
-        // Emergency Mode Button
         if (this.elements.emergencyModeItemButton) {
             this.elements.emergencyModeItemButton.addEventListener('click', () => {
                 this._toggleEmergencyMode();
@@ -423,12 +376,10 @@ class Config {
         }
 
         // QSO 祝福设置按钮（第一阶段仅更新UI占位，不调用后端）
-        // QSO Blessing Setting Button (Phase 1 updates UI placeholder only, does not call backend)
         if (this.elements.qsoBlessItemButton) {
             this.elements.qsoBlessItemButton.addEventListener('click', () => {
                 const v = (this.elements.qsoBlessItemInput.value || '').trim();
                 // 输入校验与忙碌状态提示
-                // Input validation and busy status prompt
                 if (typeof this.configService.qsoBestWishValid === 'function' && !this.configService.qsoBestWishValid(v)) {
                     console.warn('QSO祝福输入无效或超长:', v);
                     this.elements.qsoBlessItemButton.innerHTML = t('qsoBlessItemButtonFail');
@@ -446,14 +397,12 @@ class Config {
         }
 
         // 精确坐标输入
-        // Precise Coordinate Input
         if (this.elements.coordinatePreciseItemButton) {
             this.elements.coordinatePreciseItemButton.addEventListener('click', () => {
                 const latRaw = (this.elements.coordinateLatItemInput?.value || '').trim();
                 const lonRaw = (this.elements.coordinateLonItemInput?.value || '').trim();
 
                 // 必须是合法数字（允许小数），且不能为空
-                // Must be a valid number (decimals allowed) and cannot be empty
                 const validNumPattern = /^-?\d+(?:\.\d+)?$/;
                 if (!validNumPattern.test(latRaw) || !validNumPattern.test(lonRaw)) {
                     this.elements.coordinatePreciseItemButton.innerHTML = t('coordinatePreciseItemButtonFail');
@@ -476,14 +425,12 @@ class Config {
         }
 
         // 用户物理可达性按钮
-        // User Physical Reachability Button
         this.elements.userPhyDeviceNameItemButton.addEventListener('click', () => {
             this.configService.setUserPhyDeviceName((this.elements.userPhyDeviceNameItemInput.value || '').trim());
         });
         this.elements.userPhyFreqItemButton.addEventListener('click', () => {
             const raw = (this.elements.userPhyFreqItemInput.value || '').trim();
             // 仅允许完整的数字或小数（可含前导0），不允许多个数值或非法字符
-            // Only allows complete numbers or decimals (leading zeros allowed), multiple values or illegal characters are not allowed
             const validNumPattern = /^\d+(?:\.\d{1,4})?$/;
             if (!validNumPattern.test(raw)) {
                 console.warn('Invalid frequency input:', raw);
@@ -500,7 +447,6 @@ class Config {
         this.elements.userPhyAntHeightItemButton.addEventListener('click', () => {
             const raw = (this.elements.userPhyAntHeightItemInput.value || '').trim();
             // 必须是非负整数，禁止带符号和小数
-            // Must be a non-negative integer, no signs or decimals allowed
             const validIntPattern = /^\d+$/;
             if (!validIntPattern.test(raw)) {
                 console.warn('Invalid antenna height input:', raw);
@@ -538,12 +484,10 @@ class Config {
         this.configService.subscribe('getServerFilter', (data) => { this.onGetServerFilter(data.serverFilter) });
 
         // QSO 祝福订阅
-        // QSO Blessing Subscription
         this.configService.subscribe('setQsoBestWish', (data) => { this.onSetQsoBestWish(data) });
         this.configService.subscribe('getQsoBestWish', (data) => { this.onGetQsoBestWish(data.qsoBestWish) });
 
         // 用户物理可达性事件订阅
-        // User Physical Reachability Event Subscription
         this.configService.subscribe('setUserPhyDeviceName', (data) => { this.onSetUserPhyDeviceName(data) });
         this.configService.subscribe('getUserPhyDeviceName', (data) => { this.onGetUserPhyDeviceName(data.deviceName) });
         this.configService.subscribe('setUserPhyFreq', (data) => { this.onSetUserPhyFreq(data) });
@@ -554,7 +498,6 @@ class Config {
         this.configService.subscribe('getUserPhyAntHeight', (data) => { this.onGetUserPhyAntHeight(data.height) });
 
         // 坐标设置订阅
-        // Coordinate Settings Subscription
         this.configService.subscribe('setCordinate', (data) => { this.onSetCordinate(data) });
         this.configService.subscribe('getCordinate', (data) => { this.onGetCordinate(data.latitude, data.longitude) });
     }
@@ -563,7 +506,6 @@ class Config {
         if (data.status == 'connected') {
             this.elements.deviceStatus.innerHTML = t('deviceConnected');
             // 紧急模式：连接/重连时不发起参数链请求
-            // Emergency Mode: Do not initiate parameter chain request when connecting/reconnecting
             if (!this._isEmergencyMode()) {
                 this.queueRequest(
                     this.queryServiceUrl,
@@ -651,24 +593,20 @@ class Config {
         request.call(this);
     }
     //设置服务器地址
-    // Set Server Address
     buttonOnSetServer() {
         this.configService.setServiceUrl(this.elements.serverItemInput.value);
     }
 
     //设置端口
-    // Set Port
     buttonOnSetPort() {
         this.configService.setServicePort(this.elements.portItemInput.value);
     }
 
     //设置passcode
-    // Set Passcode
     buttonOnSetPasscode() {
         this.configService.setPasscode(this.elements.passcodeItemInput.value);
     }
     //回调
-    // Callback
     onSetServiceUrl(obj) {
         if (obj.status == 'success') {
             this.elements.serverItemButton.innerHTML = t('configServerItemButtonOK');
@@ -690,7 +628,6 @@ class Config {
     }
 
     // 用户物理可达性回调
-    // User Physical Reachability Callback
     onSetUserPhyDeviceName(obj) {
         this.elements.userPhyDeviceNameItemButton.innerHTML = (obj.status === 'success') ? t('userPhyDeviceNameItemButtonOK') : t('userPhyDeviceNameItemButtonFail');
         setTimeout(() => {
@@ -738,7 +675,6 @@ class Config {
     }
 
     // 坐标设置回调
-    // Coordinate Settings Callback
     onSetCordinate(obj) {
         if (!this.elements.coordinatePreciseItemButton) return;
         this.elements.coordinatePreciseItemButton.innerHTML = (obj.status === 'success') ? t('coordinatePreciseItemButtonOK') : t('coordinatePreciseItemButtonFail');
@@ -879,7 +815,6 @@ class Config {
 
     onGetAprsType(aprsType) {
         // 设置下拉选择框值
-        // Set dropdown selection value
         const type = parseInt(aprsType, 10) || 1;
         this.elements.aprsTypeSelect.value = type;
         this._processQueue();
@@ -955,7 +890,6 @@ class Config {
 };
 
 // --- 紧急模式：状态存取与UI ---
-// --- Emergency Mode: State Access and UI ---
 Config.prototype._loadEmergencyMode = function () {
     try {
         const v = localStorage.getItem('emergencyMode');
@@ -972,12 +906,9 @@ Config.prototype._toggleEmergencyMode = function () {
     this._saveEmergencyMode(this._emergencyMode);
     this._refreshEmergencyButtonUI(true);
     // 启用紧急模式时刷新页面，以便快速应用并清理潜在的排队请求状态。
-    // Refresh page when enabling emergency mode to quickly apply and clear potential queued request states.
     // 仅在从关闭 -> 开启时执行，避免用户关闭时丢失当前编辑内容。
-    // Only execute when switching from Off -> On to avoid user losing current edits when turning off.
     if (!prev && this._emergencyMode) {
         // 给 UI toast 一点时间显示，再刷新。
-        // Give UI toast some time to display, then refresh.
         setTimeout(() => {
             try { window.location.reload(); } catch (e) { console.warn('页面刷新失败:', e); }
         }, 600);

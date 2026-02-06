@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型加载优化测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        .test-section {
+            background: #16213e;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #0f3460;
+        }
+        h2 {
+            color: #e94560;
+            margin-top: 0;
+        }
+        button {
+            background: #0f3460;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #16213e;
+            border: 1px solid #e94560;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            background: #1a1a2e;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            color: #4ade80;
+        }
+        .error {
+            color: #f87171;
+        }
+        .info {
+            color: #60a5fa;
+        }
+        .loading {
+            color: #fbbf24;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #1a1a2e;
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0f3460, #e94560);
+            transition: width 0.3s ease;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .stat-item {
+            background: #1a1a2e;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #e94560;
+        }
+    </style>
+</head>
+<body>
+    <h1>模型加载优化测试</h1>
+    <div class="test-section">
+        <h2>1. 配置验证测试</h2>
+        <button onclick="testConfigValidation()">测试配置验证</button>
+        <div id="config-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 下载管理器测试</h2>
+        <button onclick="testDownloadManager()">测试下载管理器</button>
+        <div id="download-result" class="result"></div>
+        <div class="progress-bar">
+            <div id="download-progress" class="progress-fill" style="width: 0%"></div>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-label">下载速度</div>
+                <div id="download-speed" class="stat-value">--</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">已下载</div>
+                <div id="download-loaded" class="stat-value">--</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">总大小</div>
+                <div id="download-total" class="stat-value">--</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">剩余时间</div>
+                <div id="download-remaining" class="stat-value">--</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 降级模型测试</h2>
+        <button onclick="testFallbackModel()">测试降级模型生成</button>
+        <div id="fallback-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. FighterRenderer集成测试</h2>
+        <button onclick="testFighterRenderer()">测试FighterRenderer</button>
+        <div id="fighter-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. 性能测试</h2>
+        <button onclick="runPerformanceTest()">运行性能测试</button>
+        <div id="performance-result" class="result"></div>
+    </div>
+
+    <script type="module">
+        import ModelConfig from './js/modules/model-config.js';
+        import { ModelDownloadManager } from './js/modules/model-download-manager.js';
+        import * as THREE from './node_modules/three/build/three.module.js';
+
+        window.testConfigValidation = function() {
+            const resultDiv = document.getElementById('config-result');
+            resultDiv.innerHTML = '<span class="loading">正在测试配置验证...</span>';
+
+            setTimeout(() => {
+                try {
+                    const validation = ModelConfig.validate();
+                    if (validation.valid) {
+                        resultDiv.innerHTML = `
+                            <span class="success">✓ 配置验证通过</span>
+                            <br>
+                            <span class="info">模型URL: ${ModelConfig.getModelURL()}</span>
+                            <br>
+                            <span class="info">CDN启用: ${ModelConfig.fighter.cdn.enabled}</span>
+                            <br>
+                            <span class="info">缓存启用: ${ModelConfig.fighter.cache.enabled}</span>
+                            <br>
+                            <span class="info">分块加载: ${ModelConfig.fighter.progressive.enabled}</span>
+                        `;
+                    } else {
+                        resultDiv.innerHTML = `<span class="error">✗ 配置验证失败: ${validation.errors.join(', ')}</span>`;
+                    }
+                } catch (error) {
+                    resultDiv.innerHTML = `<span class="error">✗ 配置测试错误: ${error.message}</span>`;
+                }
+            }, 100);
+        };
+
+        window.testDownloadManager = function() {
+            const resultDiv = document.getElementById('download-result');
+            const progressFill = document.getElementById('download-progress');
+            resultDiv.innerHTML = '<span class="loading">正在测试下载管理器...</span>';
+
+            const manager = new ModelDownloadManager();
+            const modelUrl = 'modles/fighter/northstar_fighter_ship.glb';
+
+            const startTime = Date.now();
+            let lastProgress = 0;
+
+            manager.downloadModel(modelUrl, {
+                onProgress: (progress) => {
+                    const percent = progress.percent.toFixed(1);
+                    progressFill.style.width = `${percent}%`;
+
+                    document.getElementById('download-speed').textContent = manager.formatBytes(progress.speed) + '/s';
+                    document.getElementById('download-loaded').textContent = manager.formatBytes(progress.loaded);
+                    document.getElementById('download-total').textContent = manager.formatBytes(progress.total);
+                    document.getElementById('download-remaining').textContent = manager.formatTime(progress.remaining);
+
+                    lastProgress = progress.percent;
+                }
+            }).then(data => {
+                const endTime = Date.now();
+                const duration = ((endTime - startTime) / 1000).toFixed(2);
+                const averageSpeed = (data.byteLength / duration).toFixed(2);
+
+                resultDiv.innerHTML = `
+                    <span class="success">✓ 下载测试成功</span>
+                    <br>
+                    <span class="info">文件大小: ${manager.formatBytes(data.byteLength)}</span>
+                    <br>
+                    <span class="info">下载时间: ${duration}秒</span>
+                    <br>
+                    <span class="info">平均速度: ${manager.formatBytes(averageSpeed)}/s</span>
+                `;
+            }).catch(error => {
+                resultDiv.innerHTML = `<span class="error">✗ 下载测试失败: ${error.message}</span>`;
+            });
+        };
+
+        window.testFallbackModel = function() {
+            const resultDiv = document.getElementById('fallback-result');
+            resultDiv.innerHTML = '<span class="loading">正在测试降级模型...</span>';
+
+            try {
+                // 创建一个临时的Three.js场景
+                const scene = new THREE.Scene();
+                const group = new THREE.Group();
+
+                // 创建简单的战斗机形状
+                const fuselageMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x00aaff,
+                    roughness: 0.5,
+                    metalness: 0.7
+                });
+
+                const bodyGeometry = new THREE.ConeGeometry(0.3, 2.5, 8);
+                const body = new THREE.Mesh(bodyGeometry, fuselageMaterial);
+                body.rotation.x = Math.PI / 2;
+                group.add(body);
+
+                const wingGeometry = new THREE.BoxGeometry(3, 0.1, 1);
+                const wings = new THREE.Mesh(wingGeometry, fuselageMaterial);
+                wings.position.z = 0.3;
+                group.add(wings);
+
+                const tailGeometry = new THREE.BoxGeometry(1.2, 0.1, 0.6);
+                const tail = new THREE.Mesh(tailGeometry, fuselageMaterial);
+                tail.position.z = 1.0;
+                group.add(tail);
+
+                scene.add(group);
+
+                const meshCount = group.children.length;
+                resultDiv.innerHTML = `
+                    <span class="success">✓ 降级模型生成成功</span>
+                    <br>
+                    <span class="info">网格数量: ${meshCount}</span>
+                    <br>
+                    <span class="info">组件类型: Three.js基础几何体</span>
+                    <br>
+                    <span class="info">内存占用: 极小</span>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">✗ 降级模型测试失败: ${error.message}</span>`;
+            }
+        };
+
+        window.testFighterRenderer = function() {
+            const resultDiv = document.getElementById('fighter-result');
+            resultDiv.innerHTML = '<span class="info">FighterRenderer集成测试需要主应用环境</span><br>';
+            resultDiv.innerHTML += '<span class="info">请在实际应用中切换到FIGHTER模式进行测试</span><br>';
+            resultDiv.innerHTML += '<span class="info">主要检查点:</span><br>';
+            resultDiv.innerHTML += '1. 模型仅在切换到FIGHTER模式时加载<br>';
+            resultDiv.innerHTML += '2. 进度条正确显示下载进度<br>';
+            resultDiv.innerHTML += '3. 显示下载速度和剩余时间<br>';
+            resultDiv.innerHTML += '4. 加载失败时显示降级模型';
+        };
+
+        window.runPerformanceTest = function() {
+            const resultDiv = document.getElementById('performance-result');
+            resultDiv.innerHTML = '<span class="loading">正在运行性能测试...</span>';
+
+            const tests = [];
+            let completed = 0;
+
+            // 测试1: 配置读取性能
+            const configStart = performance.now();
+            for (let i = 0; i < 1000; i++) {
+                ModelConfig.getModelURL();
+            }
+            const configTime = performance.now() - configStart;
+            tests.push(`配置读取 (1000次): ${configTime.toFixed(2)}ms`);
+
+            // 测试2: 下载管理器初始化
+            const managerStart = performance.now();
+            const manager = new ModelDownloadManager();
+            const managerTime = performance.now() - managerStart;
+            tests.push(`下载管理器初始化: ${managerTime.toFixed(2)}ms`);
+
+            // 测试3: 格式化函数性能
+            const formatStart = performance.now();
+            const mgr = new ModelDownloadManager();
+            for (let i = 0; i < 10000; i++) {
+                mgr.formatBytes(Math.random() * 1024 * 1024 * 10);
+                mgr.formatTime(Math.random() * 3600);
+            }
+            const formatTime = performance.now() - formatStart;
+            tests.push(`格式化函数 (10000次): ${formatTime.toFixed(2)}ms`);
+
+            // 测试4: 缓存操作
+            const cacheStart = performance.now();
+            const cacheManager = new ModelDownloadManager();
+            const testData = new ArrayBuffer(1024 * 1024); // 1MB
+            cacheManager.cache.set('test', testData);
+            cacheManager._trimCache();
+            const cacheTime = performance.now() - cacheStart;
+            tests.push(`缓存操作: ${cacheTime.toFixed(2)}ms`);
+
+            setTimeout(() => {
+                const avgTime = tests.reduce((acc, test) => {
+                    const match = test.match(/(\d+\.\d+)ms/);
+                    return acc + (match ? parseFloat(match[1]) : 0);
+                }, 0) / tests.length;
+
+                resultDiv.innerHTML = `
+                    <span class="success">✓ 性能测试完成</span>
+                    <br>
+                    ${tests.map(t => `<span class="info">• ${t}</span><br>`).join('')}
+                    <br>
+                    <span class="info">平均响应时间: ${avgTime.toFixed(2)}ms</span>
+                    <br>
+                    <span class="info">性能评级: ${avgTime < 10 ? '优秀' : avgTime < 50 ? '良好' : '一般'}</span>
+                `;
+            }, 100);
+        };
+
+        // 自动运行配置验证
+        window.onload = function() {
+            console.log('模型加载优化测试页面已加载');
+            console.log('您可以点击各个测试按钮来验证优化效果');
+        };
+    </script>
+</body>
+</html>

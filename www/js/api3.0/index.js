@@ -1,9 +1,5 @@
 import { t } from './i18n.js'
 
-/**
- * 主页面类
- * Main Page Class
- */
 class MainPage{
     constructor() {
         if (MainPage.instance) {
@@ -19,10 +15,6 @@ class MainPage{
         };
         this.setupText();
     }
-    /**
-     * Setup Text Content
-     * 设置文本内容
-     */
     setupText()
     {
         this.elements.title.innerHTML = t('mainPageTitle');

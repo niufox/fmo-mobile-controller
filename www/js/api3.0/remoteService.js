@@ -1,9 +1,5 @@
 import { wsService } from './webSocketService.js';
 
-/**
- * Remote Service Class
- * 远程服务类
- */
 export class RemoteService {
   constructor(ws) {
     if (RemoteService.instance) return RemoteService.instance;
@@ -14,94 +10,44 @@ export class RemoteService {
     RemoteService.instance = this;
   }
 
-  /**
-   * Subscribe to Event
-   * 订阅事件
-   * @param {string} event
-   * @param {Function} cb
-   */
   subscribe(event, cb) {
     if (!this.listeners.has(event)) this.listeners.set(event, new Set());
     this.listeners.get(event).add(cb);
   }
-
-  /**
-   * Emit Event
-   * 触发事件
-   * @param {string} event
-   * @param {any} data
-   */
   _emit(event, data) {
     if (!this.listeners.has(event)) return;
     this.listeners.get(event).forEach(cb => cb(data));
   }
-
-  /**
-   * Check if Service is Busy
-   * 检查服务是否繁忙
-   */
   isBusy() { return this._busy; }
   _busyGuard() { if (this._busy) return true; this._busy = true; setTimeout(()=>{ this._busy = false; }, 3000); return false; }
 
-  /**
-   * Get Station List
-   * 获取站点列表
-   */
   getList() {
     return this.getListRange(0, 8);
   }
-
-  /**
-   * Get Station List Range
-   * 获取站点列表范围
-   * @param {number} start
-   * @param {number} count
-   */
   getListRange(start=0, count=8){
     if (this.isBusy()) return;
     this._busy = true;
     this.webSocketService.send('station', 'getListRange', { start, count });
     setTimeout(()=>{ if(this._busy){ this._busy=false; this._emit('getList', { status:'timeout' }); } }, 5000);
   }
-
-  /**
-   * Get Current Station
-   * 获取当前站点
-   */
   getCurrent() {
     if (this.isBusy()) return;
     this._busy = true;
     this.webSocketService.send('station', 'getCurrent', {});
     setTimeout(()=>{ if(this._busy){ this._busy=false; this._emit('getCurrent', { status:'timeout' }); } }, 5000);
   }
-
-  /**
-   * Set Current Station
-   * 设置当前站点
-   * @param {number} uid
-   */
   setCurrent(uid) {
     if (this.isBusy()) return;
     this._busy = true;
     this.webSocketService.send('station', 'setCurrent', { uid });
     setTimeout(()=>{ if(this._busy){ this._busy=false; this._emit('setCurrent', { status:'timeout' }); } }, 5000);
   }
-
-  /**
-   * Switch to Next Station
-   * 切换到下一个站点
-   */
   next() {
     if (this.isBusy()) return;
     this._busy = true;
     this.webSocketService.send('station', 'next', {});
     setTimeout(()=>{ if(this._busy){ this._busy=false; this._emit('next', { status:'timeout' }); } }, 5000);
   }
-
-  /**
-   * Switch to Previous Station
-   * 切换到上一个站点
-   */
   prev() {
     if (this.isBusy()) return;
     this._busy = true;
@@ -109,10 +55,6 @@ export class RemoteService {
     setTimeout(()=>{ if(this._busy){ this._busy=false; this._emit('prev', { status:'timeout' }); } }, 5000);
   }
 
-  /**
-   * Setup Service
-   * 设置服务
-   */
   _setup() {
     this.webSocketService.subscribe('message', (message) => {
       if (message.type !== 'station') return;

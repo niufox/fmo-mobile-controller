@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <title>FMO Mobile</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            height: 100vh;
+            padding: max(env(safe-area-inset-top), 10px) 16px max(env(safe-area-inset-bottom), 10px) 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow: hidden;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            padding: 5px 0;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .connection-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 12px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            flex-shrink: 0;
+            height: calc(20vh - 20px);
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .connection-top-row {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+            height: 44px;
+        }
+
+        .input-group {
+            flex: 1;
+            display: flex;
+            gap: 8px;
+            margin-bottom: 0;
+        }
+
+        .input-group input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 10px 12px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 400;
+            outline: none;
+            transition: all 0.2s;
+            min-width: 0;
+        }
+
+        .input-group input:focus {
+            border-color: #0088aa;
+            box-shadow: 0 0 0 2px rgba(0, 136, 170, 0.2);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #0088aa, #006680);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 16px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            min-width: 60px;
+        }
+
+        .btn.connected {
+            background: linear-gradient(135deg, #00a040, #007020);
+        }
+
+        .status-indicators {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 2px;
+            padding: 4px 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            min-width: 50px;
+            height: 100%;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+            font-size: 10px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.5);
+            width: 100%;
+            line-height: 1;
+        }
+
+        .device-history {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            padding: 8px;
+            overflow-y: auto;
+            display: block !important;
+        }
+
+        .device-history h3 {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            display: none; 
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #444;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .status-dot.connected {
+            background: #00a040;
+            box-shadow: 0 0 5px rgba(0, 160, 64, 0.5);
+        }
+
+        .status-dot.error {
+            background: #cc4444;
+        }
+
+
+        .status-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .current-station-section {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 8px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        .current-station-section h2 {
+            font-size: 10px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .current-station-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #00d4ff;
+            min-height: 18px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .speaking-section {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 8px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        .speaking-section h2 {
+            font-size: 10px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .speaking-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(0, 212, 255, 0.1);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #00d4ff;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .speaking-indicator.active::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            border-radius: 50px;
+            background: rgba(0, 212, 255, 0.2);
+            animation: pulse 1.5s infinite;
+            z-index: -1;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.6;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.3);
+                opacity: 0;
+            }
+        }
+
+        .speaking-indicator .wave {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            height: 20px;
+        }
+
+        .speaking-indicator .wave span {
+            width: 3px;
+            height: 14px;
+            background: #00d4ff;
+            border-radius: 2px;
+            animation: wave 1s infinite ease-in-out;
+            transform-origin: center;
+        }
+
+        .speaking-indicator .wave span:nth-child(1) { animation-delay: 0s; }
+        .speaking-indicator .wave span:nth-child(2) { animation-delay: 0.1s; }
+        .speaking-indicator .wave span:nth-child(3) { animation-delay: 0.2s; }
+        .speaking-indicator .wave span:nth-child(4) { animation-delay: 0.3s; }
+        .speaking-indicator .wave span:nth-child(5) { animation-delay: 0.4s; }
+
+        @keyframes wave {
+            0%, 100% { transform: scaleY(0.5); }
+            50% { transform: scaleY(1.5); }
+        }
+
+        .frequency-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 12px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            flex-shrink: 0;
+            height: calc(40vh - 20px);
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .frequency-section h2 {
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .frequency-canvas-container {
+            flex: 1;
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        #frequency-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .frequency-info {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .frequency-callsign {
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+            margin-bottom: 4px;
+        }
+
+        .frequency-status {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .stations-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 12px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .stations-section:active {
+            background: rgba(255, 255, 255, 0.08);
+            transform: scale(0.98);
+        }
+
+        .stations-section h2 {
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stations-section h2::after {
+            content: '▲';
+            font-size: 10px;
+            transition: transform 0.3s;
+        }
+
+        .stations-section.open h2::after {
+            transform: rotate(180deg);
+        }
+
+        .station-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+
+        .station-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .station-item:active {
+            transform: scale(0.96);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .station-item.active {
+            background: rgba(0, 212, 255, 0.15);
+            border-color: rgba(0, 212, 255, 0.5);
+        }
+
+        .station-item.speaking {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .station-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .station-name {
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word;
+        }
+
+        .station-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #555;
+            flex-shrink: 0;
+        }
+
+        .station-item.active .station-indicator {
+            background: #00c853;
+            box-shadow: 0 0 8px #00c853;
+        }
+
+        .station-item.speaking .station-indicator {
+            background: #00d4ff;
+            box-shadow: 0 0 8px #00d4ff;
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 15px;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .device-history {
+            margin-top: 16px;
+        }
+
+        .device-history h3 {
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 10px;
+        }
+
+        .history-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .history-item {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .history-item:active {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        @media (max-width: 375px) {
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .station-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .station-item {
+                padding: 12px 14px;
+            }
+            
+            .station-name {
+                font-size: 14px;
+            }
+        }
+
+        .station-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .station-modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .station-modal-content {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
+            max-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .station-modal-overlay.active .station-modal-content {
+            transform: translateY(0);
+        }
+
+        .station-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .station-modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .station-modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .station-modal-close:active {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(0.95);
+        }
+
+        .station-list-modal {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 4px;
+        }
+
+        .station-list-modal .station-item {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .station-list-modal .station-item:active {
+            transform: scale(0.96);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .station-list-modal .station-item.active {
+            background: rgba(0, 212, 255, 0.15);
+            border-color: rgba(0, 212, 255, 0.5);
+        }
+
+        .station-list-modal .station-item.speaking {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>FMO <span id="radio-trigger" style="cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 4px;">Radio</span></h1>
+        </div>
+
+        <div class="connection-section" id="connection-section">
+            <div class="connection-top-row">
+                <div class="input-group">
+                    <input type="text" id="host-input" placeholder="输入设备IP地址" value="">
+                    <button id="connect-btn" class="btn">连接</button>
+                </div>
+                
+                <div class="status-indicators">
+                    <div class="status-item">
+                        <span>C</span>
+                        <div class="status-dot" id="control-status"></div>
+                    </div>
+                    <div class="status-item">
+                        <span>A</span>
+                        <div class="status-dot" id="audio-status"></div>
+                    </div>
+                    <div class="status-item">
+                        <span>E</span>
+                        <div class="status-dot" id="events-status"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="device-history" id="device-history">
+                <div class="history-list" id="history-list"></div>
+            </div>
+        </div>
+
+        <div class="status-row">
+            <div class="current-station-section">
+                <h2>当前台站</h2>
+                <div class="current-station-name" id="current-station-name">未连接</div>
+            </div>
+
+            <div class="speaking-section">
+                <h2>当前说话</h2>
+                <div class="speaking-indicator" id="speaking-indicator">
+                    <div class="wave">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <span id="speaking-name">等待中...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="frequency-section">
+            <h2>频率仪</h2>
+            <div class="frequency-canvas-container">
+                <canvas id="frequency-canvas"></canvas>
+                <div class="frequency-info">
+                    <div class="frequency-callsign" id="frequency-callsign">--</div>
+                    <div class="frequency-status" id="frequency-status">等待音频...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stations-section" id="stations-section">
+            <h2>台站列表</h2>
+        </div>
+    </div>
+
+    <div class="station-modal-overlay" id="station-modal">
+        <div class="station-modal-content">
+            <div class="station-modal-header">
+                <div class="station-modal-title">台站列表</div>
+                <button class="station-modal-close" id="station-modal-close">×</button>
+            </div>
+            <div class="station-list-modal" id="station-list-modal">
+                <div class="empty-state">请先连接设备</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { ControlClient } from './js/network.js';
+        import { AudioPlayer } from './js/audio.js';
+        import { EventsClient } from './js/network.js';
+
+        class MobileApp {
+            constructor() {
+                this.ctrl = new ControlClient();
+                this.player = new AudioPlayer();
+                this.events = new EventsClient();
+                
+                this.connected = false;
+                this.stations = [];
+                this.currentStationId = null;
+                this.speakingCallsign = null;
+                
+                this.frequencyCanvas = null;
+                this.frequencyCtx = null;
+                this.frequencyData = null;
+                this.animationId = null;
+                
+                this.initElements();
+                this.initEventListeners();
+                this.initFrequencyCanvas();
+                this.loadDeviceHistory();
+            }
+
+            initElements() {
+                this.hostInput = document.getElementById('host-input');
+                this.connectBtn = document.getElementById('connect-btn');
+                this.controlStatus = document.getElementById('control-status');
+                this.audioStatus = document.getElementById('audio-status');
+                this.eventsStatus = document.getElementById('events-status');
+                this.speakingIndicator = document.getElementById('speaking-indicator');
+                this.speakingName = document.getElementById('speaking-name');
+                this.currentStationName = document.getElementById('current-station-name');
+                this.stationListModal = document.getElementById('station-list-modal');
+                this.deviceHistory = document.getElementById('device-history');
+                this.historyList = document.getElementById('history-list');
+                this.stationsSection = document.getElementById('stations-section');
+                this.stationModal = document.getElementById('station-modal');
+                this.stationModalClose = document.getElementById('station-modal-close');
+                this.frequencyCallsign = document.getElementById('frequency-callsign');
+                this.frequencyStatus = document.getElementById('frequency-status');
+                this.connectionSection = document.getElementById('connection-section');
+                this.radioTrigger = document.getElementById('radio-trigger');
+            }
+
+            initEventListeners() {
+                this.connectBtn.addEventListener('click', () => this.toggleConnection());
+                this.stationsSection.addEventListener('click', () => this.openStationModal());
+                this.stationModalClose.addEventListener('click', () => this.closeStationModal());
+                this.stationModal.querySelector('.station-modal-header').addEventListener('click', (e) => {
+                    // Allow clicking header to close, but not if clicking specific controls inside if any
+                    if (e.target !== this.stationModalClose) {
+                        this.closeStationModal();
+                    }
+                });
+                this.stationModal.addEventListener('click', (e) => {
+                    if (e.target === this.stationModal) {
+                        this.closeStationModal();
+                    }
+                });
+                
+                // Toggle connection section visibility
+                this.radioTrigger.addEventListener('click', () => {
+                    if (this.connectionSection.style.display === 'none') {
+                        this.connectionSection.style.display = 'flex';
+                    } else {
+                        this.connectionSection.style.display = 'none';
+                    }
+                });
+
+                this.ctrl.on('stationList', (stations) => this.handleStationList(stations));
+                this.ctrl.on('stationCurrent', (station) => this.handleCurrentStation(station));
+                
+                this.events.onCallsignReceived((callsign) => this.handleCallsignReceived(callsign));
+                this.events.onSpeakingStateChanged((callsign, isSpeaking, isHost) => this.handleSpeakingState(callsign, isSpeaking));
+            }
+
+            initFrequencyCanvas() {
+                this.frequencyCanvas = document.getElementById('frequency-canvas');
+                this.frequencyCtx = this.frequencyCanvas.getContext('2d');
+                this.resizeFrequencyCanvas();
+                window.addEventListener('resize', () => this.resizeFrequencyCanvas());
+                this.startFrequencyAnimation();
+            }
+
+            resizeFrequencyCanvas() {
+                const container = this.frequencyCanvas.parentElement;
+                const rect = container.getBoundingClientRect();
+                this.frequencyCanvas.width = rect.width * window.devicePixelRatio;
+                this.frequencyCanvas.height = rect.height * window.devicePixelRatio;
+                this.frequencyCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            }
+
+            startFrequencyAnimation() {
+                const animate = () => {
+                    this.drawFrequency();
+                    this.animationId = requestAnimationFrame(animate);
+                };
+                animate();
+            }
+
+            drawFrequency() {
+                const ctx = this.frequencyCtx;
+                const canvas = this.frequencyCanvas;
+                const width = canvas.width / window.devicePixelRatio;
+                const height = canvas.height / window.devicePixelRatio;
+                const cx = width / 2;
+                const cy = height / 2;
+                const radius = Math.min(width, height) / 3.5;
+
+                ctx.clearRect(0, 0, width, height);
+
+                // Get real audio data
+                let data = null;
+                if (this.player.analyser) {
+                    if (!this.frequencyData || this.frequencyData.length !== this.player.analyser.frequencyBinCount) {
+                        this.frequencyData = new Uint8Array(this.player.analyser.frequencyBinCount);
+                    }
+                    this.player.analyser.getByteFrequencyData(this.frequencyData);
+                    data = this.frequencyData;
+                }
+
+                // Calculate bass for pulse effect (avg of first few bins)
+                let bass = 0.1;
+                if (data) {
+                    let sum = 0;
+                    // Low freq range: 0-10 (approx 0-150Hz with 1024 FFT/8k rate)
+                    const range = 10; 
+                    for(let i=0; i<range; i++) sum += data[i];
+                    bass = (sum / range) / 255;
+                } else if (this.speakingCallsign) {
+                    bass = 0.5 + Math.random() * 0.2; // Fallback simulation
+                }
+
+                ctx.save();
+                ctx.translate(cx, cy);
+
+                // Core Circle (Dimmer)
+                ctx.beginPath();
+                const coreRadius = radius * (0.8 + bass * 0.2);
+                ctx.arc(0, 0, coreRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(0, 136, 170, 0.5)';
+                ctx.lineWidth = 2 + bass * 3;
+                ctx.globalAlpha = 0.4 + bass * 0.3;
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = 'rgba(0, 136, 170, 0.3)';
+                ctx.stroke();
+                
+                // Draw Callsign (RADIAL Style) if speaking
+                const infoEl = document.querySelector('.frequency-info');
+                if (this.speakingCallsign) {
+                    if (infoEl) infoEl.style.opacity = '0';
+                    
+                    ctx.globalAlpha = 0.9;
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    // Dynamic font size
+                    const baseSize = radius * 0.5;
+                    const dynamicSize = baseSize * (1 + bass * 0.2);
+                    ctx.font = `bold ${Math.floor(dynamicSize)}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace`;
+                    
+                    ctx.shadowBlur = 0;
+                    ctx.fillText(this.speakingCallsign, 0, 0);
+                } else {
+                    if (infoEl) infoEl.style.opacity = '1';
+                }
+
+                // Bars (Dimmer)
+                ctx.rotate(Date.now() * 0.0002);
+                const bars = 64;
+                
+                for (let i = 0; i < bars; i++) {
+                    let percent = 0;
+                    if (data) {
+                        // Map 64 bars to first ~half of spectrum (voice range)
+                        // data length is 512. We use first 256 bins for 64 bars -> step 4
+                        const dataIndex = Math.floor(i * 4); 
+                        if (dataIndex < data.length) {
+                            percent = data[dataIndex] / 255;
+                        }
+                    } else if (this.speakingCallsign) {
+                        percent = Math.random(); // Fallback
+                    } else {
+                         percent = Math.random() * 0.05; // Idle jitter
+                    }
+                    
+                    // Smooth falloff
+                    percent = Math.max(0, percent);
+
+                    const angle = (i / bars) * Math.PI * 2;
+                    const nextAngle = ((i + 0.8) / bars) * Math.PI * 2;
+
+                    const innerR = radius;
+                    const barH = percent * (radius * 0.8);
+
+                    ctx.beginPath();
+                    ctx.arc(0, 0, innerR + barH, angle, nextAngle);
+                    ctx.arc(0, 0, innerR, nextAngle, angle, true);
+                    ctx.fillStyle = i % 2 === 0 ? 'rgba(0, 136, 170, 0.8)' : 'rgba(0, 85, 119, 0.8)';
+                    ctx.globalAlpha = 0.3 + percent * 0.3;
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+
+            openStationModal() {
+                this.stationModal.classList.add('active');
+                this.stationsSection.classList.add('open');
+            }
+
+            closeStationModal() {
+                this.stationModal.classList.remove('active');
+                this.stationsSection.classList.remove('open');
+            }
+
+            async toggleConnection() {
+                if (this.connected) {
+                    await this.disconnect();
+                } else {
+                    await this.connect();
+                }
+            }
+
+            async connect() {
+                const host = this.hostInput.value.trim();
+                if (!host) {
+                    alert('请输入设备IP地址');
+                    return;
+                }
+
+                this.connectBtn.disabled = true;
+                this.connectBtn.textContent = '连接中...';
+
+                try {
+                    await Promise.all([
+                        this.ctrl.connect(host),
+                        this.player.connect(host),
+                        this.events.connect(host)
+                    ]);
+
+                    this.connected = true;
+                    this.connectBtn.textContent = '断开';
+                    this.connectBtn.classList.add('connected');
+                    this.updateStatus('control', true);
+                    this.updateStatus('audio', true);
+                    this.updateStatus('events', true);
+                    
+                    this.saveDeviceHistory(host);
+                    
+                    // Hide connection section on successful connection
+                    this.connectionSection.style.display = 'none';
+                } catch (error) {
+                    console.error('连接失败:', error);
+                    alert('连接失败: ' + error.message);
+                    this.updateStatus('control', false);
+                    this.updateStatus('audio', false);
+                    this.updateStatus('events', false);
+                } finally {
+                    this.connectBtn.disabled = false;
+                }
+            }
+
+            async disconnect() {
+                try {
+                    this.ctrl.disconnect();
+                    this.player.disconnect();
+                    this.events.disconnect();
+                } catch (error) {
+                    console.error('断开连接失败:', error);
+                }
+
+                this.connected = false;
+                this.connectBtn.textContent = '连接';
+                this.connectBtn.classList.remove('connected');
+                this.updateStatus('control', false);
+                this.updateStatus('audio', false);
+                this.updateStatus('events', false);
+                
+                // Show connection section on disconnect
+                this.connectionSection.style.display = 'flex';
+                
+                this.stations = [];
+                this.currentStationId = null;
+                this.speakingCallsign = null;
+                this.currentStationName.textContent = '未连接';
+                this.renderStationList();
+                this.updateSpeakingIndicator();
+            }
+
+            updateStatus(type, connected) {
+                const statusEl = document.getElementById(`${type}-status`);
+                if (connected) {
+                    statusEl.classList.add('connected');
+                    statusEl.classList.remove('error');
+                } else {
+                    statusEl.classList.remove('connected');
+                    statusEl.classList.add('error');
+                }
+            }
+
+            handleStationList(stations) {
+                this.stations = stations;
+                this.renderStationList();
+            }
+
+            handleCurrentStation(station) {
+                this.currentStationId = station ? station.uid : null;
+                if (station && station.name) {
+                    this.currentStationName.textContent = station.name;
+                } else {
+                    this.currentStationName.textContent = '未连接';
+                }
+                this.renderStationList();
+            }
+
+            handleCallsignReceived(callsign) {
+                console.log('收到呼号:', callsign);
+            }
+
+            handleSpeakingState(callsign, isSpeaking) {
+                if (isSpeaking) {
+                    this.speakingCallsign = callsign;
+                } else if (this.speakingCallsign === callsign) {
+                    this.speakingCallsign = null;
+                }
+                
+                this.updateSpeakingIndicator();
+                this.updateFrequencyDisplay();
+                this.renderStationList();
+            }
+
+            updateSpeakingIndicator() {
+                if (this.speakingCallsign) {
+                    this.speakingName.textContent = this.speakingCallsign;
+                    this.speakingIndicator.classList.add('active');
+                } else {
+                    this.speakingName.textContent = '等待中...';
+                    this.speakingIndicator.classList.remove('active');
+                }
+            }
+
+            updateFrequencyDisplay() {
+                if (this.speakingCallsign) {
+                    this.frequencyCallsign.textContent = this.speakingCallsign;
+                    this.frequencyStatus.textContent = '正在说话';
+                } else {
+                    this.frequencyCallsign.textContent = '--';
+                    this.frequencyStatus.textContent = '等待音频...';
+                }
+            }
+
+            renderStationList() {
+                if (this.stations.length === 0) {
+                    this.stationListModal.innerHTML = '<div class="loading">加载中</div>';
+                    return;
+                }
+
+                this.stationListModal.innerHTML = this.stations.map(station => {
+                    const isActive = station.uid === this.currentStationId;
+                    const isSpeaking = this.speakingCallsign === station.name;
+                    
+                    return `
+                        <div class="station-item ${isActive ? 'active' : ''} ${isSpeaking ? 'speaking' : ''}" 
+                             data-uid="${station.uid}">
+                            <div class="station-info">
+                                <div class="station-indicator"></div>
+                                <div class="station-name">${station.name || 'Station ' + station.uid}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                this.stationListModal.querySelectorAll('.station-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const stationId = parseInt(item.dataset.uid);
+                        this.switchStation(stationId);
+                        this.closeStationModal();
+                    });
+                });
+            }
+
+            async switchStation(stationId) {
+                if (stationId === this.currentStationId) return;
+                
+                try {
+                    this.ctrl.setStation(stationId);
+                    this.currentStationId = stationId;
+                    this.renderStationList();
+                } catch (error) {
+                    console.error('切换台站失败:', error);
+                    alert('切换台站失败: ' + error.message);
+                }
+            }
+
+            saveDeviceHistory(host) {
+                let history = JSON.parse(localStorage.getItem('fmo_device_history') || '[]');
+                history = history.filter(h => h !== host);
+                history.unshift(host);
+                history = history.slice(0, 5);
+                localStorage.setItem('fmo_device_history', JSON.stringify(history));
+                this.renderDeviceHistory();
+            }
+
+            loadDeviceHistory() {
+                const history = JSON.parse(localStorage.getItem('fmo_device_history') || '[]');
+                if (history.length > 0) {
+                    this.hostInput.value = history[0];
+                    this.renderDeviceHistory();
+                }
+            }
+
+            renderDeviceHistory() {
+                const history = JSON.parse(localStorage.getItem('fmo_device_history') || '[]');
+                
+                // Always display block to reserve space
+                this.deviceHistory.style.display = 'block';
+                
+                if (history.length > 0) {
+                    this.historyList.innerHTML = history.map(host => 
+                        `<div class="history-item" data-host="${host}">${host}</div>`
+                    ).join('');
+                    
+                    this.historyList.querySelectorAll('.history-item').forEach(item => {
+                        item.addEventListener('click', () => {
+                            this.hostInput.value = item.dataset.host;
+                        });
+                    });
+                } else {
+                    this.historyList.innerHTML = '<div style="color:rgba(255,255,255,0.2); font-size:12px; text-align:center; padding:10px;">无历史记录</div>';
+                }
+            }
+        }
+
+        const app = new MobileApp();
+    </script>
+</body>
+</html>

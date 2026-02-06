@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection Manager Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #333; color: #fff; }
+        .log { background: #000; padding: 10px; height: 300px; overflow-y: auto; font-family: monospace; border: 1px solid #555; }
+        .status { margin-bottom: 20px; font-weight: bold; }
+        button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+        .error { color: #ff5555; }
+        .success { color: #55ff55; }
+    </style>
+</head>
+<body>
+    <h1>Connection Manager Test</h1>
+    <div class="status" id="status">Active: 0/4 | Queue: 0</div>
+    <div>
+        <button onclick="testConcurrency()">Test Concurrency (Spawn 6)</button>
+        <button onclick="testRelease()">Test Release (Close 1)</button>
+        <button onclick="testReset()">Reset</button>
+    </div>
+    <br>
+    <div class="log" id="log"></div>
+
+    <script type="module">
+        import { connectionManager } from './js/connectionManager.js';
+
+        // Mock WebSocket
+        class MockWebSocket {
+            constructor(id) {
+                this.id = id;
+                this.listeners = {};
+                this.readyState = 0; // CONNECTING
+                
+                // Simulate network latency for handshake
+                setTimeout(() => {
+                    if (this.readyState === 0) {
+                        this.readyState = 1; // OPEN
+                        if (this.listeners['open']) this.listeners['open']();
+                    }
+                }, 100);
+            }
+            
+            addEventListener(event, callback) {
+                this.listeners[event] = callback;
+                if (event === 'open' && this.readyState === 1) {
+                    setTimeout(callback, 0);
+                }
+            }
+            
+            close() {
+                this.readyState = 3; // CLOSED
+                if (this.listeners['close']) this.listeners['close']();
+            }
+        }
+
+        const logEl = document.getElementById('log');
+        const statusEl = document.getElementById('status');
+        let sockets = [];
+
+        function log(msg, type = '') {
+            const div = document.createElement('div');
+            const time = new Date().toISOString().split('T')[1].slice(0,-1);
+            div.textContent = `[${time}] ${msg}`;
+            if (type) div.className = type;
+            logEl.appendChild(div);
+            logEl.scrollTop = logEl.scrollHeight;
+            updateStatus();
+        }
+
+        function updateStatus() {
+            const s = connectionManager.getStatus();
+            statusEl.textContent = `Active: ${s.active}/${s.max} | Queue: ${s.queueLength} | Handshaking: ${s.handshaking}`;
+        }
+
+        window.testConcurrency = async () => {
+            log('Starting concurrency test (requesting 6 connections)...');
+            
+            // Expected behavior:
+            // 1-2. Granted sequentially
+            // 3-6. Rejected immediately
+            
+            const promises = [];
+            for (let i = 1; i <= 6; i++) {
+                promises.push(request(i));
+            }
+            await Promise.all(promises);
+            log('Concurrency test batch finished.');
+        };
+
+        window.testHandshakeFailure = async () => {
+            log('Testing Handshake Failure...');
+            const id = 'Fail-' + Date.now().toString().slice(-4);
+            try {
+                await connectionManager.requestConnection();
+                log(`req #${id}: Granted, simulating failure...`, 'success');
+                
+                // Simulate client logic failing
+                const ws = new MockWebSocket(id, true); // true = shouldFail
+                
+                // Client catches error and reports failure
+                // In real code: try { new WS } catch { report }
+                // Here MockWS is async error.
+                // We need to hook into 'error' to call reportHandshakeFailure
+                
+                ws.addEventListener('error', () => {
+                     log(`req #${id}: WS Error, calling reportHandshakeFailure`, 'error');
+                     connectionManager.reportHandshakeFailure();
+                });
+                // We also need to track it? 
+                // If we track it, trackConnection handles 'error' by resetting lock, but 'close' by releasing slot.
+                // If we DON'T track it (constructor fail), we call reportHandshakeFailure.
+                
+                // Let's simulate Constructor Failure scenario (Synchronous)
+                // connectionManager.reportHandshakeFailure();
+                
+                // Let's simulate Async Connect Failure (DNS/Timeout)
+                connectionManager.trackConnection(ws);
+                
+            } catch (e) {
+                log(`req #${id}: REJECTED - ${e.message}`, 'error');
+            }
+        };
+
+        async function request(id) {
+            log(`req #${id}: Requesting...`);
+            const start = Date.now();
+            try {
+                await connectionManager.requestConnection();
+                const end = Date.now();
+                log(`req #${id}: GRANTED after ${end - start}ms`, 'success');
+                
+                const ws = new MockWebSocket(id);
+                connectionManager.trackConnection(ws);
+                sockets.push(ws);
+                updateStatus();
+                
+            } catch (e) {
+                log(`req #${id}: REJECTED - ${e.message}`, 'error');
+            }
+        }
+
+        window.testRelease = () => {
+            if (sockets.length === 0) {
+                log('No active sockets to close', 'error');
+                return;
+            }
+            const ws = sockets.shift();
+            log(`Closing socket #${ws.id}...`);
+            ws.close();
+            updateStatus();
+            
+            // Wait a bit and try to connect one more
+            setTimeout(() => {
+                log('Attempting new connection after release...');
+                request('Retry');
+            }, 500);
+        };
+        
+        window.testReset = () => {
+             sockets.forEach(ws => ws.close());
+             sockets = [];
+             // Force reset manager state if needed (not exposed, but closing sockets should trigger release)
+             log('Reset all connections');
+             updateStatus();
+        };
+
+        setInterval(updateStatus, 200);
+    </script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Progress Bar Test</title>
+    <style>
+        /* CSS for progress bar to verify styles are applied */
+        .loader-bar-fill { transition: width 0.1s; }
+    </style>
+</head>
+<body>
+    <div id="test-container">
+        <!-- Mock DOM elements -->
+        <div id="model-loader" style="display:none;"></div>
+        <div id="loader-percent"></div>
+        <div id="loader-bar-fill"></div>
+    </div>
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "./mock_three.js",
+            "three/addons/loaders/GLTFLoader.js": "./mock_three.js",
+            "../../core/base-renderer.js": "../../core/base-renderer.js",
+            "../fighter.js": "./mock_fighter.js",
+            "../missile.js": "./mock_missile.js"
+        }
+    }
+    </script>
+    
+    <script type="module">
+        import { FighterRenderer } from '../renderer.js';
+        
+        async function runTests() {
+            const results = document.createElement('div');
+            document.body.appendChild(results);
+            const log = (msg, success) => {
+                const div = document.createElement('div');
+                div.textContent = (success ? '✅ ' : '❌ ') + msg;
+                div.style.color = success ? 'green' : 'red';
+                results.appendChild(div);
+                console.log((success ? 'PASS: ' : 'FAIL: ') + msg);
+            };
+            
+            try {
+                // Setup
+                const ctx = { canvas: { width: 800, height: 600 } }; // Mock 2D ctx
+                const webglCanvas = document.createElement('canvas');
+                
+                const renderer = new FighterRenderer(ctx, webglCanvas);
+                
+                // Trigger loadModel
+                if (!window.lastLoaderCallbacks) {
+                     log('GLTFLoader.load was not called during init', false);
+                     return;
+                }
+                
+                const { onProgress, onLoad, onError } = window.lastLoaderCallbacks;
+                
+                // Test 1: Progress Update
+                const percentEl = document.getElementById('loader-percent');
+                const barFillEl = document.getElementById('loader-bar-fill');
+                
+                onProgress({ loaded: 50, total: 100 });
+                if (percentEl.textContent === '50' && barFillEl.style.width === '50%') {
+                    log('Progress update updates DOM correctly', true);
+                } else {
+                    log(`Progress update failed. Got ${percentEl.textContent}%`, false);
+                }
+                
+                // Test 2: Completion
+                const loaderEl = document.getElementById('model-loader');
+                // loadModel calls updateFormationModels which we need to mock or ensure it doesn't crash
+                renderer.updateFormationModels = () => {}; 
+                
+                onLoad({ scene: {} });
+                
+                if (percentEl.textContent === '100' && barFillEl.style.width === '100%') {
+                    log('Load completion updates DOM to 100%', true);
+                } else {
+                    log('Load completion failed', false);
+                }
+                
+                // Test 3: Auto Hide (async)
+                log('Waiting for auto-hide (1.5s)...', true);
+                await new Promise(r => setTimeout(r, 1500));
+                if (loaderEl.style.display === 'none') {
+                    log('Loader hides after completion', true);
+                } else {
+                    log(`Loader did not hide. Display: ${loaderEl.style.display}, Opacity: ${loaderEl.style.opacity}`, false);
+                }
+                
+                // Test 4: Error Handling
+                // Reset DOM
+                loaderEl.style.display = 'block';
+                loaderEl.style.opacity = '1';
+                
+                onError(new Error('Test Error'));
+                
+                // Check color (rgb(255, 0, 85) is #ff0055)
+                if (percentEl.textContent === 'ERR' && (barFillEl.style.backgroundColor === 'rgb(255, 0, 85)' || barFillEl.style.backgroundColor === '#ff0055')) {
+                    log('Error handling updates DOM correctly', true);
+                } else {
+                    log(`Error handling failed. Text: ${percentEl.textContent}, Color: ${barFillEl.style.backgroundColor}`, false);
+                }
+
+            } catch (e) {
+                log('Exception: ' + e.message, false);
+                console.error(e);
+            }
+        }
+        
+        runTests();
+    </script>
+</body>
+</html>

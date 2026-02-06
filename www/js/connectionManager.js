@@ -1,16 +1,12 @@
 /**
  * ConnectionManager.js
- * 管理 WebSocket 连接以确保符合 ESP32 限制：
  * Manages WebSocket connections to ensure compliance with ESP32 limitations:
- * 1. 最大并发连接数 (限制: 4)
  * 1. Max concurrent connections (limit: 4)
- * 2. 连接尝试之间的延迟 (200ms) - 强制执行 "序列化握手"
  * 2. Delay between connection attempts (200ms) - Enforced as "Serialized Handshakes"
  */
 class ConnectionManager {
     constructor() {
         // Strict per-interface limits
-        // 每个接口的严格限制
         this.maxPerType = 2; 
         this.activeCounts = { ws: 0, events: 0, audio: 0 };
         
@@ -18,14 +14,11 @@ class ConnectionManager {
         this.processingQueue = false;
         
         // Track active sockets to decrement count on close
-        // 跟踪活动套接字以在关闭时减少计数
         this.activeSockets = new Set();
         // Map socket to its type to release correct counter
-        // 将套接字映射到其类型以释放正确的计数器
         this.socketTypes = new Map();
         
         // Reservation Timeout (to prevent leaks if trackConnection is not called)
-        // 预订超时 (防止 trackConnection 未被调用时的泄漏)
         // Map of requestId -> timeoutId
         this.reservationTimeouts = new Map();
         // Map of requestId -> type
@@ -34,11 +27,8 @@ class ConnectionManager {
 
     /**
      * Request permission to connect.
-     * 请求连接权限。
      * Returns a promise that resolves with a requestId when it's safe to start a NEW connection handshake.
-     * 返回一个 Promise，当可以安全开始新的连接握手时，该 Promise 解析为 requestId。
      * This ensures connections do not exceed the max limit per interface.
-     * 这确保连接不会超过每个接口的最大限制。
      * @param {string} type 'ws' | 'events' | 'audio'
      */
     async requestConnection(type) {
@@ -48,9 +38,7 @@ class ConnectionManager {
         }
 
         // First check limit immediately (including queued requests of same type to prevent race condition)
-        // 立即检查限制 (包括同一类型的排队请求，以防止竞争条件)
         // We need to count queued requests for this type too
-        // 我们也需要计算此类型的排队请求
         const queuedCount = this.connectionQueue.filter(q => q.type === type).length;
         
         if (this.activeCounts[type] + queuedCount >= this.maxPerType) {
@@ -58,7 +46,6 @@ class ConnectionManager {
         }
 
         // Add to queue
-        // 添加到队列
         return new Promise((resolve, reject) => {
             const requestId = Date.now().toString(36) + Math.random().toString(36).substr(2);
             this.connectionQueue.push({ resolve, reject, requestId, type });
@@ -71,13 +58,9 @@ class ConnectionManager {
         this.processingQueue = true;
 
         // Iterate queue to find processable requests
-        // 迭代队列以查找可处理的请求
         // We can't just shift the first one if it's blocked but others aren't.
-        // 如果第一个被阻塞但其他的没有，我们不能只移动第一个。
         // But to maintain order, usually we block. However, since these are independent interfaces,
-        // 但为了保持顺序，通常我们会阻塞。但是，由于这些是独立的接口，
         // we should skip blocked types and process available ones.
-        // 我们应该跳过被阻塞的类型并处理可用的类型。
         
         const unfulfilled = [];
         
@@ -87,18 +70,15 @@ class ConnectionManager {
 
             if (this.activeCounts[type] >= this.maxPerType) {
                 // This type is full, keep in queue (push to temp array)
-                // 此类型已满，保留在队列中 (推送到临时数组)
                 unfulfilled.push(request);
                 continue;
             }
 
             // Grant slot
-            // 授予插槽
             this.activeCounts[type]++;
             console.log(`[ConnectionManager] Granting slot for ${type}. Active: ${JSON.stringify(this.activeCounts)}`);
             
             // Reservation Timeout
-            // 预订超时
             const timeoutId = setTimeout(() => {
                  console.warn(`[ConnectionManager] Handshake timeout for ${requestId} (${type}). Resetting lock.`);
                  this.releaseSlot(requestId);
@@ -111,7 +91,6 @@ class ConnectionManager {
         }
         
         // Put back unfulfilled requests
-        // 放回未满足的请求
         this.connectionQueue = unfulfilled.concat(this.connectionQueue); // Preserve order? actually unfulfilled were at front.
         // Wait, shifting modifies original array. 
         // Logic: 
@@ -132,15 +111,12 @@ class ConnectionManager {
 
     /**
      * Registers a socket to track its lifecycle.
-     * 注册套接字以跟踪其生命周期。
      * MUST be called immediately after WebSocket creation.
-     * 必须在 WebSocket 创建后立即调用。
      * @param {WebSocket} ws The socket to track
      * @param {string} requestId The request ID returned by requestConnection
      */
     trackConnection(ws, requestId) {
         // Clear reservation timeout
-        // 清除预订超时
         if (requestId && this.reservationTimeouts.has(requestId)) {
             clearTimeout(this.reservationTimeouts.get(requestId));
             this.reservationTimeouts.delete(requestId);
@@ -152,7 +128,6 @@ class ConnectionManager {
         if (this.activeSockets.has(ws)) return;
         
         // Determine type
-        // 确定类型
         let type = 'ws'; // default
         if (requestId && this.reservationTypes.has(requestId)) {
             type = this.reservationTypes.get(requestId);
@@ -172,7 +147,6 @@ class ConnectionManager {
                 this.socketTypes.delete(ws);
                 
                 // Release count
-                // 释放计数
                 if (socketType && this.activeCounts[socketType] !== undefined) {
                     this.activeCounts[socketType] = Math.max(0, this.activeCounts[socketType] - 1);
                 }
@@ -180,7 +154,6 @@ class ConnectionManager {
                 console.log(`[ConnectionManager] Connection closed (${socketType}). Active: ${JSON.stringify(this.activeCounts)}`);
                 
                 // Trigger queue processing
-                // 触发队列处理
                 this.processQueue();
             }
         };
@@ -190,9 +163,7 @@ class ConnectionManager {
 
     /**
      * Manually release a connection slot.
-     * 手动释放连接插槽。
      * Use this if WebSocket creation fails synchronously after requestConnection() succeeds.
-     * 如果 requestConnection() 成功后 WebSocket 创建同步失败，请使用此方法。
      * @param {string} requestId Optional request ID to clear timeout
      */
     releaseSlot(requestId) {
@@ -222,9 +193,7 @@ class ConnectionManager {
     
     /**
      * Report that the handshake failed immediately (e.g. in catch block).
-     * 报告握手立即失败 (例如在 catch 块中)。
      * This releases the slot.
-     * 这将释放插槽。
      * @param {string} requestId The request ID
      */
     reportHandshakeFailure(requestId) {

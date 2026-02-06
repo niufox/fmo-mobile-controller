@@ -1,6 +1,5 @@
 /**
  * UFO Easter Egg Controller
- * UFO 彩蛋控制器
  */
 export class UFOController {
     constructor() {
@@ -13,7 +12,6 @@ export class UFOController {
         this.angle = 0;
         
         // Bezier points
-        // 贝塞尔曲线控制点
         this.p0 = { x: 0, y: 0 };
         this.p1 = { x: 0, y: 0 };
         this.p2 = { x: 0, y: 0 };
@@ -28,9 +26,8 @@ export class UFOController {
 
     /**
      * Trigger a new UFO flight
-     * 触发新的 UFO 飞行
-     * @param {number} w Screen width 屏幕宽度
-     * @param {number} h Screen height 屏幕高度
+     * @param {number} w Screen width
+     * @param {number} h Screen height
      */
     trigger(w, h) {
         if (this.active) return;
@@ -40,14 +37,13 @@ export class UFOController {
         let startX, startY;
         
         switch(side) {
-            case 0: startX = Math.random() * w; startY = -offset; break; // Top // 顶部
-            case 1: startX = w + offset; startY = Math.random() * h; break; // Right // 右侧
-            case 2: startX = Math.random() * w; startY = h + offset; break; // Bottom // 底部
-            case 3: startX = -offset; startY = Math.random() * h; break; // Left // 左侧
+            case 0: startX = Math.random() * w; startY = -offset; break; // Top
+            case 1: startX = w + offset; startY = Math.random() * h; break; // Right
+            case 2: startX = Math.random() * w; startY = h + offset; break; // Bottom
+            case 3: startX = -offset; startY = Math.random() * h; break; // Left
         }
         
         // Target central area
-        // 目标中心区域
         const targetX = w/2 + (Math.random() - 0.5) * w * 0.5;
         const targetY = h/2 + (Math.random() - 0.5) * h * 0.5;
         
@@ -94,8 +90,7 @@ export class UFOController {
 
     /**
      * Update UFO state
-     * 更新 UFO 状态
-     * @returns {boolean} True if active, false if finished 如果活跃返回true，完成返回false
+     * @returns {boolean} True if active, false if finished
      */
     update() {
         if (!this.active) return false;
@@ -126,9 +121,8 @@ export class UFOController {
 
     /**
      * Render the UFO
-     * 渲染 UFO
-     * @param {CanvasRenderingContext2D} ctx Context 画布上下文
-     * @param {number} scale Scale factor 缩放因子
+     * @param {CanvasRenderingContext2D} ctx 
+     * @param {number} scale 
      */
     render(ctx, scale) {
         if (!this.active) return;

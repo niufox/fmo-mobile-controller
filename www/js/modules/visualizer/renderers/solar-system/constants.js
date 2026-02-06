@@ -1,6 +1,5 @@
 /**
  * Solar System Visualizer Constants and Data
- * 太阳系可视化常量与数据
  */
 
 export const PALETTE = [
@@ -9,16 +8,8 @@ export const PALETTE = [
     '#F1C40F', '#E74C3C', '#1ABC9C', '#8E44AD', '#FF9F43'
 ];
 
-/**
- * Get a random color from the palette
- * 从调色板获取随机颜色
- */
 export const getRandomColor = () => PALETTE[Math.floor(Math.random() * PALETTE.length)];
 
-/**
- * Planet visualization styles
- * 行星可视化样式
- */
 export const PLANET_STYLES = {
     'Mercury': { type: 'crater', color1: '#B0B0B0', color2: '#808080', highlight: '#E0E0E0' }, 
     'Venus': { type: 'cloud', color1: '#FFD700', color2: '#DAA520', highlight: '#FFFACD' }, 
@@ -31,10 +22,6 @@ export const PLANET_STYLES = {
     'Pluto': { type: 'ice', color1: '#F5DEB3', color2: '#A0522D', highlight: '#FFF5EE' } 
 };
 
-/**
- * Solar System Data (Planets and Moons)
- * 太阳系数据（行星与卫星）
- */
 export const PLANETS_DATA = [
     { name: 'Mercury', r: 0.8, dist: 1.5, speed: 4.15, style: PLANET_STYLES['Mercury'], moons: [] },
     { name: 'Venus', r: 1.8, dist: 2.5, speed: 1.62, style: PLANET_STYLES['Venus'], moons: [] },
@@ -67,10 +54,6 @@ export const PLANETS_DATA = [
     ]}
 ];
 
-/**
- * Legend items for the UI
- * UI 图例项
- */
 export const LEGEND_ITEMS = [
     { color: '#FFD700', label: 'Sun' },
     { color: '#A9A9A9', label: 'Rocky' },

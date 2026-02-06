@@ -1,21 +1,5 @@
-/**
- * @fileoverview Configuration Service
- * 配置服务
- */
 import { wsService } from './webSocketService.js';
-
-/**
- * Configuration Service Class
- * 配置服务类
- * Handles communication with the server for configuration settings
- * 处理配置设置的服务器通信
- */
 export class ConfigService {
-    /**
-     * Constructor
-     * 构造函数
-     * @param {WebSocketService} wsService
-     */
     constructor(wsService) {
         if (ConfigService.instance) {
             return ConfigService.instance;
@@ -28,12 +12,6 @@ export class ConfigService {
         };
         this.setupMessageHandler();
     }
-    /**
-     * Notify Listeners
-     * 通知监听者
-     * @param {string} event - Event name / 事件名称
-     * @param {any} data - Event data / 事件数据
-     */
     _notifyListeners(event, data) {
         if (!this.listeners.has(event)) return;
         this.listeners.get(event).forEach((callback) => {
@@ -42,12 +20,6 @@ export class ConfigService {
     }
 
 
-    /**
-     * Subscribe to Event
-     * 订阅事件
-     * @param {string} event - Event name / 事件名称
-     * @param {Function} callback - Callback function / 回调函数
-     */
     subscribe(event, callback) {
         if (!this.listeners.has(event)) {
             this.listeners.set(event, new Set());
@@ -55,12 +27,6 @@ export class ConfigService {
         this.listeners.get(event).add(callback);
     }
 
-    /**
-     * Unsubscribe from Event
-     * 取消订阅事件
-     * @param {string} event - Event name / 事件名称
-     * @param {Function} callback - Callback function / 回调函数
-     */
     unsubscribe(event, callback) {
         if (this.listeners.has(event)) {
             this.listeners.get(event).delete(callback);
@@ -74,14 +40,13 @@ export class ConfigService {
 
     urlValid(url) {
         // 注意：底层XNet缓冲区 char url[32]，需要预留'\0'，前端应限制为最多31个字符
-        // Note: Underlying XNet buffer char url[32], needs to reserve '\0', frontend should limit to max 31 characters
         if (typeof url !== 'string') return false;
-        if (url === '') return true; // 允许清空 // Allow empty
+        if (url === '') return true; // 允许清空
         const noSpace = !/\s/.test(url);
         const noSlash = !(/[\/\\]/.test(url));
         const hasDot = url.split('.').length > 1;
         const notEdgeDot = url[0] !== '.' && url[url.length - 1] !== '.';
-        const maxLenOk = url.length <= 31; // 与XNet的char[32]一致 // Consistent with XNet's char[32]
+        const maxLenOk = url.length <= 31; // 与XNet的char[32]一致
         return noSpace && noSlash && hasDot && notEdgeDot && maxLenOk;
     }
 
@@ -125,7 +90,6 @@ export class ConfigService {
     }
     validPort(port) {
         //port 为0-65535的整数
-        // port is an integer from 0-65535
         const portNumber = parseInt(port, 10);
         return !isNaN(portNumber) && portNumber > 0 && portNumber <= 65535;
     }
@@ -152,10 +116,6 @@ export class ConfigService {
             this._notifyListeners('setPort', { status: 'error' });
         }
     }
-    /**
-     * Get Service Port
-     * 获取服务端口
-     */
     async getServicePort() {
         try {
             if (this.isBusy()) return;
@@ -174,14 +134,8 @@ export class ConfigService {
     }
     passcodeValid(passcode) {
         //passcode 为5个数字,或-1,不能含有其他字符
-        // passcode is 5 digits, or -1, cannot contain other characters
         return /^\d{5}$/.test(passcode) || passcode == '-1';
     }
-    /**
-     * Set Passcode
-     * 设置验证码
-     * @param {string} passcode
-     */
     async setPasscode(passcode) {
         try {
             if (!this.passcodeValid(passcode)) {
@@ -223,7 +177,6 @@ export class ConfigService {
     async setAprsRemark(remark) {
         try {
             // 个性化消息最大 63 字节（XNet: char aprsRemark[64]，尾部留给 \0）
-            // Personalized message max 63 bytes (XNet: char aprsRemark[64], tail reserved for \0)
             if (!this.aprsRemarkValid(remark)) {
                 console.error('APRS remark invalid or exceeds UTF-8 byte limit (63 bytes)');
                 this._notifyListeners('setAprsRemark', { status: 'error', reason: 'too-long-or-invalid-utf8' });
@@ -243,10 +196,6 @@ export class ConfigService {
             this._notifyListeners('setAprsRemark', { status: 'error' });
         }
     }
-    /**
-     * Get APRS Remark
-     * 获取 APRS 备注
-     */
     async getAprsRemark() {
         try {
             if (this.isBusy()) return;
@@ -266,11 +215,6 @@ export class ConfigService {
 
     _serverNameValid(name) { return typeof name === 'string' && name.length <= 31; } // XNet: char serverName[32]
 
-    /**
-     * Set Server Name
-     * 设置服务器名称
-     * @param {string} name
-     */
     async setServerName(name) {
         try {
             if (!this._serverNameValid(name)) {
@@ -308,11 +252,6 @@ export class ConfigService {
         }
     }
 
-    /**
-     * Set Blacklist
-     * 设置黑名单
-     * @param {string} blacklist
-     */
     async setBlacklist(blacklist) {
         try {
             if (!this.blacklistValid(blacklist)) {
@@ -334,10 +273,6 @@ export class ConfigService {
             this._notifyListeners('setBlacklist', { status: 'error' });
         }
     }
-    /**
-     * Get Blacklist
-     * 获取黑名单
-     */
     async getBlacklist() {
         try {
             if (this.isBusy()) return;
@@ -360,7 +295,6 @@ export class ConfigService {
         try {
             if (this.isBusy()) return;
             // 添加空对象作为data参数，确保C++端不会收到NULL
-            // Add empty object as data parameter, ensuring C++ side does not receive NULL
             this.webSocketService.send('config', 'setBroadcastServer', {});
             this.currentStatus.busy = true;
             setTimeout(() => {
@@ -380,7 +314,6 @@ export class ConfigService {
         try {
             if (this.isBusy()) return;
             // 添加空对象作为data参数，确保C++端不会收到NULL
-            // Add empty object as data parameter, ensuring C++ side does not receive NULL
             this.webSocketService.send('config', 'setBroadcastUser', {});
             this.currentStatus.busy = true;
             setTimeout(() => {
@@ -397,16 +330,10 @@ export class ConfigService {
 
     aprsTypeValid(type) {
         // 检查是否为1-15的整数
-        // Check if it is an integer from 1-15
         const typeNumber = parseInt(type, 10);
         return !isNaN(typeNumber) && typeNumber >= 1 && typeNumber <= 15;
     }
 
-    /**
-     * Set APRS Type
-     * 设置 APRS 类型
-     * @param {string|number} type
-     */
     async setAprsType(type) {
         try {
             if (!this.aprsTypeValid(type)) {
@@ -431,10 +358,6 @@ export class ConfigService {
         }
     }
 
-    /**
-     * Get APRS Type
-     * 获取 APRS 类型
-     */
     async getAprsType() {
         try {
             if (this.isBusy()) return;
@@ -455,7 +378,6 @@ export class ConfigService {
         try {
             if (this.isBusy()) return;
             // 添加空对象作为data参数，确保C++端不会收到NULL
-            // Add empty object as data parameter, ensuring C++ side does not receive NULL
             this.webSocketService.send('config', 'restartAprsService', {});
             this.currentStatus.busy = true;
             setTimeout(() => {
@@ -471,9 +393,7 @@ export class ConfigService {
     }
 
     // ---- 用户物理可达性 ----
-    // ---- User Physical Reachability ----
     // XNet: userPhyDeviceName/userPhyAnt 为 char[16]，前端限制最多15字符
-    // XNet: userPhyDeviceName/userPhyAnt is char[16], frontend limits to max 15 characters
     _validDeviceName(name) { return typeof name === 'string' && name.length <= 15; }
     _validAnt(name) { return typeof name === 'string' && name.length <= 15; }
     _validFreq(freq) { const f = parseFloat(freq); return !isNaN(f) && f >= 0 && f <= 1000; }
@@ -551,7 +471,6 @@ export class ConfigService {
 
     serverFilterValid(filter) {
         // 允许0..8 对应 FILTER_NONE..FILTER_MAX
-        // Allow 0..8 corresponding to FILTER_NONE..FILTER_MAX
         const n = parseInt(filter, 10);
         return !isNaN(n) && n >= 0 && n <= 8;
     }
@@ -597,17 +516,14 @@ export class ConfigService {
 
     serverLoginAnnouncementValid(text) {
         // 允许中英文字符、英文标点、数字、空格（排除中文标点）
-        // Allow Chinese/English characters, English punctuation, numbers, spaces (exclude Chinese punctuation)
         const regex = /^[\u4e00-\u9fa5a-zA-Z0-9\s!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]*$/;
         if (typeof text !== 'string' || !regex.test(text)) return false;
         // 以 UTF-8 字节长度限制，最大 127 字节，避免后端按字节截断破坏多字节字符
-        // Limit by UTF-8 byte length, max 127 bytes, avoid backend byte truncation breaking multi-byte characters
         return this._utf8WithinLimit(text, 127, 42);
     }
 
     qsoBestWishValid(text) {
         // 允许中英文、英文标点、数字、空格；最大 64 字节（SPIFFS_CONFIG_QSO_BEST_WISH_MAX_LEN）
-        // Allow Chinese/English, English punctuation, numbers, spaces; max 64 bytes (SPIFFS_CONFIG_QSO_BEST_WISH_MAX_LEN)
         const regex = /^[\u4e00-\u9fa5a-zA-Z0-9\s!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]*$/;
         if (typeof text !== 'string' || !regex.test(text)) return false;
         return this._utf8WithinLimit(text, 64, 21);
@@ -616,7 +532,6 @@ export class ConfigService {
     aprsRemarkValid(remark) {
         if (typeof remark !== 'string') return false;
         // 输入框本身有 maxlength=63，这里再以 UTF-8 字节数兜底，防止多字节字符被后端截断
-        // Input box itself has maxlength=63, here we backstop with UTF-8 byte count to prevent multi-byte characters from being truncated by backend
         return this._utf8WithinLimit(remark, 63, 21);
     }
 
@@ -739,7 +654,6 @@ export class ConfigService {
 
     blacklistValid(blacklist) {
         // 黑名单必须为大写字母、数字和逗号或空格组成，且长度不超过511（XNet: char blacklist[512]）
-        // Blacklist must consist of uppercase letters, numbers, and commas or spaces, and length not exceeding 511 (XNet: char blacklist[512])
         const regex = /^[A-Z0-9, ]*$/;
         return typeof blacklist === 'string' && regex.test(blacklist) && blacklist.length <= 511;
     }
@@ -860,10 +774,6 @@ export class ConfigService {
     handleSetUserPhyAntHeightResponse(message) { this._notifyListeners('setUserPhyAntHeight', { status: 'success' }); }
     handleGetUserPhyAntHeightResponse(message) { this._notifyListeners('getUserPhyAntHeight', { status: 'success', height: message.data.height }); }
 
-    /**
-     * Setup Message Handler
-     * 设置消息处理器
-     */
     setupMessageHandler() {
         this.webSocketService.subscribe('message', (message) => {
             if (message.type != 'config') return;

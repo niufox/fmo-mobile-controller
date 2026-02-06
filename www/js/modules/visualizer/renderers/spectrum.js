@@ -15,7 +15,6 @@ export class SpectrumRenderer extends BaseRenderer {
 
     /**
      * Draw spectrum
-     * 绘制频谱
      * @param {AnalyserNode} analyser 
      * @param {Uint8Array} dataArray 
      * @param {number} bufferLength 
@@ -30,11 +29,10 @@ export class SpectrumRenderer extends BaseRenderer {
         const step = Math.max(1, Math.floor(bufferLength / barCount));
         
         // Visualization Shift: Start from 20% width to avoid left-side callsign overlap
-        // 可视化偏移：从 20% 宽度开始，以避免左侧呼号重叠
         const startX = w * 0.2;
         const availableW = w * 0.8;
         const colWidth = availableW / barCount;
-        const groundY = h * 0.85; // Reverted to original height // 恢复到原始高度
+        const groundY = h * 0.85; // Reverted to original height
         
         if (this.peaks.length !== barCount) this.peaks = new Array(barCount).fill(0);
 
@@ -47,7 +45,6 @@ export class SpectrumRenderer extends BaseRenderer {
             const x = startX + i * colWidth + colWidth/2;
             
             // 1. 主体粒子柱
-            // 1. Main Particle Pillar
             const particleCount = Math.floor(barHeight / 14); 
             for (let j = 0; j < particleCount; j++) {
                 const y = groundY - (j * 14 + 10);
@@ -72,7 +69,6 @@ export class SpectrumRenderer extends BaseRenderer {
             ctx.shadowBlur = 0;
 
             // 2. 倒影
-            // 2. Reflection
             const reflectCount = Math.floor(particleCount / 3);
             for (let j = 0; j < reflectCount; j++) {
                 const y = groundY + (j * 14 + 10);
@@ -86,7 +82,6 @@ export class SpectrumRenderer extends BaseRenderer {
             }
             
             // 3. 掉落峰值
-            // 3. Falling Peaks
             if (barHeight > this.peaks[i]) this.peaks[i] = barHeight;
             else this.peaks[i] -= 2; 
             
@@ -101,7 +96,6 @@ export class SpectrumRenderer extends BaseRenderer {
         }
         
         // 地平线
-        // Horizon Line
         ctx.beginPath();
         ctx.moveTo(0, groundY);
         ctx.lineTo(w, groundY);

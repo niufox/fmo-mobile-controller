@@ -1,6 +1,5 @@
 /**
  * @fileoverview Planet system renderer (Sun, Planets, Moons)
- * 行星系统渲染器（太阳、行星、卫星）
  */
 
 import { PLANETS_DATA } from './constants.js';
@@ -12,7 +11,6 @@ export class PlanetSystem {
         this.initTargets();
         
         // Sun Eruption System Configuration
-        // 太阳爆发系统配置
         this.eruptions = [];
         this.eruptionConfig = {
             sensitivity: 1.0,
@@ -24,7 +22,6 @@ export class PlanetSystem {
 
     /**
      * Initialize callsign assignment targets (Planets + Moons)
-     * 初始化呼号分配目标（行星 + 卫星）
      */
     initTargets() {
         this.targets = [];
@@ -40,9 +37,8 @@ export class PlanetSystem {
 
     /**
      * Get a target based on hash
-     * 基于哈希获取目标
-     * @param {number} hash Hash value 哈希值
-     * @returns {Object} Target info 目标信息
+     * @param {number} hash 
+     * @returns {Object} Target info
      */
     getTarget(hash) {
         if (this.targets.length === 0) return null;
@@ -51,8 +47,7 @@ export class PlanetSystem {
 
     /**
      * Determine text color based on background brightness
-     * 根据背景亮度确定文本颜色
-     * @param {string} hex Hex color code 十六进制颜色代码
+     * @param {string} hex 
      * @returns {string} '#000000' or '#ffffff'
      */
     getTextColor(hex) {
@@ -64,25 +59,22 @@ export class PlanetSystem {
     }
 
     /**
-     * Render entire planet system
-     * 渲染整个行星系统
-     * @param {CanvasRenderingContext2D} ctx Context 画布上下文
-     * @param {Object} params Rendering parameters 渲染参数
-     * @returns {Object|null} Hovered item info if any 悬停项信息（如果有）
+     * Render the entire planet system
+     * @param {CanvasRenderingContext2D} ctx 
+     * @param {Object} params Rendering parameters
+     * @returns {Object|null} Hovered item info if any
      */
     render(ctx, params) {
-        const {
+        const { 
             cx, cy, scale, tilt, angleOffset, orbitSpeedScale,
-            bass, mid, treble, energy,
-            theme, input, callsign, activeTarget, minDim,
-            camera
+            bass, mid, treble, energy, 
+            theme, input, callsign, activeTarget, minDim 
         } = params;
 
         const renderList = [];
         let hoveredItem = null;
 
         // --- 1. Sun & Eruptions ---
-        // --- 1. 太阳与爆发 ---
         renderList.push({
             y: cy,
             draw: () => {
@@ -90,7 +82,6 @@ export class PlanetSystem {
                 const sunSize = sunBaseSize + bass * 30;
 
                 // Eruptions
-                // 爆发
                 const sensitivity = this.eruptionConfig.sensitivity;
                 if (energy * sensitivity > 0.05) { 
                     const count = Math.floor(energy * 8 * sensitivity); 
@@ -133,7 +124,6 @@ export class PlanetSystem {
                 ctx.restore();
                 
                 // Sun Body
-                // 太阳本体
                 const sunGrad = ctx.createRadialGradient(cx, cy, sunSize*0.2, cx, cy, sunSize);
                 sunGrad.addColorStop(0, 'rgba(255, 215, 0, 0.85)'); 
                 sunGrad.addColorStop(1, 'rgba(255, 140, 0, 0.65)'); 
@@ -143,20 +133,14 @@ export class PlanetSystem {
                 ctx.arc(cx, cy, sunSize, 0, Math.PI*2);
                 ctx.fill();
 
-                // Interaction - Use world coordinates for hover detection
-                // 交互 - 使用世界坐标进行悬停检测
-                if (input.active) {
-                    const worldX = (input.x - cx) / scale;
-                    const worldY = (input.y - cy) / scale;
-                    if (Math.hypot(worldX, worldY) < sunSize / scale + 10) {
-                        hoveredItem = { name: 'Sun', info: 'Star Type: G2V', x: cx, y: cy - sunSize - 10 };
-                    }
+                // Interaction
+                if (input.active && Math.hypot(input.x - cx, input.y - cy) < sunSize + 10) {
+                    hoveredItem = { name: 'Sun', info: 'Star Type: G2V', x: cx, y: cy - sunSize - 10 };
                 }
             }
         });
 
         // --- 2. Planets & Moons ---
-        // --- 2. 行星与卫星 ---
         this.planets.forEach((p, i) => {
             const angle = angleOffset * p.speed * orbitSpeedScale + i * 137.5; 
             const x = cx + Math.cos(angle) * p.dist * scale;
@@ -169,7 +153,6 @@ export class PlanetSystem {
                     const style = p.style;
 
                     // Moons
-                    // 卫星
                     if (p.moons && p.moons.length > 0) {
                         p.moons.forEach((m, idx) => {
                             const mAngle = angleOffset * m.speed * 4 * orbitSpeedScale + idx; 
@@ -179,24 +162,17 @@ export class PlanetSystem {
                             const mSize = Math.max(2.0, m.r * scale * 0.15);
 
                             // Moon Body
-                            // 卫星本体
                             ctx.fillStyle = m.color;
                             ctx.beginPath();
                             ctx.arc(mx, my, mSize, 0, Math.PI*2);
                             ctx.fill();
 
-                            // Moon Interaction - Use world coordinates for hover detection
-                            // 卫星交互
-                            if (input.active) {
-                                const worldX = (input.x - mx) / scale;
-                                const worldY = (input.y - my) / scale;
-                                if (Math.hypot(worldX, worldY) < mSize / scale + 5) {
-                                    hoveredItem = { name: m.name, info: `Moon of ${p.name}`, x: mx, y: my - 10 };
-                                }
+                            // Moon Interaction
+                            if (input.active && Math.hypot(input.x - mx, input.y - my) < mSize + 5) {
+                                hoveredItem = { name: m.name, info: `Moon of ${p.name}`, x: mx, y: my - 10 };
                             }
 
                             // Moon Callsign
-                            // 卫星呼号
                             if (callsign && activeTarget && activeTarget.type === 'moon' && activeTarget.pIdx === i && activeTarget.mIdx === idx) {
                                 this.drawCallsign(ctx, cx, cy, mx, my, mSize, m.color, callsign, theme);
                             }
@@ -204,7 +180,6 @@ export class PlanetSystem {
                     }
 
                     // Planet Body
-                    // 行星本体
                     ctx.save();
                     ctx.beginPath();
                     ctx.arc(x, y, size, 0, Math.PI*2);
@@ -218,11 +193,9 @@ export class PlanetSystem {
                     ctx.fill();
 
                     // Planet Details
-                    // 行星细节
                     this.drawPlanetDetails(ctx, x, y, size, style);
 
                     // Planet Shadow
-                    // 行星阴影
                     const shadowGrad = ctx.createRadialGradient(x, y, size * 0.8, x, y, size);
                     shadowGrad.addColorStop(0, 'rgba(0,0,0,0)');
                     shadowGrad.addColorStop(1, 'rgba(0,0,0,0.5)');
@@ -231,7 +204,6 @@ export class PlanetSystem {
                     ctx.restore();
                     
                     // Planet Name
-                    // 行星名称
                     if (minDim > 320) {
                         ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
                         const nameSize = Math.max(10, Math.floor(minDim / 60));
@@ -240,18 +212,12 @@ export class PlanetSystem {
                         ctx.fillText(p.name, x, y + size + nameSize + 4);
                     }
 
-                    // Planet Interaction - Use world coordinates for hover detection
-                    // 行星交互
-                    if (input.active) {
-                        const worldX = (input.x - x) / scale;
-                        const worldY = (input.y - y) / scale;
-                        if (Math.hypot(worldX, worldY) < size / scale + 5) {
-                            hoveredItem = { name: p.name, info: `Dist: ${p.dist} AU`, x: x, y: y - size - 10 };
-                        }
+                    // Planet Interaction
+                    if (input.active && Math.hypot(input.x - x, input.y - y) < size + 5) {
+                        hoveredItem = { name: p.name, info: `Dist: ${p.dist} AU`, x: x, y: y - size - 10 };
                     }
 
                     // Planet Callsign
-                    // 行星呼号
                     if (callsign && activeTarget && activeTarget.type === 'planet' && activeTarget.pIdx === i) {
                         this.drawCallsign(ctx, cx, cy, x, y, size, style.color1, callsign, theme);
                     }
@@ -262,10 +228,6 @@ export class PlanetSystem {
         return { renderList, hoveredItem };
     }
 
-    /**
-     * Draw planet details (surface features)
-     * 绘制行星细节（表面特征）
-     */
     drawPlanetDetails(ctx, x, y, size, style) {
         if (style.type === 'banded' && style.bands) {
             ctx.globalCompositeOperation = 'overlay';
@@ -292,20 +254,14 @@ export class PlanetSystem {
         }
     }
 
-    /**
-     * Draw callsign label
-     * 绘制呼号标签
-     */
     drawCallsign(ctx, cx, cy, tx, ty, tSize, color, callsign, theme) {
         // Line
-        // 连接线
         ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(tx, ty);
         ctx.strokeStyle = theme.primary; ctx.globalAlpha = 0.3; ctx.stroke(); ctx.globalAlpha = 1.0;
 
         // Background
-        // 背景
         ctx.save();
-        ctx.translate(tx, ty - tSize * 2.5 - 5); // Adjusted offset // 调整偏移量
+        ctx.translate(tx, ty - tSize * 2.5 - 5); // Adjusted offset
         
         ctx.font = 'bold 12px "Roboto Mono"';
         const textMetrics = ctx.measureText(callsign);

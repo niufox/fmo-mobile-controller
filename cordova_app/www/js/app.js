@@ -45,6 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
             viz.setCallsign(callsign);
             player.setLocalTransmission(isHost);
             
+            // Trigger Missile Launch
+            viz.triggerMissileLaunch(callsign);
+            
             // Trigger UFO Easter Egg if isHost
             // Added DEBUG trigger for testing
             if (isHost || callsign === 'DEBUG') {

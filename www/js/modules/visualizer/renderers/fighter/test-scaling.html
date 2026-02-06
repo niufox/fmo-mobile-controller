@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>战机缩放同步测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #000;
+            color: #fff;
+            font-family: monospace;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .test-case {
+            border: 1px solid #333;
+            padding: 10px;
+            background: #111;
+        }
+        canvas {
+            border: 1px solid #444;
+            background: #000;
+        }
+        .controls {
+            margin: 10px 0;
+        }
+        .controls label {
+            display: inline-block;
+            width: 80px;
+        }
+        .controls input[type="range"] {
+            width: 200px;
+        }
+        .info {
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        .success { color: #0f0; }
+        .error { color: #f00; }
+    </style>
+</head>
+<body>
+    <h1>战机缩放同步功能测试</h1>
+    <div class="container">
+        <div class="test-case">
+            <h3>测试1: 编号格式验证</h3>
+            <canvas id="test1-canvas" width="400" height="300"></canvas>
+            <div class="info" id="test1-info"></div>
+        </div>
+        
+        <div class="test-case">
+            <h3>测试2: 缩放同步验证</h3>
+            <canvas id="test2-canvas" width="400" height="300"></canvas>
+            <div class="controls">
+                <label>缩放比例:</label>
+                <input type="range" id="scale-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+                <span id="scale-value">1.0</span>
+            </div>
+            <div class="info" id="test2-info"></div>
+        </div>
+        
+        <div class="test-case">
+            <h3>测试3: 动态缩放测试</h3>
+            <canvas id="test3-canvas" width="400" height="300"></canvas>
+            <div class="controls">
+                <button id="start-animation">开始动画</button>
+                <button id="stop-animation">停止动画</button>
+            </div>
+            <div class="info" id="test3-info"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SpaceFighter } from './fighter.js';
+        
+        // 测试工具函数
+        function createTestCanvas(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            return { canvas, ctx };
+        }
+        
+        function transform3D(x, y, z) {
+            const scale = 100;
+            const offsetX = 200;
+            const offsetY = 150;
+            return {
+                x: offsetX + x * scale,
+                y: offsetY - y * scale,
+                z: z,
+                p: 1.0 // 透视因子
+            };
+        }
+        
+        // 测试1: 编号格式验证
+        function testIdFormat() {
+            const { ctx } = createTestCanvas('test1-canvas');
+            const info = document.getElementById('test1-info');
+            
+            ctx.clearRect(0, 0, 400, 300);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, 400, 300);
+            
+            const fighters = [];
+            for (let i = 0; i < 5; i++) {
+                const fighter = new SpaceFighter(Math.random(), { x: -1.5 + i * 0.75, y: 0, z: 0 });
+                fighters.push(fighter);
+            }
+            
+            let allCorrect = true;
+            const idPattern = /^XV-\d{3}$/;
+            
+            fighters.forEach((fighter, index) => {
+                fighter.render(ctx, transform3D, 0, false, []);
+                
+                const isValid = idPattern.test(fighter.id);
+                if (!isValid) {
+                    allCorrect = false;
+                }
+                
+                ctx.fillStyle = isValid ? '#0f0' : '#f00';
+                ctx.font = '12px monospace';
+                ctx.fillText(`战机${index + 1}: ${fighter.id} ${isValid ? '✓' : '✗'}`, 10, 20 + index * 20);
+            });
+            
+            info.innerHTML = allCorrect ? 
+                '<span class="success">✓ 所有战机编号格式正确 (XV-XXX)</span>' : 
+                '<span class="error">✗ 发现编号格式错误</span>';
+        }
+        
+        // 测试2: 缩放同步验证
+        function testScaleSync() {
+            const { ctx } = createTestCanvas('test2-canvas');
+            const info = document.getElementById('test2-info');
+            const scaleSlider = document.getElementById('scale-slider');
+            const scaleValue = document.getElementById('scale-value');
+            
+            let currentScale = 1.0;
+            let fighter = new SpaceFighter(0.5, { x: 0, y: 0, z: 0 });
+            
+            function render() {
+                ctx.clearRect(0, 0, 400, 300);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, 400, 300);
+                
+                // 设置缩放
+                fighter.setScale(currentScale);
+                
+                // 渲染战机
+                fighter.render(ctx, transform3D, 0, false, []);
+                
+                // 显示信息
+                ctx.fillStyle = '#fff';
+                ctx.font = '12px monospace';
+                ctx.fillText(`当前缩放: ${currentScale.toFixed(1)}x`, 10, 20);
+                ctx.fillText(`战机ID: ${fighter.id}`, 10, 40);
+                ctx.fillText(`尾焰同步: ${fighter.exhaust.fighterScale === currentScale ? '✓' : '✗'}`, 10, 60);
+                
+                // 检查同步状态
+                const isSynced = fighter.exhaust.fighterScale === currentScale;
+                info.innerHTML = isSynced ? 
+                    '<span class="success">✓ 尾焰特效与模型缩放同步</span>' : 
+                    '<span class="error">✗ 尾焰特效未同步</span>';
+            }
+            
+            scaleSlider.addEventListener('input', (e) => {
+                currentScale = parseFloat(e.target.value);
+                scaleValue.textContent = currentScale.toFixed(1);
+                render();
+            });
+            
+            render();
+        }
+        
+        // 测试3: 动态缩放测试
+        function testDynamicScale() {
+            const { ctx } = createTestCanvas('test3-canvas');
+            const info = document.getElementById('test3-info');
+            const startBtn = document.getElementById('start-animation');
+            const stopBtn = document.getElementById('stop-animation');
+            
+            let fighter = new SpaceFighter(0.3, { x: 0, y: 0, z: 0 });
+            let animationId = null;
+            let time = 0;
+            
+            function animate() {
+                ctx.clearRect(0, 0, 400, 300);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, 400, 300);
+                
+                // 动态缩放 (0.5 到 1.5 之间波动)
+                const dynamicScale = 0.5 + 0.5 * Math.sin(time * 0.02);
+                fighter.setScale(dynamicScale);
+                
+                // 渲染战机
+                fighter.render(ctx, transform3D, 0, false, []);
+                
+                // 显示信息
+                ctx.fillStyle = '#fff';
+                ctx.font = '12px monospace';
+                ctx.fillText(`动态缩放: ${dynamicScale.toFixed(2)}x`, 10, 20);
+                ctx.fillText(`战机ID: ${fighter.id}`, 10, 40);
+                ctx.fillText(`时间: ${(time * 0.1).toFixed(1)}s`, 10, 60);
+                
+                time++;
+                animationId = requestAnimationFrame(animate);
+            }
+            
+            startBtn.addEventListener('click', () => {
+                if (!animationId) {
+                    animate();
+                    info.innerHTML = '<span class="success">✓ 动态缩放动画运行中</span>';
+                }
+            });
+            
+            stopBtn.addEventListener('click', () => {
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                    info.innerHTML = '<span class="success">✓ 动画已停止</span>';
+                }
+            });
+            
+            // 初始渲染
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, 400, 300);
+            ctx.fillStyle = '#fff';
+            ctx.font = '14px monospace';
+            ctx.fillText('点击"开始动画"测试动态缩放', 50, 150);
+        }
+        
+        // 初始化所有测试
+        window.addEventListener('load', () => {
+            testIdFormat();
+            testScaleSync();
+            testDynamicScale();
+        });
+    </script>
+</body>
+</html>

@@ -3,7 +3,6 @@ import { BaseRenderer } from '../core/base-renderer.js';
 
 /**
  * 5. 放射模式渲染器 (RADIAL)
- * 5. Radial Mode Renderer (RADIAL)
  */
 export class RadialRenderer extends BaseRenderer {
     /**
@@ -24,7 +23,6 @@ export class RadialRenderer extends BaseRenderer {
         ctx.translate(cx, cy);
         
         // 1. 核心 (空心)
-        // 1. Core (Hollow)
         const bass = dataArray[5] / 255.0;
         ctx.beginPath();
         const coreRadius = radius * (0.8 + bass * 0.3);
@@ -39,7 +37,6 @@ export class RadialRenderer extends BaseRenderer {
         ctx.shadowBlur = 0;
 
         // 1.1 显示呼号 (动态)
-        // 1.1 Show Callsign (Dynamic)
         if (extra && extra.callsign && extra.opacity > 0) {
             ctx.save();
             ctx.globalAlpha = extra.opacity;
@@ -59,7 +56,6 @@ export class RadialRenderer extends BaseRenderer {
         }
 
         // 2. 旋转环
-        // 2. Rotating Ring
         ctx.rotate(Date.now() * 0.0005); 
         const bars = 64; 
         const step = Math.floor(bufferLength / bars);

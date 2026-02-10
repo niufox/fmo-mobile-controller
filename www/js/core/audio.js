@@ -168,7 +168,11 @@ export class AudioPlayer extends EventEmitter {
         }
 
         this.ensureAudio();
-        this.url = `${(window.location && window.location.protocol === 'https:' ? 'wss' : 'ws')}://${host}/audio`;
+        let audioUrl = `${(window.location && window.location.protocol === 'https:' ? 'wss' : 'ws')}://${host}/audio`;
+        if (host.startsWith('ws://') || host.startsWith('wss://')) {
+            audioUrl = `${host}/audio`;
+        }
+        this.url = audioUrl;
         this.resetBuffers();
 
         let requestId = null;

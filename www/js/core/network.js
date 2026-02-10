@@ -89,7 +89,11 @@ export class ControlClient extends EventEmitter {
             // Wrap WebSocket creation in a Promise to wait for OPEN
             await new Promise((resolve, reject) => {
                 try {
-                    this.ws = new WebSocket(`${(window.location && window.location.protocol === 'https:' ? 'wss' : 'ws')}://${this.host}/ws`);
+                    let controlUrl = `${(window.location && window.location.protocol === 'https:' ? 'wss' : 'ws')}://${this.host}/ws`;
+                    if (this.host.startsWith('ws://') || this.host.startsWith('wss://')) {
+                        controlUrl = `${this.host}/ws`;
+                    }
+                    this.ws = new WebSocket(controlUrl);
                     this.ws.binaryType = 'arraybuffer'; // Prevent UTF-8 decode errors on binary frames
                 } catch (err) {
                     connectionManager.reportHandshakeFailure(requestId);

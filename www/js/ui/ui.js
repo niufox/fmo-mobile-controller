@@ -357,10 +357,13 @@ export class QsoManager {
         this.badge = document.getElementById('qso-badge');
         
         this.page = 0;
-        this.pageSize = 20; // Default page size
+        this.pageSize = 8;
         this.isLoading = false;
         this.refreshTimer = null; // Auto refresh timer
         this.qsos = new Set(); // 缓存 QSO 列表用于快速查找
+        this.allList = [];
+        this.fetchingAll = false;
+        this.expectedPage = 0;
 
         if (this.modal) {
             this.initEvents();
@@ -423,23 +426,31 @@ export class QsoManager {
         // Handle WS messages
         this.client.on('qsoMessage', (msg) => {
             if (msg.subType === 'getListResponse') {
-                // 更新数量统计
-                if (msg.data.total !== undefined) {
-                    this.updateCount(msg.data.total);
-                } else if (msg.data.list) {
-                    this.updateCount(msg.data.list.length);
-                }
                 const list = msg.data.list || [];
-                this.renderList(list);
+                const respPage = (msg.data.page !== undefined && msg.data.page !== null) ? msg.data.page : this.expectedPage;
+                if (!this.fetchingAll || respPage !== this.expectedPage) return;
 
-                // 发送所有QSO网格到地图显示
                 if (list.length > 0) {
-                    const grids = list.filter(item => item.grid && item.grid !== '-')
-                                   .map(item => ({
-                                       grid: item.grid,
-                                       callsign: item.toCallsign || 'UNKNOWN',
-                                       timestamp: item.timestamp
-                                   }));
+                    this.allList = this.allList.concat(list);
+                    this.expectedPage += 1;
+                    this.client.getQsoList(this.expectedPage, this.pageSize);
+                    return;
+                }
+
+                this.fetchingAll = false;
+                this.isLoading = false;
+                const finalList = this.allList;
+                const total = (msg.data.total !== undefined) ? msg.data.total : finalList.length;
+                this.updateCount(total);
+                this.renderList(finalList);
+
+                if (finalList.length > 0) {
+                    const grids = finalList.filter(item => item.grid && item.grid !== '-')
+                        .map(item => ({
+                            grid: item.grid,
+                            callsign: item.toCallsign || 'UNKNOWN',
+                            timestamp: item.timestamp
+                        }));
                     setTimeout(() => {
                         this.displayAllQsosOnMap(grids);
                     }, 300);
@@ -491,10 +502,15 @@ export class QsoManager {
 
     fetchData(showLoading = false) {
         console.log('[QsoManager] Fetching QSO list...');
+        if (this.isLoading) return;
         if (showLoading && this.listEl) {
             this.listEl.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">Loading...</div>';
         }
-        this.client.getQsoList(this.page, this.pageSize);
+        this.isLoading = true;
+        this.fetchingAll = true;
+        this.expectedPage = 0;
+        this.allList = [];
+        this.client.getQsoList(this.expectedPage, this.pageSize);
     }
 
     locateGrid(grid) {

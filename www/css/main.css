@@ -624,6 +624,8 @@
             height: auto; 
             max-height: 50vh; 
             overflow-y: hidden; /* 关键：禁用父容器纵向滚动 */ 
+            overflow-x: hidden;
+            align-items: stretch;
             transition: background 0.5s, border-color 0.5s; 
             margin: 0 10px 10px 10px; 
             border-radius: var(--radius-md); 
@@ -911,10 +913,43 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
         .station-panel .station-header {
             font-size: 0.75rem;
             margin-bottom: 4px;
+        }
+        .station-map-panel {
+            flex: 1 1 auto;
+            min-height: 0;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            background: rgba(0,0,0,0.2);
+        }
+        .station-map-panel iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: none;
+        }
+        .station-location-box {
+            width: 100%;
+            max-width: 100%;
+            min-height: 44px;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: rgba(0,0,0,0.2);
+            color: var(--text-main);
+            font-size: 0.8rem;
+            line-height: 1.4;
+            display: flex;
+            align-items: center;
+            box-sizing: border-box;
+            overflow-wrap: anywhere;
         }
 
         /* 设置面板 */

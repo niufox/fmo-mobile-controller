@@ -1,13 +1,13 @@
 import { wsService } from './webSocketService.js';
 
-export class QsoService {
+export class UIService {
   constructor(ws) {
-    if (QsoService.instance) return QsoService.instance;
+    if (UIService.instance) return UIService.instance;
     this.webSocketService = ws;
     this.listeners = new Map();
     this._busy = false;
     this._setup();
-    QsoService.instance = this;
+    UIService.instance = this;
   }
 
   subscribe(event, cb) {
@@ -21,52 +21,47 @@ export class QsoService {
   }
 
   isBusy() { return this._busy; }
+  isConnected() { return !!this.webSocketService?.isConnected; }
 
-  getList(page = 0, pageSize = 8) {
+  getScreenMode() {
     if (this.isBusy()) return;
+    if (!this.isConnected()) return;
     this._busy = true;
-    this.webSocketService.send('qso', 'getList', { page, pageSize });
+    this.webSocketService.send('ui', 'getScreenMode', {});
     setTimeout(() => {
       if (this._busy) {
         this._busy = false;
-        this._emit('getList', { status: 'timeout' });
+        this._emit('getScreenMode', { status: 'timeout' });
       }
     }, 5000);
   }
 
-  getDetail(logId) {
+  setScreenMode(mode) {
     if (this.isBusy()) return;
+    if (!this.isConnected()) return;
     this._busy = true;
-    this.webSocketService.send('qso', 'getDetail', { logId });
+    this.webSocketService.send('ui', 'setScreenMode', { mode });
     setTimeout(() => {
       if (this._busy) {
         this._busy = false;
-        this._emit('getDetail', { status: 'timeout' });
+        this._emit('setScreenMode', { status: 'timeout' });
       }
     }, 5000);
   }
 
   _setup() {
     this.webSocketService.subscribe('message', (message) => {
-      if (message.type !== 'qso') return;
+      if (message.type !== 'ui') return;
       this._busy = false;
       switch (message.subType) {
-        case 'getListResponse':
-          this._emit('getList', {
-            status: 'success',
-            list: (message.data?.list) || [],
-            page: message.data?.page ?? 0,
-            pageSize: message.data?.pageSize ?? 8,
-          });
+        case 'getScreenModeResponse':
+          this._emit('getScreenMode', { status: 'success', mode: message.data?.mode });
           break;
-        case 'getDetailResponse':
-          this._emit('getDetail', {
-            status: 'success',
-            log: message.data?.log || null,
-          });
+        case 'setScreenModeResponse':
+          this._emit('setScreenMode', { status: (message.data?.result === 0 ? 'success' : 'error') });
           break;
         default:
-          console.warn('Unknown qso message', message);
+          console.warn('Unknown ui message', message);
       }
     });
 
@@ -77,7 +72,7 @@ export class QsoService {
 }
 
 let instance = null;
-export function getQsoService() {
-  if (!instance) instance = new QsoService(wsService);
+export function getUIService() {
+  if (!instance) instance = new UIService(wsService);
   return instance;
 }

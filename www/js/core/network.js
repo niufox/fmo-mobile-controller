@@ -376,7 +376,7 @@ export class ControlClient extends EventEmitter {
     }
     
     // QSO 指令
-    getQsoList(page = 0, pageSize = 20) {
+    getQsoList(page = 0, pageSize = 8) {
         this.send('qso', 'getList', { page, pageSize });
     }
     
@@ -583,7 +583,7 @@ export class EventsClient extends EventEmitter {
         // 处理 QSO 发言人事件
         if (msg.type === 'qso' && msg.subType === 'callsign' && msg.data) {
             console.log('Callsign event:', msg.data);
-            const { callsign, isSpeaking, isHost } = msg.data;
+            const { callsign, isSpeaking, isHost, grid } = msg.data;
             // 只处理开始发言事件，或者根据需要处理
             // 这里假设每次 isSpeaking=true 都是一次新的发言或持续发言
             // 为了避免重复，我们可以简单去重，或者每次都添加（作为新的事件）
@@ -592,10 +592,10 @@ export class EventsClient extends EventEmitter {
             if (isSpeaking) {
                 // 简单的去重逻辑：如果最后一个呼号相同且时间很近，则不添加？
                 // 暂时直接添加，让Ticker处理队列
-                if (this.onCallsign) this.onCallsign(callsign);
-                if (this.onSpeakingState) this.onSpeakingState(callsign, true, isHost);
+                if (this.onCallsign) this.onCallsign({ callsign, isSpeaking, isHost, grid });
+                if (this.onSpeakingState) this.onSpeakingState(callsign, true, isHost, grid);
             } else {
-                if (this.onSpeakingState) this.onSpeakingState(callsign, false, isHost);
+                if (this.onSpeakingState) this.onSpeakingState(callsign, false, isHost, grid);
             }
         }
     }

@@ -36,7 +36,7 @@ class QsoPage {
     this.state = {
       list: [],
       page: 0,
-      pageSize: 20,
+      pageSize: 8,
       selectedLogId: 0,
       pendingLogId: 0,
     };

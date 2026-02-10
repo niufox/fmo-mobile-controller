@@ -1,288 +1,869 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="format-detection" content="telephone=no">
-    <title>FMO Mobile Controller</title>
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FMOC - 首页导航</title>
+    <style>
+        /* Global Styles - 橘色黑色毛玻璃主题（优化版） */
+        :root {
+            --primary-color: #FF6B00;
+            --primary-light: #FF8533;
+            --primary-dark: #E65A00;
+            --primary-glow: rgba(255, 107, 0, 0.4);
+            --secondary-color: #FF9500;
+            --secondary-light: #FFB84D;
+            --accent-color: #FF6B00;
+            --text-color: #FFFFFF;
+            --text-secondary: #F0F0F0;
+            --text-muted: #D0D0D0;
+            --bg-color: #0a0a0a;
+            --card-bg: rgba(20, 20, 20, 0.96);
+            --glass-bg: rgba(255, 107, 0, 0.15);
+            --glass-border: rgba(255, 107, 0, 0.4);
+            --announcement-bg: rgba(255, 107, 0, 0.2);
+            --announcement-text: #FFB84D;
+            --border-color: rgba(255, 107, 0, 0.45);
+            --shadow-sm: 0 2px 12px rgba(255, 107, 0, 0.3);
+            --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.7);
+            --shadow-lg: 0 16px 48px rgba(255, 107, 0, 0.45);
+            --muted-text: #C0C0C0;
+            --footer-text: #999;
+            --transition-speed: 0.3s;
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 18px;
+        }
+
+        /* Dark Theme (统一黑色主题) */
+        [data-theme="dark"] {
+            --primary-color: #FF6B00;
+            --primary-light: #FF8533;
+            --primary-dark: #E65A00;
+            --primary-glow: rgba(255, 107, 0, 0.5);
+            --secondary-color: #FF9500;
+            --secondary-light: #FFB84D;
+            --accent-color: #FF6B00;
+            --text-color: #FFFFFF;
+            --text-secondary: #F5F5F5;
+            --text-muted: #D8D8D8;
+            --bg-color: #000000;
+            --card-bg: rgba(15, 15, 15, 0.97);
+            --glass-bg: rgba(255, 107, 0, 0.18);
+            --glass-border: rgba(255, 107, 0, 0.5);
+            --announcement-bg: rgba(255, 107, 0, 0.22);
+            --announcement-text: #FFC107;
+            --border-color: rgba(255, 107, 0, 0.5);
+            --shadow-sm: 0 2px 12px rgba(255, 107, 0, 0.35);
+            --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.8);
+            --shadow-lg: 0 16px 48px rgba(255, 107, 0, 0.5);
+            --muted-text: #C8C8C8;
+            --footer-text: #999;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
+            background-attachment: fixed;
+            color: var(--text-color);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* 动态背景光晕（减淡） */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 107, 0, 0.06) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 70%, rgba(255, 149, 0, 0.04) 0%, transparent 50%);
+            animation: bgGlow 20s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes bgGlow {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(5%, 5%) scale(1.05); }
+            66% { transform: translate(-5%, -5%) scale(0.95); }
+        }
+
+        /* Page Load Animation */
+        .main-container > * {
+            animation: fadeInUp 0.8s ease-out backwards;
+        }
+
+        .header { animation-delay: 0.1s; }
+        .nav-grid { animation-delay: 0.2s; }
+        .links-section { animation-delay: 0.3s; }
+        .footer { animation-delay: 0.4s; }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
         }
-    </script>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📻</text></svg>">
-    <link rel="stylesheet" href="css/main.css">
+
+        /* Announcement Bar - 毛玻璃效果 */
+        .announcement-bar {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            color: var(--announcement-text);
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid var(--glass-border);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-sm);
+            z-index: 100;
+        }
+
+        .announcement-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 107, 0, 0.15), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .announcement-bar.hidden {
+            height: 0;
+            border-bottom: none;
+            margin: 0;
+        }
+
+        .announcement-content {
+            flex: 1;
+            max-width: 900px;
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+            padding: 0 50px;
+        }
+
+        .announcement-scroller {
+            display: inline-block;
+            animation: scroll 25s linear infinite;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 15px rgba(255, 107, 0, 0.4);
+        }
+
+        @keyframes scroll {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .announcement-close {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 107, 0, 0.2);
+            border: 1px solid rgba(255, 107, 0, 0.4);
+            cursor: pointer;
+            color: var(--announcement-text);
+            font-size: 1.2rem;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            z-index: 10;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .announcement-close:hover {
+            background: rgba(255, 107, 0, 0.3);
+            border-color: rgba(255, 107, 0, 0.6);
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: 0 0 15px rgba(255, 107, 0, 0.5);
+        }
+
+        /* Main Content */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2.5rem 1.5rem;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header - 优化尺寸 */
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #FF8533 0%, #FFB84D 50%, #FF8533 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            animation: gradientShift 3s ease infinite;
+            filter: drop-shadow(0 0 20px rgba(255, 107, 0, 0.5));
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% center; }
+            50% { background-position: 100% center; }
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        /* Navigation Cards - 减小尺寸 */
+        .nav-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 700px;
+            margin-bottom: 2.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .nav-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .nav-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-radius: var(--radius-lg);
+            padding: 2rem 1.5rem;
+            text-align: center;
+            text-decoration: none;
+            color: var(--text-color);
+            box-shadow: var(--shadow-md);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 220px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255, 107, 0, 0.12) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.4s;
+            z-index: 0;
+        }
+
+        .nav-card::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #FF6B00, #FF9500, #FF6B00, #FF9500);
+            background-size: 400% 400%;
+            border-radius: var(--radius-lg);
+            z-index: -1;
+            opacity: 0;
+            animation: borderGlow 3s ease infinite;
+            transition: opacity 0.4s;
+        }
+
+        @keyframes borderGlow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .nav-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-color);
+        }
+
+        .nav-card:hover::before {
+            opacity: 1;
+        }
+
+        .nav-card:hover::after {
+            opacity: 1;
+        }
+
+        .nav-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            filter: drop-shadow(0 0 15px rgba(255, 107, 0, 0.6));
+            transition: all 0.4s;
+            position: relative;
+            z-index: 1;
+        }
+
+        .nav-card:hover .nav-icon {
+            transform: scale(1.1) rotate(5deg);
+            filter: drop-shadow(0 0 25px rgba(255, 107, 0, 0.9));
+        }
+
+        .nav-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+            position: relative;
+            z-index: 1;
+            letter-spacing: 0.3px;
+        }
+
+        .nav-desc {
+            color: var(--muted-text);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Friendly Links Section */
+        .links-section {
+            width: 100%;
+            max-width: 1000px;
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2rem;
+            color: var(--text-color);
+            margin-bottom: 2rem;
+            font-weight: 800;
+            position: relative;
+            display: inline-block;
+            left: 50%;
+            transform: translateX(-50%);
+            letter-spacing: 0.5px;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #FF6B00, #FF9500);
+            border-radius: 2px;
+            box-shadow: 0 0 15px rgba(255, 107, 0, 0.6);
+        }
+
+        .link-category {
+            margin-bottom: 2rem;
+        }
+
+        .category-title {
+            font-size: 1.3rem;
+            color: var(--secondary-color);
+            margin-bottom: 1.2rem;
+            padding-left: 0.8rem;
+            font-weight: 800;
+            border-left: 4px solid #FF6B00;
+            display: flex;
+            align-items: center;
+            letter-spacing: 0.3px;
+            text-shadow: 0 0 15px rgba(255, 107, 0, 0.4);
+        }
+
+        .links-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.2rem;
+        }
+
+        @media (min-width: 768px) {
+            .links-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .links-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .link-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            text-decoration: none;
+            color: var(--text-color);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .link-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255, 107, 0, 0.1) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.4s;
+            z-index: 0;
+        }
+
+        .link-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: var(--shadow-lg);
+            border-color: #FF6B00;
+        }
+
+        .link-card:hover::before {
+            opacity: 1;
+        }
+
+        .link-icon {
+            font-size: 2rem;
+            margin-bottom: 0.2rem;
+            color: #FF6B00;
+            flex-shrink: 0;
+            transition: all 0.4s;
+            filter: drop-shadow(0 0 8px rgba(255, 107, 0, 0.5));
+            position: relative;
+            z-index: 1;
+        }
+
+        .link-card:hover .link-icon {
+            transform: scale(1.15) rotate(-5deg);
+            filter: drop-shadow(0 0 15px rgba(255, 107, 0, 0.8));
+        }
+
+        .link-content {
+            flex: 1;
+            position: relative;
+            z-index: 1;
+        }
+
+        .link-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+            color: var(--text-color);
+            letter-spacing: 0.2px;
+        }
+
+        .link-desc {
+            color: var(--muted-text);
+            font-size: 0.9rem;
+            margin-bottom: 0.6rem;
+            line-height: 1.5;
+        }
+
+        .link-author {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(255, 107, 0, 0.2) 0%, rgba(255, 149, 0, 0.2) 100%);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #FFB84D;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.3rem 0.75rem;
+            border-radius: 12px;
+            letter-spacing: 0.3px;
+            border: 1px solid rgba(255, 107, 0, 0.4);
+        }
+
+        /* Footer - 毛玻璃效果 */
+        .footer {
+            text-align: center;
+            padding: 2rem 1.5rem;
+            color: var(--footer-text);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border-color);
+            background: var(--card-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            margin-top: auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Theme Toggle Button - 橙色发光效果（减小尺寸） */
+        .theme-toggle-btn {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 6px;
+            border-radius: 50%;
+            filter: drop-shadow(0 0 8px rgba(255, 107, 0, 0.4));
+            font-size: 14px !important;
+            width: 36px !important;
+            height: 36px !important;
+        }
+
+        .theme-toggle-btn:hover {
+            transform: scale(1.15) rotate(15deg);
+            opacity: 1;
+            background: rgba(255, 107, 0, 0.2);
+            filter: drop-shadow(0 0 15px rgba(255, 107, 0, 0.7));
+        }
+
+        .theme-toggle-btn:active {
+            transform: scale(1.05) rotate(-10deg);
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            .nav-card {
+                height: 190px;
+                padding: 1.5rem 1rem;
+            }
+            .nav-icon {
+                font-size: 2.5rem;
+            }
+            .main-container {
+                padding: 2rem 1rem;
+            }
+            .link-card {
+                padding: 1.2rem;
+            }
+            .footer {
+                font-size: 0.85rem;
+                padding: 1.5rem 1rem;
+            }
+            .announcement-bar {
+                height: 50px;
+            }
+            .announcement-close {
+                width: 28px;
+                height: 28px;
+                font-size: 1.1rem;
+            }
+            .section-title {
+                font-size: 1.6rem;
+            }
+        }
+
+        /* Smooth Scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Selection Styling - 橙色高亮 */
+        ::selection {
+            background: rgba(255, 107, 0, 0.4);
+            color: #FFFFFF;
+        }
+
+        /* Focus States for Accessibility - 橙色边框 */
+        a:focus-visible,
+        button:focus-visible {
+            outline: 2px solid #FF6B00;
+            outline-offset: 3px;
+            box-shadow: 0 0 0 4px rgba(255, 107, 0, 0.3);
+        }
+
+        /* 自定义滚动条 - 橙色主题 */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #FF6B00, #FF9500);
+            border-radius: 5px;
+            border: 2px solid #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #FF8533, #FFB84D);
+        }
+    </style>
 </head>
 <body>
 
-    <!-- 顶部功能区：品牌、操作按钮、连接状态 -->
-    <header>
-        <div class="brand"><span>FMO<br>CONTROLLER</span></div>
-        <div class="header-right">
-            <div class="qso-count-badge" id="qso-badge" title="已通联 QSO 数量">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                <span id="qso-count-value">0</span>
+    <!-- Announcement Bar -->
+    <div class="announcement-bar" id="announcementBar">
+        <div class="announcement-content">
+            <div class="announcement-scroller">
+                欢迎访问 FMOC！系统升级维护中，部分功能可能受限。请根据您的设备选择合适的版本进行访问。
             </div>
-            <button id="btn-settings-toggle" class="theme-btn" title="设置">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            </button>
-            <button id="btn-maximize" class="theme-btn" title="最大化窗口">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2-2h3"/>
-                    </svg>
+        </div>
+        <button class="announcement-close" id="closeAnnouncement" aria-label="关闭公告">×</button>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        <header class="header">
+            <h1>FMOC</h1>
+            <p>选择您的访问版本</p>
+        </header>
+
+        <div class="nav-grid">
+            <a href="pcindex.html" class="nav-card">
+                <div class="nav-icon">💻</div>
+                <div class="nav-title">桌面版</div>
+                <div class="nav-desc">适用于 PC 及大屏设备，提供完整的控制台与可视化体验</div>
+            </a>
+
+            <a href="mobileindex.html" class="nav-card">
+                <div class="nav-icon">📱</div>
+                <div class="nav-title">移动版</div>
+                <div class="nav-desc">专为手机和平板优化，轻量便捷的 FMO Radio 体验</div>
+            </a>
+        </div>
+
+        <!-- Friendly Links Section -->
+        <section class="links-section">
+            <h2 class="section-title">友情链接</h2>
+            <div id="links-container">
+                <!-- Links will be dynamically inserted here -->
+            </div>
+        </section>
+    </main>
+
+        <footer class="footer">
+            <div>© 2026 FMO Controller. All rights reserved.</div>
+            <div style="margin-top: 0.5rem; opacity: 0.9; display: flex; align-items: center; justify-content: center; gap: 12px;">
+                <button id="theme-toggle" class="theme-toggle-btn" title="切换主题" style="background: none; border: none; cursor: pointer; opacity: 0.8;">
+                    🌓
                 </button>
-
-            <button id="btn-theme" class="theme-btn" title="切换主题">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>
-            </button>
-            <div class="status-indicators">
-                <div id="led-control" class="status-dot" title="控制连接 (WS)"></div>
-                <div id="led-events" class="status-dot" title="事件连接 (Events)"></div>
-                <div id="led-audio" class="status-dot" title="音频连接 (Audio)"></div>
+                <span>Design by BG5EIT · <a href="https://github.com/niufox/fmo-mobile-controller" target="_blank" style="color: var(--secondary-light); text-decoration: underline;">GitHub</a></span>
             </div>
-        </div>
-    </header>
+        </footer>
 
-    <!-- 设置面板：输入 IP、历史设备与发现设备 -->
-    <div id="settings-area">
-        <div class="input-group">
-            <input type="text" id="inp-host" class="input-dark" placeholder="设备 IP 地址" value="">
-            <button id="btn-connect" class="btn-small text-cyan">CONNECT</button>
-        </div>
+    <script>
+        // Link Data Configuration
+        const linkData = [
+            {
+                category: "友情链接",
+                links: [
+                    {
+                        url: "https://bg5esn.com/docs/fmo-user-shares/",
+                        title: "FMO实践分项",
+                        desc: "FMO使用实践分享",
+                        author: "BG5ESN",
+                        icon: "📝"
+                    },
+                    {
+                        url: "https://map.srv.ink/",
+                        title: "FMO地图",
+                        desc: "FMO APRS实时地图",
+                        author: "BG9JYT",
+                        icon: "🗺️"
+                    },
+                    {
+                        url: "https://fmologs.bh5hsj.org/",
+                        title: "FMO日志查看器",
+                        desc: "在线查看FMO日志",
+                        author: "BH5HSJ",
+                        icon: "📊"
+                    }
+                ]
+            }
+        ];
 
-        <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px;">
-            <div style="color: var(--accent-cyan); font-size: 12px; margin-bottom: 12px; font-weight: bold;">地理位置上报设置</div>
-            
-            <div style="display: flex; align-items: center; margin-bottom: 12px;">
-                <label class="switch-toggle">
-                    <input type="checkbox" id="cb-geo-single-allow">
-                    <span class="slider"></span>
-                </label>
-                <div style="font-size: 13px; color: var(--text-main); line-height: 1.3;">
-                    连接时单次同步位置<br>
-                    <span style="color: var(--accent-magenta); font-size: 11px;">(警告: 将修改 FMO 中的坐标)</span>
-                </div>
-            </div>
+        // Render Links Function
+        function renderLinks() {
+            const container = document.getElementById('links-container');
+            container.innerHTML = '';
 
-            <div style="display: flex; align-items: center;">
-                <label class="switch-toggle">
-                    <input type="checkbox" id="cb-geo-periodic-allow">
-                    <span class="slider"></span>
-                </label>
-                <div style="font-size: 13px; color: var(--text-main); line-height: 1.3;">
-                    实时同步位置 (30分钟间隔)<br>
-                    <span style="color: var(--accent-magenta); font-size: 11px;">(警告: 将实时暴露您的地理位置，可能会被arps.TV等站点记录)</span>
-                </div>
-            </div>
-        </div>
+            linkData.forEach(category => {
+                const categorySection = document.createElement('div');
+                categorySection.className = 'link-category';
 
-        <div id="device-history" class="device-history"></div>
-        <div id="discovered-list" class="device-history" style="margin-top: 10px; border-top: 1px dashed #333; padding-top: 10px; display: none;"></div>
-        
+                const categoryTitle = document.createElement('h3');
+                categoryTitle.className = 'category-title';
+                categoryTitle.textContent = category.category;
 
-    </div>
+                const linksGrid = document.createElement('div');
+                linksGrid.className = 'links-grid';
 
-    <!-- 可视化区域：频谱/模式标记 -->
-    <div class="viz-container" id="viz-area">
-        <canvas id="viz-canvas"></canvas>
-        <canvas id="webgl-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none;"></canvas>
-        
-        <!-- Model Loading Progress Bar -->
-        <div id="model-loader" class="model-loader" style="display: none;">
-            <div class="loader-content">
-                <div class="loader-text">空天战机空间跳跃完成度 <span id="loader-percent">0</span>%</div>
-                <div class="loader-bar-track">
-                    <div id="loader-bar-fill" class="loader-bar-fill"></div>
-                </div>
-            </div>
-        </div>
+                category.links.forEach(link => {
+                    const linkCard = document.createElement('a');
+                    linkCard.className = 'link-card';
+                    linkCard.href = link.url;
+                    linkCard.target = '_blank';
 
-        <!-- 呼号队列显示 -->
-        <div id="callsign-ticker" class="callsign-ticker-container">
-            <!-- Items injected by JS -->
-        </div>
-
-        <div class="viz-info-container">
-            <div class="viz-mode-badge" id="viz-mode-text">SOLAR</div>
-        </div>
-        
-        <!-- 右下角信息组 -->
-        <div class="bottom-right-group">
-            <div class="viz-mode-badge" id="current-station-text" style="display: none;"></div>
-        </div>
-    </div>
-
-    <!-- 控制区：播放、录音、台站切换、音量 -->
-    <div class="controls-area">
-        <!-- 播放器控制：包含播放/录音/上下台切换 -->
-        <div class="control-btn-group">
-            <button id="btn-play" class="btn-rect-lg">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            </button>
-            <!-- 录音按钮：中间图标为圆点 -->
-            <button id="btn-record" class="btn-rect-lg btn-record" title="录音">
-                <div class="icon"></div>
-            </button>
-
-            <button id="btn-prev" class="btn-rect-lg" title="上一台">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
-            </button>
-            <button id="btn-next" class="btn-rect-lg" title="下一台">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
-            </button>
-        </div>
-
-        <!-- 音量控制条 -->
-        <div class="vol-bar-container" id="vol-container">
-            <div class="vol-icon" id="vol-mute-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-                </svg>
-            </div>
-            <div class="vol-track-wrapper" id="vol-track-wrapper">
-                <div class="vol-track">
-                    <div class="vol-fill" id="vol-fill">
-                        <div class="vol-thumb"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="vol-value-text" id="vol-value-text">100%</div>
-            <!-- Local Audio Mute Toggle -->
-            <div class="local-mute-toggle inactive" id="local-mute-toggle" title="Toggle Local Audio Mute">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            </div>
-        </div>
-
-        <!-- 台站列表 - 改为触发按钮 -->
-        <div class="station-panel">
-            <div class="station-header">
-                <span>STATIONS</span>
-                <span id="st-count">0/0</span>
-            </div>
-            <button id="btn-open-stations" class="btn-rect-lg" style="background: var(--panel-bg); border: 1px solid var(--border-color);">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/></svg>
-            </button>
-        </div>
-
-    </div>
-
-
-
-    <!-- QSO Log Modal -->
-    <div id="qso-modal" class="modal-overlay">
-        <div class="modal-content qso-modal-content">
-            <div class="modal-header">
-                <div class="radio-icon-container">
-                    <svg class="radio-icon-svg" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M3.24 6.15C2.51 6.43 2 7.17 2 8v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8c0-1.1-.9-2-2-2H8.3l8.26-3.34L15.88 1 3.24 6.15zM7 20c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3 3 3zm13-8h-2v-2h-2v2H4V8h16v4z"/>
-                    </svg>
-                    <h5>QSO LOGS</h5>
-                    <a href="https://map.srv.ink" target="_blank" style="margin-left: 15px; color: var(--accent-cyan); text-decoration: none; font-size: 12px; display: flex; align-items: center;">
-                        <span style="margin-right: 4px;">🗺️</span> FMO APRS Map（Designed BY BG9JYT）
-                    </a>
-                </div>
-                <button id="btn-qso-close" class="btn-icon">×</button>
-            </div>
-            <div class="modal-body-split">
-                <div id="qso-list" class="qso-list-panel">
-                    <!-- QSO items will be injected here -->
-                    <div style="padding: 20px; text-align: center; color: #666;">Loading...</div>
-                </div>
-                <div class="qso-map-panel">
-                    <iframe id="qso-map-frame" src="map.html" frameborder="0"></iframe>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Station List Modal - Bottom Sheet Style -->
-    <div id="station-modal" class="station-modal-overlay">
-        <div class="station-modal-content">
-            <div class="station-modal-header">
-                <div class="station-drag-handle"></div>
-                <div class="station-modal-title">
-                    <span>STATIONS</span>
-                    <span id="st-count-modal">0</span>
-                </div>
-            </div>
-            <div id="st-list" class="station-list-modal">
-                <div class="station-item" style="grid-column: 1 / -1; justify-content: center; align-items: center; color: #666;">等待连接...点击顶部设置按钮设置IP</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Credits Modal -->
-    <div id="credits-modal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>致谢与贡献</h3>
-                <button id="btn-credits-close" class="btn-icon">×</button>
-            </div>
-            <div style="padding: 30px 20px; text-align: center; overflow-y: auto;">
-                <div class="brand" style="justify-content: center; font-size: 1.5rem; margin-bottom: 20px; color: var(--accent-cyan);">
-                    <span>FMO CONTROLLER</span>
-                </div>
-                <div id="credits-version" data-version="3.4" style="margin-bottom: 18px; color: var(--text-muted); font-size: 0.9rem;">v3.4</div>
-                
-                <div style="margin-bottom: 25px;">
-                    <h4 style="color: var(--accent-magenta); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block;">特别鸣谢</h4>
-                    <div style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 5px;">FMO老板娘、老板、FMO深度搜索1群全体FMOER</div>
- 
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <h4 style="color: var(--accent-green); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block;">Design & Development</h4>
-                    <div style="color: var(--text-main); margin-bottom: 5px;">BG5EIT</div>
-
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <h4 style="color: var(--accent-cyan); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block;">Open Source</h4>
-                    <div style="color: var(--text-main); margin-bottom: 8px;">
-                        <a href="https://github.com/niufox/fmo-mobile-controller" target="_blank" style="color: var(--accent-cyan); text-decoration: none; border-bottom: 1px dashed var(--accent-cyan);">GitHub Repo</a>
-                    </div>
-                    <div style="color: var(--text-main);">
-                        <a href="https://github.com/niufox/fmo-mobile-controller/blob/main/release/fmo-controller-debug.apk" target="_blank" style="color: var(--accent-magenta); text-decoration: none; border-bottom: 1px dashed var(--accent-magenta);">Download APK</a>
-                    </div>
-                </div>
-
-                <!-- Debug Section -->
-                <div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
-                    <button id="btn-show-debug" class="theme-btn" style="width: 100%; margin-bottom: 10px; background: rgba(255,255,255,0.05);">Show Debug Info</button>
-                    <div id="debug-container" style="display:none;">
-                        <div style="display:flex; justify-content:flex-end; margin-bottom:5px;">
-                            <button id="btn-copy-debug" class="theme-btn" style="padding:4px 10px; font-size:0.8rem;">Copy</button>
+                    linkCard.innerHTML = `
+                        <div class="link-icon">${link.icon}</div>
+                        <div class="link-content">
+                            <div class="link-title">${link.title}</div>
+                            <div class="link-desc">${link.desc}</div>
+                            <div class="link-author">作者: ${link.author}</div>
                         </div>
-                        <div id="debug-content" style="background:#111; color:#0f0; padding:10px; border-radius:4px; font-family:monospace; font-size:10px; text-align:left; max-height:200px; overflow:auto; white-space:pre-wrap; user-select:text;"></div>
-                    </div>
-                </div>
+                    `;
 
-                <div style="margin-top: 30px; font-size: 0.8rem; color: #666;">
-                    天下Ham是一家 ham爱好者的分享，请勿用于商业用途。
-                </div>
+                    linksGrid.appendChild(linkCard);
+                });
 
+                categorySection.appendChild(categoryTitle);
+                categorySection.appendChild(linksGrid);
+                container.appendChild(categorySection);
+            });
+        }
 
-                </div>
-            </div>
-        </div>
-    </div>
+        // Theme Management
+        class ThemeManager {
+            constructor() {
+                this.storageKey = 'fmo_theme_preference';
+                this.init();
+            }
 
-    <!-- Footer with GitHub and Call Sign -->
-    <footer style="position: fixed; bottom: 0; left: 0; right: 0; padding: 8px 15px; background: rgba(0,0,0,0.3); color: var(--text-muted); font-size: 0.75rem; display: flex; justify-content: flex-end; align-items: center; gap: 15px; backdrop-filter: blur(5px); z-index: 5;">
-        <a href="https://github.com/niufox/fmo-mobile-controller" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">GitHub</a>
-        <span style="color: #444;">|</span>
-        <span style="color: var(--text-main);">Designed by:</span>
-        <span style="color: var(--accent-magenta); font-weight: bold;">BG5EIT</span>
-        <span style="color: #444;">|</span>
-        <span style="opacity: 0.7;">v3.4</span>
-    </footer>
+            init() {
+                // Apply theme based on time or user preference
+                const savedTheme = localStorage.getItem(this.storageKey);
+                if (savedTheme) {
+                    this.setTheme(savedTheme);
+                } else {
+                    this.setAutoTheme();
+                }
+            }
 
-    <script type="module" src="js/core/app.js"></script>
+            setTheme(theme) {
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem(this.storageKey, theme);
+            }
+
+            setAutoTheme() {
+                const hour = new Date().getHours();
+                const isDayTime = hour >= 6 && hour < 18;
+                this.setTheme(isDayTime ? 'light' : 'dark');
+            }
+
+            toggleTheme() {
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                this.setTheme(newTheme);
+            }
+
+            checkAndAutoSwitch() {
+                // Only auto-switch if user hasn't set a preference
+                if (!localStorage.getItem(this.storageKey)) {
+                    this.setAutoTheme();
+                }
+            }
+        }
+
+        // Announcement Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize theme manager
+            const themeManager = new ThemeManager();
+
+            // Check theme every minute for automatic switching
+            setInterval(() => {
+                themeManager.checkAndAutoSwitch();
+            }, 60000);
+
+            // Theme toggle button
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            themeToggleBtn.addEventListener('click', () => {
+                themeManager.toggleTheme();
+            });
+
+            // Update button icon based on current theme
+            function updateThemeIcon() {
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+                themeToggleBtn.textContent = currentTheme === 'light' ? '🌙' : '☀️';
+            }
+
+            // Initial icon update
+            updateThemeIcon();
+
+            // Watch for theme changes
+            const observer = new MutationObserver(updateThemeIcon);
+            observer.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['data-theme']
+            });
+
+            const announcementBar = document.getElementById('announcementBar');
+            const closeBtn = document.getElementById('closeAnnouncement');
+            const announcementKey = 'fmo_announcement_closed_v1';
+
+            // Check if announcement was closed
+            if (localStorage.getItem(announcementKey) === 'true') {
+                announcementBar.classList.add('hidden');
+            }
+
+            // Close announcement handler
+            closeBtn.addEventListener('click', () => {
+                announcementBar.classList.add('hidden');
+                localStorage.setItem(announcementKey, 'true');
+            });
+
+            // Render friendly links
+            renderLinks();
+        });
+    </script>
+
 </body>
 </html>

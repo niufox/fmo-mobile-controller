@@ -8,6 +8,7 @@ let currentGridLayer = null;
 let qsoMarkersLayer = null;
 let qsoRectanglesLayer = null;
 let highlightedMarker = null;
+let gridLocationCache = new Map();
 
 // 网格解码算法 (6字符标准)
 function maidenheadDecode(grid) {
@@ -60,9 +61,20 @@ function maidenheadDecode(grid) {
     };
 }
 
-// 获取地理位置名称 (反向地理编码) - 已禁用以避免API错误
 async function resolveLocationName(lat, lon) {
-    return null;
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&zoom=12&addressdetails=1`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data || !data.address) return data?.display_name || null;
+    const addr = data.address;
+    const parts = [
+        addr.state || addr.region,
+        addr.city || addr.county || addr.state_district,
+        addr.town || addr.village || addr.suburb,
+        addr.road || addr.neighbourhood || addr.hamlet
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join('') : (data.display_name || null);
 }
 
 // 初始化地图
@@ -185,6 +197,35 @@ function locateGrid(grid) {
     setTimeout(() => {
         marker.openPopup();
     }, 500);
+    resolveLocationText(grid, data.center);
+}
+
+async function resolveLocationText(grid, center) {
+    if (!grid || !center) return;
+    if (gridLocationCache.has(grid)) {
+        window.parent.postMessage({
+            type: 'LOCATION_TEXT',
+            grid: grid,
+            text: gridLocationCache.get(grid)
+        }, '*');
+        return;
+    }
+    try {
+        const text = await resolveLocationName(center[0], center[1]);
+        const finalText = text || `网格 ${grid}`;
+        gridLocationCache.set(grid, finalText);
+        window.parent.postMessage({
+            type: 'LOCATION_TEXT',
+            grid: grid,
+            text: finalText
+        }, '*');
+    } catch (e) {
+        window.parent.postMessage({
+            type: 'LOCATION_TEXT',
+            grid: grid,
+            text: `网格 ${grid}`
+        }, '*');
+    }
 }
 
 // 显示所有QSO

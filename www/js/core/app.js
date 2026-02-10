@@ -21,22 +21,109 @@ document.addEventListener('DOMContentLoaded', () => {
     const ticker = new CallsignTicker('callsign-ticker', viz, qsoMgr);
     // Expose to window for Python injection
     window.ticker = ticker;
+    const stationLocationText = document.getElementById('station-location-text');
+    const gridLocationCache = new Map();
+    const gridLocationPending = new Set();
+
+    function maidenheadDecode(grid) {
+        if (!grid || grid.length < 4 || grid.length > 6) return null;
+        const upper = grid.toUpperCase();
+        const lonIdx = upper.charCodeAt(0) - 65;
+        const latIdx = upper.charCodeAt(1) - 65;
+        if (lonIdx < 0 || lonIdx > 17 || latIdx < 0 || latIdx > 17) return null;
+        let lon = -180 + lonIdx * 20;
+        let lat = -90 + latIdx * 10;
+        let lonSize = 20;
+        let latSize = 10;
+        if (upper.length >= 4) {
+            const lonNum = parseInt(upper[2], 10);
+            const latNum = parseInt(upper[3], 10);
+            if (Number.isNaN(lonNum) || Number.isNaN(latNum)) return null;
+            lon += lonNum * 2;
+            lat += latNum * 1;
+            lonSize = 2;
+            latSize = 1;
+        }
+        if (upper.length >= 6) {
+            const lonSub = upper.charCodeAt(4) - 65;
+            const latSub = upper.charCodeAt(5) - 65;
+            if (lonSub < 0 || lonSub > 23 || latSub < 0 || latSub > 23) return null;
+            lon += lonSub * (2 / 24);
+            lat += latSub * (1 / 24);
+            lonSize = 2 / 24;
+            latSize = 1 / 24;
+        }
+        return {
+            grid: upper,
+            center: [lat + latSize / 2, lon + lonSize / 2]
+        };
+    }
+
+    async function resolveLocationName(lat, lon) {
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&zoom=12&addressdetails=1&accept-language=zh-CN`;
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (!data || !data.address) return data?.display_name || null;
+        const addr = data.address;
+        const parts = [
+            addr.state || addr.region,
+            addr.city || addr.county || addr.state_district,
+            addr.town || addr.village || addr.suburb,
+            addr.road || addr.neighbourhood || addr.hamlet
+        ].filter(Boolean);
+        return parts.length > 0 ? parts.join('') : (data.display_name || null);
+    }
+
+    async function resolveGridLocation(callsign, grid) {
+        if (!stationLocationText) return;
+        const safeCallsign = callsign || '未知呼号';
+        if (!grid) {
+            stationLocationText.textContent = `${safeCallsign}：暂无位置信息`;
+            return;
+        }
+        if (gridLocationCache.has(grid)) {
+            stationLocationText.textContent = `${safeCallsign}：${gridLocationCache.get(grid)}`;
+            return;
+        }
+        if (gridLocationPending.has(grid)) return;
+        gridLocationPending.add(grid);
+        stationLocationText.textContent = `${safeCallsign}：定位中... ${grid}`;
+        const data = maidenheadDecode(grid);
+        if (!data) {
+            stationLocationText.textContent = `${safeCallsign}：网格 ${grid}`;
+            gridLocationPending.delete(grid);
+            return;
+        }
+        try {
+            const text = await resolveLocationName(data.center[0], data.center[1]);
+            const finalText = text || `网格 ${grid}`;
+            gridLocationCache.set(grid, finalText);
+            stationLocationText.textContent = `${safeCallsign}：${finalText}`;
+        } catch (e) {
+            stationLocationText.textContent = `${safeCallsign}：网格 ${grid}`;
+        } finally {
+            gridLocationPending.delete(grid);
+        }
+    }
 
     // Start Visualizer immediately (renders idle state until connected)
     viz.start();
 
     // 连接事件
-    events.onCallsignReceived((callsign) => {
+    events.onCallsignReceived((data) => {
+        const callsign = data && data.callsign ? data.callsign : data;
         ticker.addCallsign(callsign);
     });
 
-    events.onSpeakingStateChanged((callsign, isSpeaking, isHost) => {
+    events.onSpeakingStateChanged((callsign, isSpeaking, isHost, grid) => {
         // Debug Log for Speaking State
         console.log('[App] Speaking State Changed:', { callsign, isSpeaking, isHost });
 
         if (isSpeaking) {
             viz.setCallsign(callsign);
             player.setLocalTransmission(isHost);
+            resolveGridLocation(callsign, grid);
             
             // Trigger Missile Launch
             viz.triggerMissileLaunch(callsign);

@@ -1,13 +1,13 @@
 import { wsService } from './webSocketService.js';
 
-export class QsoService {
+export class UserInfoService {
   constructor(ws) {
-    if (QsoService.instance) return QsoService.instance;
+    if (UserInfoService.instance) return UserInfoService.instance;
     this.webSocketService = ws;
     this.listeners = new Map();
     this._busy = false;
     this._setup();
-    QsoService.instance = this;
+    UserInfoService.instance = this;
   }
 
   subscribe(event, cb) {
@@ -21,52 +21,36 @@ export class QsoService {
   }
 
   isBusy() { return this._busy; }
+  isConnected() { return !!this.webSocketService?.isConnected; }
 
-  getList(page = 0, pageSize = 8) {
+  getInfo() {
     if (this.isBusy()) return;
+    if (!this.isConnected()) return;
     this._busy = true;
-    this.webSocketService.send('qso', 'getList', { page, pageSize });
+    this.webSocketService.send('user', 'getInfo', {});
     setTimeout(() => {
       if (this._busy) {
         this._busy = false;
-        this._emit('getList', { status: 'timeout' });
-      }
-    }, 5000);
-  }
-
-  getDetail(logId) {
-    if (this.isBusy()) return;
-    this._busy = true;
-    this.webSocketService.send('qso', 'getDetail', { logId });
-    setTimeout(() => {
-      if (this._busy) {
-        this._busy = false;
-        this._emit('getDetail', { status: 'timeout' });
+        this._emit('getInfo', { status: 'timeout' });
       }
     }, 5000);
   }
 
   _setup() {
     this.webSocketService.subscribe('message', (message) => {
-      if (message.type !== 'qso') return;
+      if (message.type !== 'user') return;
       this._busy = false;
       switch (message.subType) {
-        case 'getListResponse':
-          this._emit('getList', {
+        case 'getInfoResponse':
+          this._emit('getInfo', {
             status: 'success',
-            list: (message.data?.list) || [],
-            page: message.data?.page ?? 0,
-            pageSize: message.data?.pageSize ?? 8,
-          });
-          break;
-        case 'getDetailResponse':
-          this._emit('getDetail', {
-            status: 'success',
-            log: message.data?.log || null,
+            callsign: message.data?.callsign || '',
+            uid: message.data?.uid ?? 0,
+            wlanIP: message.data?.wlanIP || '',
           });
           break;
         default:
-          console.warn('Unknown qso message', message);
+          console.warn('Unknown user message', message);
       }
     });
 
@@ -77,7 +61,7 @@ export class QsoService {
 }
 
 let instance = null;
-export function getQsoService() {
-  if (!instance) instance = new QsoService(wsService);
+export function getUserInfoService() {
+  if (!instance) instance = new UserInfoService(wsService);
   return instance;
 }

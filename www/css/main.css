@@ -948,8 +948,42 @@
             line-height: 1.4;
             display: flex;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
             box-sizing: border-box;
             overflow-wrap: anywhere;
+        }
+        .station-location-box .loc-callsign {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.08);
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .station-location-box .loc-sep {
+            color: var(--text-muted);
+        }
+        .station-location-box .loc-text {
+            color: #7CFF6B;
+            text-shadow: 0 0 6px rgba(124, 255, 107, 0.4);
+            font-weight: 600;
+        }
+        .station-location-box .loc-text.wait,
+        .station-location-box .loc-text.empty {
+            color: var(--text-muted);
+            text-shadow: none;
+            font-weight: 500;
+        }
+        .station-location-box .loc-text.error {
+            color: #ff6b6b;
+            text-shadow: 0 0 6px rgba(255, 107, 107, 0.4);
         }
 
         /* 设置面板 */

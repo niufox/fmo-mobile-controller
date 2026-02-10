@@ -25,6 +25,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const gridLocationCache = new Map();
     const gridLocationPending = new Set();
 
+    function escapeHtml(value) {
+        const text = value == null ? '' : String(value);
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function setLocationDisplay(callsign, location, state) {
+        if (!stationLocationText) return;
+        const safeCallsign = escapeHtml(callsign || '未知呼号');
+        const safeLocation = escapeHtml(location || '暂无位置信息');
+        const stateClass = state ? ` ${state}` : '';
+        stationLocationText.innerHTML = `<span class="loc-callsign">${safeCallsign}</span><span class="loc-sep">：</span><span class="loc-text${stateClass}">${safeLocation}</span>`;
+    }
+
+    if (stationLocationText) {
+        setLocationDisplay('—', '等待定位...', 'wait');
+    }
+
     function maidenheadDecode(grid) {
         if (!grid || grid.length < 4 || grid.length > 6) return null;
         const upper = grid.toUpperCase();
@@ -76,22 +98,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function resolveGridLocation(callsign, grid) {
-        if (!stationLocationText) return;
-        const safeCallsign = callsign || '未知呼号';
         if (!grid) {
-            stationLocationText.textContent = `${safeCallsign}：暂无位置信息`;
+            setLocationDisplay(callsign, '暂无位置信息', 'empty');
             return;
         }
         if (gridLocationCache.has(grid)) {
-            stationLocationText.textContent = `${safeCallsign}：${gridLocationCache.get(grid)}`;
+            setLocationDisplay(callsign, gridLocationCache.get(grid), 'ready');
             return;
         }
         if (gridLocationPending.has(grid)) return;
         gridLocationPending.add(grid);
-        stationLocationText.textContent = `${safeCallsign}：定位中... ${grid}`;
+        setLocationDisplay(callsign, `定位中... ${grid}`, 'wait');
         const data = maidenheadDecode(grid);
         if (!data) {
-            stationLocationText.textContent = `${safeCallsign}：网格 ${grid}`;
+            setLocationDisplay(callsign, `网格 ${grid}`, 'error');
             gridLocationPending.delete(grid);
             return;
         }
@@ -99,9 +119,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const text = await resolveLocationName(data.center[0], data.center[1]);
             const finalText = text || `网格 ${grid}`;
             gridLocationCache.set(grid, finalText);
-            stationLocationText.textContent = `${safeCallsign}：${finalText}`;
+            setLocationDisplay(callsign, finalText, 'ready');
         } catch (e) {
-            stationLocationText.textContent = `${safeCallsign}：网格 ${grid}`;
+            setLocationDisplay(callsign, `网格 ${grid}`, 'error');
         } finally {
             gridLocationPending.delete(grid);
         }

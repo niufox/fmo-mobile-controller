@@ -173,7 +173,7 @@ gltf-transform optimize northstar_fighter_ship_original.glb northstar_fighter_sh
 ## 文件结构
 
 ```
-modles/fighter/
+models/fighter/
 ├── northstar_fighter_ship.glb          # 主压缩模型 (995KB)
 ├── northstar_fighter_ship_low.glb      # 低质量备用 (449KB)
 └── northstar_fighter_ship_original.glb # 原始备份 (9.4MB)
@@ -187,7 +187,7 @@ modles/fighter/
 
 如需删除原始文件：
 ```bash
-rm modles/fighter/northstar_fighter_ship_original.glb
+rm models/fighter/northstar_fighter_ship_original.glb
 ```
 
 ## 未来优化方向

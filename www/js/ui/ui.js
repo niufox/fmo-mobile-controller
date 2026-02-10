@@ -3,7 +3,7 @@
  * 包含音量控制、呼号显示、设备历史、QSO日志等界面组件
  */
 
-import { Utils } from './utils.js';
+import { Utils } from '../utils/utils.js';
 
 /** 音量条控制器 */
 export class VolumeSlider {

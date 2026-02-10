@@ -11,7 +11,7 @@
 ### 修复方案
 
 #### 修改的文件
-**`js/ui.js` - QsoManager类**
+**`js/ui/ui.js` - QsoManager类**
 
 #### 具体修改
 

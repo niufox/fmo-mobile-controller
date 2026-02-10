@@ -1,4 +1,4 @@
-import { EventEmitter } from './utils.js';
+import { EventEmitter } from '../utils/utils.js';
 import { connectionManager } from './connectionManager.js';
 
 /** 音频播放器 (基于 api3.0/audioPlayer.js 改进) */

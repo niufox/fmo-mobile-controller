@@ -148,9 +148,9 @@
     </div>
 
     <script type="module">
-        import ModelConfig from './js/modules/model-config.js';
-        import { ModelDownloadManager } from './js/modules/model-download-manager.js';
-        import * as THREE from './node_modules/three/build/three.module.js';
+        import ModelConfig from '../js/modules/model-config.js';
+        import { ModelDownloadManager } from '../js/modules/model-download-manager.js';
+        import * as THREE from '../node_modules/three/build/three.module.js';
 
         window.testConfigValidation = function() {
             const resultDiv = document.getElementById('config-result');
@@ -186,7 +186,7 @@
             resultDiv.innerHTML = '<span class="loading">正在测试下载管理器...</span>';
 
             const manager = new ModelDownloadManager();
-            const modelUrl = 'modles/fighter/northstar_fighter_ship.glb';
+            const modelUrl = 'models/fighter/northstar_fighter_ship.glb';
 
             const startTime = Date.now();
             let lastProgress = 0;

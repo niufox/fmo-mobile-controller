@@ -1,4 +1,4 @@
-import { EventEmitter } from './utils.js';
+import { EventEmitter } from '../utils/utils.js';
 import { connectionManager } from './connectionManager.js';
 
 /** WebSocket 控制客户端 */

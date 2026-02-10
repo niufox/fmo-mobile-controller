@@ -2,12 +2,12 @@
  * FMO Audio Controller - Main Application
  */
 
-import './debug-capture.js'; // 优先加载日志捕获
-import { Utils } from './utils.js';
+import './debug-capture.js';
+import { Utils } from '../utils/utils.js';
 import { ControlClient, EventsClient, DiscoveryManager } from './network.js';
 import { AudioPlayer } from './audio.js';
-import { Visualizer } from './visualizer.js';
-import { VolumeSlider, CallsignTicker, DeviceManager, QsoManager } from './ui.js';
+import { Visualizer } from '../modules/visualizer/index.js';
+import { VolumeSlider, CallsignTicker, DeviceManager, QsoManager } from '../ui/ui.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- 应用逻辑 ---

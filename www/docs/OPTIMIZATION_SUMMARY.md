@@ -119,7 +119,7 @@ export const ModelConfig = {
 ```
 
 ### 测试验证
-打开 `test-model-loading.html` 进行功能测试：
+打开 `tests/test-model-loading.html` 进行功能测试：
 1. 配置验证测试
 2. 下载管理器测试
 3. 降级模型测试
@@ -145,7 +145,7 @@ wwwroot/
 ├── css/
 │   └── main.css (已修改)
 ├── index.html (已修改)
-└── test-model-loading.html (新增)
+└── tests/test-model-loading.html (新增)
 ```
 
 ### API接口

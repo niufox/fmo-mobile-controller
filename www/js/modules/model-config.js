@@ -6,7 +6,7 @@
 export const ModelConfig = {
     fighter: {
         // Base URL for model files
-        baseUrl: 'modles/fighter/',
+        baseUrl: 'models/fighter/',
 
         // Model file paths with different quality levels
         variants: {

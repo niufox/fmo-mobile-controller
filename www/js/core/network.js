@@ -444,7 +444,11 @@ export class EventsClient extends EventEmitter {
             
             await new Promise((resolve, reject) => {
                 try {
-                    this.ws = new WebSocket(`${(window.location && window.location.protocol === 'https:' ? 'wss' : 'ws')}://${host}/events`);
+                    let eventUrl = `${(window.location && window.location.protocol === 'https:' ? 'wss' : 'ws')}://${host}/events`;
+                    if (host.startsWith('ws://') || host.startsWith('wss://')) {
+                        eventUrl = `${host}/events`;
+                    }
+                    this.ws = new WebSocket(eventUrl);
                     // this.ws.binaryType = 'arraybuffer'; // Disabled to match remote.html implementation
                 } catch (err) {
                     connectionManager.reportHandshakeFailure(requestId);
